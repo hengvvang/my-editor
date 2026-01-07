@@ -8,11 +8,20 @@ import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { tags as t, styleTags } from "@lezer/highlight";
+import { tags as t, styleTags, Tag } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
 
 import "./styles.css";
 const appWindow = getCurrentWebviewWindow()
+
+// --- Custom Tags ---
+const customTags = {
+    listMark: Tag.define(),
+    quoteMark: Tag.define(),
+    codeBlockText: Tag.define(),
+    codeBlockInfo: Tag.define(),
+    taskMarker: Tag.define()
+};
 
 // --- Types ---
 interface FileEntry {
@@ -295,13 +304,16 @@ const hybridHighlightStyle = HighlightStyle.define([
 
     // Code
     { tag: t.monospace, class: 'cm-md-code' },
+    { tag: customTags.codeBlockText, class: 'cm-md-block-code' },
+    { tag: customTags.codeBlockInfo, class: 'cm-md-block-info' },
+    { tag: customTags.taskMarker, class: 'cm-md-task' },
 
     // Markdown Syntax Markers (The #, *, -, etc.)
     { tag: t.processingInstruction, class: 'cm-md-mark' },
 
     // Specific Overrides for structural markers we might want to keep visible or style differently
-    { tag: t.list, class: 'cm-md-list' }, // List bullets -, *, 1.
-    { tag: t.quote, class: 'cm-md-quote' }, // Blockquote >
+    { tag: customTags.listMark, class: 'cm-md-list' }, // List bullets -, *, 1.
+    { tag: customTags.quoteMark, class: 'cm-md-quote' }, // Blockquote >
     { tag: t.meta, class: 'cm-md-meta' }, // Misc meta info
     { tag: t.separator, class: 'cm-md-table-border' }, // Table |
     { tag: t.contentSeparator, class: 'cm-md-hr' }, // Horizontal Rule ---
@@ -320,15 +332,23 @@ const markdownExtensions = {
             "StrikethroughMark": t.processingInstruction,
             "CodeMark": t.processingInstruction,
 
-            // Broadly match all ListMarks first to ensure we catch them
-            "ListMark": t.list,
-            // Then specifically un-style Ordered List markers if we want them normal
-            // (Actually, applying t.list to OrderedList markers is fine, we just need to NOT hide them in CSS)
-            // But to separate them in CSS, we need different tags/classes.
-            // Let's us t.labelName for OrderedList to avoid the .cm-md-list class
+            // Differentiate Inline Code vs Block Code
+            "InlineCode": t.monospace,
+            "CodeText": customTags.codeBlockText,
+            "CodeInfo": customTags.codeBlockInfo,
+
+            // Task Lists
+            "TaskMarker": customTags.taskMarker,
+
+            // Specific override for Ordered List markers to avoid the .cm-md-list styling
+            // This MUST come before "ListMark" if the engine processes specifically
+            // (However, for safety, we used a different tag t.labelName above, so order is less critical, but let's be safe)
             "OrderedList/ListMark": t.labelName,
 
-            "QuoteMark": t.quote,
+            // Broadly match all (other) ListMarks
+            "ListMark": customTags.listMark,
+
+            "QuoteMark": customTags.quoteMark,
 
             // Block markers
             "HeaderMark": t.processingInstruction,

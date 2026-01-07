@@ -70,7 +70,86 @@
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-bold { font-weight: 700; color: #111827; }
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-italic { font-style: italic; }
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-link { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
-.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-code { font-family: 'Menlo', monospace; background-color: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 0.25rem; color: #db2777; font-size: 0.9em; }
+
+/* INLINE Code (like `code`) */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-code {
+    font-family: 'Menlo', monospace;
+    background-color: #f3f4f6;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    color: #db2777;
+    font-size: 0.9em;
+}
+
+/* BLOCK Code (Fenced Code Blocks) */
+/* Code Text inside block */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-block-code {
+    font-family: 'Menlo', monospace;
+    color: #1e293b; /* darker slate */
+    /* Note: We cannot easily background the whole block in CM without block widgets,
+       but we can style the text to look code-like without the inline-code badge look */
+}
+
+/* Make the whole line containing block code background colored?
+   No, .cm-md-block-code is a span.
+   Usually CodeMirror themes handle syntax highlighting here.
+   For "Preview" mode, we might just want it to look "plain" or "monospaced".
+*/
+
+/* Language Info (cpp, js) */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-block-info {
+    color: #94a3b8;
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+/* TASK LISTS: [ ] and [x] */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-task {
+    color: transparent !important;
+    position: relative;
+    display: inline-block;
+    width: 20px;
+    vertical-align: middle;
+}
+
+/* Unchecked [ ] */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-task::after {
+    content: "☐"; /* Box */
+    position: absolute;
+    left: 0; top: 0; width: 100%; height: 100%;
+    color: #64748b;
+    font-size: 1.25em;
+    font-weight: normal;
+    display: flex; /* Center alignment */
+    align-items: center;
+    line-height: 1;
+}
+
+/* Checked [x] - This is tricky.
+   lezer-markdown parses [x] as TaskMarker too.
+   The text content determines if checked.
+   CSS content cannot read text content easily without attr().
+   But CM doesn't put text in attr.
+
+   Workaround:
+   If we can't distinguish via class, we can't swap the icon purely by CSS class
+   UNLESS we have different tags for checked/unchecked.
+   Standard lezer-markdown uses "TaskMarker" for both.
+
+   So, simple fallback: Don't hide it completely, or accept that it looks same.
+   Actually, let's just style the text.
+
+   BETTER: Don't color:transparent the TaskMarker.
+   Just make it monospace and maybe colored.
+*/
+
+/* Revert TaskMarker transparency logic for safety, unless we write a plugin to add attributes */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-task {
+    color: #2563eb !important; /* blue */
+    font-family: monospace;
+    font-weight: bold;
+}
+
 
 /* HIDING Syntax Markers on Inactive Lines */
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-mark {
@@ -90,14 +169,11 @@
     display: inline-block;
     width: 20px; /* Fixed space for bullet */
     margin: 0; padding: 0;
-
-    /* 3. Ensure no inner text overrides invisibility */
-    visibility: hidden;
+    vertical-align: middle; /* Align with text */
 }
 
-/* Paint the bullet on the pseudo-element, forcing visibility */
+/* Paint the bullet on the pseudo-element */
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-list::after {
-    visibility: visible;
     content: "•";
 
     /* Absolute overlay on the "Ghost" box */
@@ -117,12 +193,12 @@
 /* QUOTE HANDLING: The "Ghost" Method */
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-quote {
     color: transparent !important;
-    visibility: hidden;
 
     position: relative;
     display: inline-block;
     width: 4px; /* Bar width */
     margin-right: 12px; /* Gap */
+    vertical-align: middle; /* Fix vertical alignment */
 
     /* Maintain height logic */
     line-height: inherit;
@@ -130,7 +206,6 @@
 }
 
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-quote::after {
-    visibility: visible;
     content: ""; /* No text */
 
     position: absolute;
