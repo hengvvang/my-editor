@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
-import { open, save } from "@tauri-apps/api/dialog";
-import { appWindow } from "@tauri-apps/api/window";
-import { FileText, Folder, FolderOpen, Save, ChevronRight, ChevronDown, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import DOMPurify from "dompurify";
+import { FileText, Folder, FolderOpen, Save, ChevronRight, ChevronDown, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
@@ -11,6 +12,7 @@ import { tags as t, styleTags } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
 
 import "./styles.css";
+const appWindow = getCurrentWebviewWindow()
 
 // --- Types ---
 interface FileEntry {
@@ -343,9 +345,26 @@ function App() {
     // const [editorInitialContent, setEditorInitialContent] = useState<string>("# Welcome\n\nOpen a folder to get started.");
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeSideTab, setActiveSideTab] = useState<'explorer' | 'search' | 'outline'>('explorer');
+    const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [outline, setOutline] = useState<{ level: number; text: string; line: number }[]>([]);
     const editorViewRef = React.useRef<EditorView | null>(null);
+
+    const [isSourceMode, setIsSourceMode] = useState(false);
+    const [previewType, setPreviewType] = useState<'smart' | 'full'>('smart'); // 'smart' = hybrid edit, 'full' = read only render
+    const [showSplitPreview, setShowSplitPreview] = useState(false);
+    const [htmlContent, setHtmlContent] = useState('');
+
+    useEffect(() => {
+        if (isSourceMode && showSplitPreview) {
+            const timer = setTimeout(() => {
+                invoke('render_markdown', { text: content }).then((html) => {
+                    setHtmlContent(DOMPurify.sanitize(html as string));
+                });
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [content, isSourceMode, showSplitPreview]);
 
     // Update outline
     useEffect(() => {
@@ -375,8 +394,6 @@ function App() {
         }
     };
 
-    const [isSourceMode, setIsSourceMode] = useState(false);
-    const [previewType, setPreviewType] = useState<'smart' | 'full'>('smart'); // 'smart' = hybrid edit, 'full' = read only render
     const [isVimMode, setIsVimMode] = useState(false);
     const [showLineNumbers, setShowLineNumbers] = useState(true);
     const [showMinimap, setShowMinimap] = useState(true);
@@ -782,6 +799,18 @@ function App() {
                             <span className="hidden sm:inline">{isSourceMode ? "Preview" : "Source"}</span>
                         </button>
 
+                        {/* Sub-mode Toggle for Source: Split View */}
+                        {isSourceMode && (
+                            <button
+                                onClick={() => setShowSplitPreview(!showSplitPreview)}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${showSplitPreview ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100/50 text-gray-500'}`}
+                                title="Toggle Split Preview"
+                            >
+                                <Columns size={16} />
+                                <span className="hidden sm:inline">Split</span>
+                            </button>
+                        )}
+
                         {/* Sub-mode Toggle for Preview */}
                         {!isSourceMode && (
                             <button
@@ -839,7 +868,13 @@ function App() {
                                 <Minus size={16} />
                             </button>
                             <button
-                                onClick={() => appWindow.toggleMaximize()}
+                                onClick={async () => {
+                                    if (await appWindow.isMaximized()) {
+                                        await appWindow.unmaximize();
+                                    } else {
+                                        await appWindow.maximize();
+                                    }
+                                }}
                                 className="p-2 hover:bg-gray-200/50 rounded-md transition-colors"
                                 title="Maximize"
                             >
@@ -902,10 +937,10 @@ function App() {
                     <div className="flex min-h-full">
                         {/* Main Editor Area */}
                         <div className="flex-1">
-                            {/* Unified container for both modes to ensure consistent size */}
+                            {/* Simplified container for both modes to ensure consistent size */}
                             {/* Scaled up for larger editing area while maintaining readable margins */}
-                            <div className="w-full max-w-[1400px] mx-auto min-h-full px-10 py-8">
-                                <div className={`h-full relative ${!isSourceMode ? `preview-mode-cm ${previewType === 'full' ? 'preview-mode-full' : ''}` : ""}`}>
+                            <div className={`mx-auto min-h-full py-8 transition-all duration-300 ${isSourceMode && showSplitPreview ? 'w-full px-4 flex gap-6' : 'w-full max-w-[1400px] px-10'}`}>
+                                <div className={`${isSourceMode && showSplitPreview ? 'w-1/2' : 'w-full'} h-full relative ${!isSourceMode ? `preview-mode-cm ${previewType === 'full' ? 'preview-mode-full' : ''}` : ""}`}>
                                     <CodeMirror
                                         value={content}
                                         height="100%"
@@ -927,6 +962,14 @@ function App() {
                                         }}
                                     />
                                 </div>
+                                {isSourceMode && showSplitPreview && (
+                                    <div className="w-1/2 h-full overflow-y-auto pl-2 border-l border-gray-100">
+                                        <div
+                                            className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600"
+                                            dangerouslySetInnerHTML={{ __html: htmlContent }}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -1,3 +1,4 @@
+use comrak::{markdown_to_html, ComrakOptions};
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -55,12 +56,35 @@ fn read_content(path: String) -> Result<String, String> {
     fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn render_markdown(text: String) -> String {
+    let mut options = ComrakOptions::default();
+
+    // Enable extensions to match or exceed pulldown-cmark
+    options.extension.strikethrough = true;
+    options.extension.table = true;
+    options.extension.tasklist = true;
+    options.extension.footnotes = true;
+    options.extension.autolink = true;
+    options.extension.description_lists = true;
+    options.extension.superscript = true;
+
+    // Allow raw HTML (sanitized by frontend DOMPurify)
+    options.render.unsafe_ = true;
+
+    markdown_to_html(&text, &options)
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             save_content,
             read_content,
-            read_dir
+            read_dir,
+            render_markdown
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

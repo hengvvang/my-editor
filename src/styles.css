@@ -164,7 +164,6 @@
     color: #94a3b8;
 }
 
-*/
 .preview-mode-cm .cm-activeLine {
     background-color: transparent !important; /* Remove default active line bg if desired, or keep generic one */
     font-family: 'Menlo', 'Consolas', monospace; /* Switch to monospace for editing */
