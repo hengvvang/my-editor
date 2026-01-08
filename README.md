@@ -1,13 +1,14 @@
 # MarkEditor
 
-A modern, high-performance hybrid editor for **Markdown**, **Typst**, and **Mermaid** built with efficiency and aesthetics in mind.
+A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid**, and **LaTeX** built with efficiency and aesthetics in mind.
 
 ![Editor Screenshot](https://via.placeholder.com/800x450?text=MarkEditor+Preview)
 
 ## 🚀 Key Features
 
 ### ✍️ Hybrid Editing Experience
-*   **Visual Mode**: A distraction-free, WYSIWYG-like writing environment (smartly renders Markdown while you write).
+*   **Visual Mode**: A distraction-free, WYSIWYG-like writing environment.
+    *   *Now supports*: **Live LaTeX Math** rendering inside the editor (Auto-fold `$code$` to $\LaTeX$ symbol).
 *   **Code Mode**: Full-control source editing with syntax highlighting.
 *   **Split View**: Resizable side-by-side editor and live preview.
     *   *New*: Ergonomic resize handle that works regardless of window size or layout complexity.
@@ -20,6 +21,9 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, and **Merm
 ### ⚡ Power User Tools
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
+*   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
+*   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
+*   **Minimap**: Visual overview of your document with active line and selection indicators.
 *   **Outline View**: Auto-generated table of contents for quick navigation.
 
 ## 🛠️ Tech Stack

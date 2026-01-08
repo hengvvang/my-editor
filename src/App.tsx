@@ -11,6 +11,8 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t, styleTags, Tag } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
 import mermaid from "mermaid"; // Import mermaid
+import renderMathInElement from "katex/dist/contrib/auto-render"; // Import katex auto-render
+import { latexLivePreview } from "./codemirror-latex";
 
 import "./styles.css";
 const appWindow = getCurrentWebviewWindow()
@@ -402,19 +404,27 @@ function App() {
     }, []);
 
     // Determine current document type based on extension
-    const getDocType = (path: string | null): 'markdown' | 'typst' | 'mermaid' | 'text' => {
+    const getDocType = (path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'text' => {
         if (!path) return 'text';
         if (path.endsWith('.typ')) return 'typst';
         if (path.endsWith('.md')) return 'markdown';
         if (path.endsWith('.mmd') || path.endsWith('.mermaid')) return 'mermaid';
+        if (path.endsWith('.tex') || path.endsWith('.latex')) return 'latex';
         return 'text';
     };
 
     const docType = getDocType(currentFile);
 
-    // Auto-enable split preview for Typst and Mermaid
+    // Auto-enable split preview for Typst and Mermaid and Latex
     useEffect(() => {
-        if (docType === 'typst' || docType === 'mermaid') {
+        if (docType === 'typst' || docType === 'mermaid') { // Removed 'latex' from auto-forcing source mode
+            setIsSourceMode(true);
+            setShowSplitPreview(true);
+        } else if (docType === 'latex') {
+            // For LaTeX, default to Code mode (Source + KaTeX Preview) initially as requested before,
+            // BUT now the user wants to be able to use Live mode.
+            // If we force true, they have to click back.
+            // To support "default to code mode" but allow toggle:
             setIsSourceMode(true);
             setShowSplitPreview(true);
         } else if (docType === 'markdown') {
@@ -422,6 +432,42 @@ function App() {
             // setIsSourceMode(false); // Maybe?
         }
     }, [docType]);
+
+    // Latex Rendering Effect
+    // Since we want to render Latex from the raw content which is NOT HTML, and katex.renderToString expects latex code.
+    // However, the "auto-render" extension scans HTML elements for delimiters like $...$ or $$...$$
+    // If the file is pure latex, we might want to wrap the whole content in a div and let auto-render handle it
+    // Or if it is a .tex file, the content IS the latex source.
+    // Let's assume for .tex files, we treat the whole content as something that might contain math, but usually .tex files are FULL of math.
+    // But renderMathInElement is designed for mixed content (text + math).
+    // For a pure .tex file preview, it's tricky because .tex has a lot of macros that KaTeX might not support.
+    // But assuming the user wants to see the math rendered:
+    useEffect(() => {
+        if (docType === 'latex' && content) {
+            const timer = setTimeout(() => {
+                const previewContainer = document.getElementById('latex-preview-container');
+                if (previewContainer) {
+                    // Update content: Use textContent to rely on CSS whitespace-pre-wrap for lines
+                    // This ensures text nodes are continuous for KaTeX to find match delimiters
+                    previewContainer.textContent = content;
+                    try {
+                        renderMathInElement(previewContainer, {
+                            delimiters: [
+                                { left: "$$", right: "$$", display: true },
+                                { left: "$", right: "$", display: false },
+                                { left: "\\(", right: "\\)", display: false },
+                                { left: "\\[", right: "\\]", display: true }
+                            ],
+                            throwOnError: false
+                        });
+                    } catch (e) {
+                        console.error("KaTeX rendering error:", e);
+                    }
+                }
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [content, docType]);
 
     // Mermaid Rendering Effect
     useEffect(() => {
@@ -1085,6 +1131,8 @@ function App() {
                                         extensions={[
                                             markdownLang({ extensions: [markdownExtensions] }), // Apply custom extension
                                             ...(isVimMode ? [vim({ status: true })] : []),
+                                            ...(docType === 'latex' ? [latexLivePreview()] : []), // Apply LaTeX Live Preview
+                                            // Apply hybrid theme ONLY in Visual Mode (not source mode)
                                             ...(!isSourceMode ? [hybridTheme, EditorView.lineWrapping] : [])
                                         ]}
                                         onChange={(value) => setContent(value)}
@@ -1127,6 +1175,11 @@ function App() {
                                             <div
                                                 className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto"
                                                 dangerouslySetInnerHTML={{ __html: mermaidSvg }}
+                                            />
+                                        ) : docType === 'latex' ? (
+                                            <div
+                                                id="latex-preview-container"
+                                                className="latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed"
                                             />
                                         ) : (
                                             <div
