@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import DOMPurify from "dompurify";
 import { FileText, Folder, FolderOpen, Save, ChevronRight, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
@@ -560,6 +561,20 @@ function App() {
     const [splitRatio, setSplitRatio] = useState(0.5);
     const mainContentRef = React.useRef<HTMLDivElement>(null);
 
+    // Dynamic Window Resize Constraint
+    useEffect(() => {
+        const updateMinSize = async () => {
+            // Enforce min height to be at least the title bar height
+            // We set a reasonable min width (e.g. 300) to avoid layout breaking
+            try {
+                await appWindow.setMinSize(new LogicalSize(300, titleBarHeight));
+            } catch (e) {
+                console.error("Failed to set min window size", e);
+            }
+        };
+        updateMinSize();
+    }, [titleBarHeight]);
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!resizingTarget) return;
@@ -945,7 +960,7 @@ function App() {
 
                 {/* Title Bar (Function Bar) */}
                 <div
-                    className={`shrink-0 border-b flex items-center px-4 gap-3 bg-white z-20 relative transition-colors overflow-hidden ${scrolled ? 'border-slate-200 shadow-sm' : 'border-slate-100'}`}
+                    className={`shrink-0 border-b flex items-center px-4 gap-3 bg-white z-20 relative transition-colors overflow-hidden pr-32 ${scrolled ? 'border-slate-200 shadow-sm' : 'border-slate-100'}`}
                     style={{ height: `${titleBarHeight}px` }}
                 >
                     <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded text-slate-500 mr-2 shrink-0 z-30 transition-colors">
@@ -953,120 +968,128 @@ function App() {
                     </button>
 
                     {/* Title or Breadcrumbs - ACTS AS DRAG REGION */}
-                    <div className="flex-1 overflow-hidden h-full flex items-center" data-tauri-drag-region>
-                        <div className="font-medium text-slate-700 truncate max-w-[400px] pointer-events-none select-none text-sm" data-tauri-drag-region>
+                    <div className="flex-1 overflow-hidden h-full flex items-center min-w-0" data-tauri-drag-region>
+                        <div className="font-semibold text-slate-700 truncate max-w-full pointer-events-none select-none opacity-80 decoration-slate-900 pr-4" data-tauri-drag-region>
                             {currentFile ? currentFile.split(/[\\/]/).pop() : "Untitled"}
                         </div>
                     </div>
 
-                    <div className="ml-auto flex items-center gap-2 z-30">
-                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                            <button
-                                onClick={() => setIsSourceMode(true)}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${isSourceMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-                                title="Edit Markdown Source"
-                            >
-                                <Code size={14} />
-                                <span className="hidden sm:inline">Code</span>
-                            </button>
+                    {/* Right Toolbar - Functional Groups - Pushed to right, will overlay content if needed via background */}
+                    <div className="flex items-center gap-2 z-40 shrink-0 bg-white/90 backdrop-blur pl-2 shadow-[-12px_0_12px_-8px_rgba(0,0,0,0.1)] h-full ml-auto">
+
+                        {/* Group 1: Editor Modes */}
+                        <div className="flex bg-slate-100 p-0.5 rounded-lg shrink-0 border border-slate-200">
                             <button
                                 onClick={() => setIsSourceMode(false)}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${!isSourceMode ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-                                title="Visual Edit Mode"
+                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${!isSourceMode ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                title="Visual Mode"
                             >
-                                <Eye size={14} />
-                                <span className="hidden sm:inline">Visual</span>
+                                <Eye size={13} />
+                                <span className="hidden 2xl:inline">Visual</span>
+                            </button>
+                            <button
+                                onClick={() => setIsSourceMode(true)}
+                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${isSourceMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                title="Code Mode"
+                            >
+                                <Code size={13} />
+                                <span className="hidden 2xl:inline">Code</span>
                             </button>
                         </div>
 
-                        {/* Sub-mode Toggle for Source: Split View */}
-                        {isSourceMode && (
+                        <div className="w-[1px] h-5 bg-slate-200 mx-1"></div>
+
+                        {/* Group 2: View Options */}
+                        <div className="flex items-center gap-1">
+                            {isSourceMode && (
+                                <button
+                                    onClick={() => setShowSplitPreview(!showSplitPreview)}
+                                    className={`p-1.5 rounded-md transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+                                    title="Toggle Split View"
+                                >
+                                    <Columns size={16} />
+                                </button>
+                            )}
+                            {/* Sub-mode Toggle for Preview (Visual Mode) */}
+                            {!isSourceMode && (
+                                <button
+                                    onClick={() => setPreviewType(prev => prev === 'smart' ? 'full' : 'smart')}
+                                    className={`p-1.5 rounded-md transition-all ${previewType === 'smart' ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+                                    title={previewType === 'smart' ? "Smart Mode: Edit active line source" : "Full Preview: Always rendered"}
+                                >
+                                    {previewType === 'smart' ? <TextCursorInput size={16} /> : <BookOpen size={16} />}
+                                </button>
+                            )}
+
                             <button
-                                onClick={() => setShowSplitPreview(!showSplitPreview)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-500'}`}
-                                title="Toggle Split Preview"
+                                onClick={() => setShowLineNumbers(!showLineNumbers)}
+                                className={`p-1.5 rounded-md transition-all ${showLineNumbers ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+                                title="Toggle Line Numbers"
                             >
-                                <Columns size={16} />
-                                <span className="hidden sm:inline">Split</span>
+                                <ListOrdered size={16} />
                             </button>
-                        )}
-
-                        {/* Sub-mode Toggle for Preview */}
-                        {!isSourceMode && (
                             <button
-                                onClick={() => setPreviewType(prev => prev === 'smart' ? 'full' : 'smart')}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:bg-slate-100 text-slate-500"
-                                title={previewType === 'smart' ? "Smart Mode: Edit active line source" : "Full Preview: Always rendered"}
+                                onClick={() => setShowMinimap(!showMinimap)}
+                                className={`p-1.5 rounded-md transition-all ${showMinimap ? 'bg-purple-50 text-purple-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+                                title="Toggle Minimap"
                             >
-                                {previewType === 'smart' ? <TextCursorInput size={16} /> : <BookOpen size={16} />}
-                                <span className="hidden sm:inline">{previewType === 'smart' ? "Smart" : "Full"}</span>
+                                <MapIcon size={16} />
                             </button>
-                        )}
+                        </div>
 
-                        {/* Line Numbers Toggle */}
-                        <button
-                            onClick={() => setShowLineNumbers(!showLineNumbers)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showLineNumbers ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-500'}`}
-                            title="Toggle Line Numbers"
-                        >
-                            <ListOrdered size={16} />
-                        </button>
+                        <div className="w-[1px] h-5 bg-slate-200 mx-1"></div>
 
-                        {/* Minimap Toggle */}
-                        <button
-                            onClick={() => setShowMinimap(!showMinimap)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showMinimap ? 'bg-purple-50 text-purple-600' : 'hover:bg-slate-100 text-slate-500'}`}
-                            title="Toggle Minimap"
-                        >
-                            <MapIcon size={16} />
-                        </button>
+                        {/* Group 3: Primary Actions */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsVimMode(!isVimMode)}
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all border ${isVimMode ? 'bg-green-50 text-green-700 border-green-200' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                                title="Toggle Vim Mode"
+                            >
+                                <Keyboard size={14} />
+                                <span className="hidden xl:inline">Vim</span>
+                            </button>
 
-                        <button
-                            onClick={() => setIsVimMode(!isVimMode)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${isVimMode ? 'bg-green-50 text-green-600' : 'hover:bg-slate-100 text-slate-500'}`}
-                            title="Toggle Vim Mode"
-                        >
-                            <Keyboard size={16} />
-                            <span className="hidden sm:inline">Vim</span>
-                        </button>
+                            <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 text-white hover:bg-slate-700 rounded-md text-xs font-bold transition-all shadow-sm active:translate-y-px">
+                                <Save size={14} />
+                                <span className="hidden sm:inline">Save</span>
+                            </button>
+                        </div>
+                    </div>
 
-                        <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
-
-                        <button onClick={handleSave} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white hover:bg-slate-700 rounded-md text-xs font-medium transition-all shadow-sm">
-                            <Save size={14} />
-                            <span>Save</span>
-                        </button>
-
-                        {/* Window Controls */}
+                    {/* Window Controls - Fixed Positioned - Fixed Z-Index Problem */}
+                    {/* Changed from absolute to fixed to ensure it stays on top of Sidebar when window is narrow */}
+                    <div
+                        className="fixed top-0 right-0 flex items-center pr-2 pl-4 gap-1 text-slate-400 z-[9999] bg-white/80 backdrop-blur-sm transition-all"
+                        style={{ height: `${titleBarHeight}px` }}
+                    >
                         <div className="h-4 w-[1px] bg-slate-200 mx-2"></div>
-                        <div className="flex items-center gap-1 -mr-2 text-slate-400">
-                            <button
-                                onClick={() => appWindow.minimize()}
-                                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
-                                title="Minimize"
-                            >
-                                <Minus size={16} />
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    if (await appWindow.isMaximized()) {
-                                        await appWindow.unmaximize();
-                                    } else {
-                                        await appWindow.maximize();
-                                    }
-                                }}
-                                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
-                                title="Maximize"
-                            >
-                                <Square size={14} />
-                            </button>
-                            <button
-                                onClick={() => appWindow.close()}
-                                className="p-2 hover:bg-red-500 hover:text-white rounded-md transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => appWindow.minimize()}
+                            className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                            title="Minimize"
+                        >
+                            <Minus size={16} />
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (await appWindow.isMaximized()) {
+                                    await appWindow.unmaximize();
+                                } else {
+                                    await appWindow.maximize();
+                                }
+                            }}
+                            className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                            title="Maximize"
+                        >
+                            <Square size={14} />
+                        </button>
+                        <button
+                            onClick={() => appWindow.close()}
+                            className="p-2 hover:bg-red-500 hover:text-white rounded-md transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
                     </div>
 
                     {/* Title Bar Resizer */}

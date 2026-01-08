@@ -14,6 +14,8 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *New*: Ergonomic resize handle that works regardless of window size or layout complexity.
 
 ### 🎨 Modern & Flexible UI
+*   **Ergonomic Window Controls**: VS Code-style window controls that stay accessible and visible regardless of window size.
+*   **Dynamic Resizing Constraints**: Smart window management that prevents layout breaking by enforcing minimum dimensions based on UI elements.
 *   **Resizable Panes**: Customize the width of the Sidebar, Activity Bar, and Split Views to your liking.
 *   **Tab System**: Multi-tab support to work on multiple files simultaneously.
 *   **Smart Layout**: Minimap, Editor, and Preview panes automatically adjust to viewport changes, ensuring nothing is ever hidden off-screen.
