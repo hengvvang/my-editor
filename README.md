@@ -14,11 +14,12 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *New*: Ergonomic resize handle that works regardless of window size or layout complexity.
 
 ### 🎨 Modern & Flexible UI
+*   **Smart Split Groups**: Create multiple editor groups with drag-and-drop resizing. Each group is assigned a unique, cycling color theme (Blue, Teal, Indigo, Violet, etc.) for effortless visual orientation.
+*   **Immersive Toolbars**: Editor controls (Lock, Split, Preview) feature a glass-morphism effect, blending seamlessly into the interface until hovered.
+*   **Structural Sidebar**: A vertically organized sidebar integrating **Explorer**, **Search**, and **Outline** panels for quick access to project resources without clutter.
 *   **Ergonomic Window Controls**: VS Code-style window controls that stay accessible and visible regardless of window size.
 *   **Interactive Breadcrumbs**: VS Code-style file path navigation bar with dropdowns for quick browsing and navigating sibling files.
 *   **Dynamic Resizing Constraints**: Smart window management that prevents layout breaking by enforcing minimum dimensions based on UI elements.
-*   **Resizable Panes**: Customize the width of the Sidebar, Activity Bar, and Split Views to your liking.
-*   **Tab System**: Multi-tab support to work on multiple files simultaneously.
 *   **Smart Layout**: Minimap, Editor, and Preview panes automatically adjust to viewport changes, ensuring nothing is ever hidden off-screen.
 
 ### ⚡ Power User Tools

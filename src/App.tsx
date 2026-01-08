@@ -1,524 +1,79 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { LogicalSize } from "@tauri-apps/api/dpi";
-import DOMPurify from "dompurify";
-import { FileText, Folder, FolderOpen, Save, ChevronRight, ChevronDown, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
-import CodeMirror from '@uiw/react-codemirror';
-import { markdown as markdownLang } from '@codemirror/lang-markdown';
-import { vim } from "@replit/codemirror-vim";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { tags as t, styleTags, Tag } from "@lezer/highlight";
-import { EditorView } from "@codemirror/view";
-import mermaid from "mermaid"; // Import mermaid
-import renderMathInElement from "katex/dist/contrib/auto-render"; // Import katex auto-render
-import { latexLivePreview } from "./codemirror-latex";
+import { Menu, Minus, Square, X } from "lucide-react";
 
+import { EditorGroup } from "./components/EditorGroup";
+import { Sidebar } from "./components/Sidebar";
+import { Tab, FileEntry } from "./types";
 import "./styles.css";
+
 const appWindow = getCurrentWebviewWindow()
 
-// --- Custom Tags ---
-const customTags = {
-    listMark: Tag.define(),
-    quoteMark: Tag.define(),
-    codeBlockText: Tag.define(),
-    codeBlockInfo: Tag.define(),
-    taskMarker: Tag.define()
-};
-
-// --- Types ---
-interface FileEntry {
-    name: string;
-    path: string;
-    is_dir: boolean;
-}
-
-interface Tab {
+// --- Data Models ---
+interface DocState {
     path: string;
     name: string;
     content: string;
     originalContent: string;
     isDirty: boolean;
-    scrollPos?: number;
 }
 
-// --- Components ---
-
-const SidebarItem = ({
-    entry,
-    level,
-    onSelect,
-    currentPath
-}: {
-    entry: FileEntry,
-    level: number,
-    onSelect: (entry: FileEntry) => void,
-    currentPath: string | null
-}) => {
-    const [expanded, setExpanded] = useState(false);
-    const [children, setChildren] = useState<FileEntry[]>([]);
-
-    const handleExpand = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!entry.is_dir) return;
-
-        if (!expanded) {
-            try {
-                const files = await invoke<FileEntry[]>("read_dir", { path: entry.path });
-                // Sort folders first
-                files.sort((a, b) => {
-                    if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
-                    return a.is_dir ? -1 : 1;
-                });
-                setChildren(files);
-            } catch (err) {
-                console.error("Failed to read dir", err);
-            }
-        }
-        setExpanded(!expanded);
-    }
-
-    const isSelected = !entry.is_dir && currentPath === entry.path;
-
-    return (
-        <div>
-            <div
-                className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'bg-blue-50/50 border-blue-500 text-blue-700 font-medium' : 'border-transparent hover:bg-slate-100 text-slate-600'}`}
-                style={{ paddingLeft: `${level * 12 + 12}px` }}
-                onClick={() => entry.is_dir ? handleExpand({ stopPropagation: () => { } } as any) : onSelect(entry)}
-            >
-                <span className={`shrink-0 flex items-center justify-center w-4 h-4 transition-transform duration-200 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
-                    onClick={(e) => {
-                        if (entry.is_dir) handleExpand(e);
-                    }}
-                >
-                    {entry.is_dir && <ChevronRight size={12} className="text-slate-400 group-hover:text-slate-600" />}
-                </span>
-
-                {entry.is_dir ? (
-                    <Folder size={14} className={`shrink-0 ${expanded ? 'text-blue-500' : 'text-blue-400/80 group-hover:text-blue-500'}`} />
-                ) : (
-                    <FileText size={14} className={`shrink-0 ${isSelected ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-500'}`} />
-                )}
-                <span className="truncate flex-1 pt-0.5">{entry.name}</span>
-            </div>
-            {expanded && children.map(child => (
-                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} currentPath={currentPath} />
-            ))}
-        </div>
-    );
-};
-
-// --- Minimap Component ---
-const MinimapView: React.FC<{ content: string; scrollContainerId: string }> = ({ content, scrollContainerId }) => {
-    const canvasRef = React.useRef<HTMLCanvasElement>(null);
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const [viewportBox, setViewportBox] = React.useState({ top: 0, height: 100 });
-    const [isDragging, setIsDragging] = React.useState(false);
-    const dragStartRef = React.useRef({ y: 0, scrollTop: 0 });
-    const [highlightInfo, setHighlightInfo] = React.useState<{ activeLine: number; selection: { from: number; to: number } | null }>({
-        activeLine: -1,
-        selection: null
-    });
-
-    // Poll editor state for active line and selection
-    React.useEffect(() => {
-        const pollInterval = setInterval(() => {
-            const editorElement = document.querySelector('.cm-editor');
-            if (!editorElement) return;
-
-            // Get active line
-            const activeLine = editorElement.querySelector('.cm-activeLine');
-            if (activeLine) {
-                const allLines = Array.from(editorElement.querySelectorAll('.cm-line'));
-                const activeLineIndex = allLines.indexOf(activeLine as Element);
-
-                // Get selection info from DOM
-                const selection = window.getSelection();
-                let selectionInfo = null;
-
-                if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-                    const range = selection.getRangeAt(0);
-                    const startLine = allLines.findIndex(line => line.contains(range.startContainer));
-                    const endLine = allLines.findIndex(line => line.contains(range.endContainer));
-
-                    if (startLine !== -1 && endLine !== -1) {
-                        selectionInfo = { from: startLine, to: endLine };
-                    }
-                }
-
-                setHighlightInfo({
-                    activeLine: activeLineIndex,
-                    selection: selectionInfo
-                });
-            }
-        }, 100);
-
-        return () => clearInterval(pollInterval);
-    }, []);
-
-    // Render minimap content
-    React.useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const dpr = window.devicePixelRatio || 1;
-        const width = 120;
-        const height = containerRef.current?.clientHeight || 600;
-
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
-        ctx.scale(dpr, dpr);
-
-        // Clear canvas
-        ctx.fillStyle = '#fafafa';
-        ctx.fillRect(0, 0, width, height);
-
-        // Draw content - simplified text representation
-        const lines = content.split('\n');
-        const lineHeight = 2; // Very small line height for minimap
-        const fontSize = 2; // Tiny font size
-        const leftMargin = 8; // Match editor left margin proportionally
-
-        ctx.font = `${fontSize}px monospace`;
-
-        lines.forEach((line, index) => {
-            const y = index * lineHeight;
-            if (y > height) return;
-
-            // Draw selection highlight (yellow background)
-            if (highlightInfo.selection && index >= highlightInfo.selection.from && index <= highlightInfo.selection.to) {
-                ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'; // amber-400 with transparency
-                ctx.fillRect(0, y, width, lineHeight);
-            }
-
-            // Draw active line highlight (blue background) - renders on top of selection
-            if (index === highlightInfo.activeLine) {
-                ctx.fillStyle = 'rgba(96, 165, 250, 0.25)'; // blue-400 with transparency
-                ctx.fillRect(0, y, width, lineHeight);
-            }
-
-            // Draw a simplified representation - just colored blocks for non-empty lines
-            if (line.trim().length > 0) {
-                // Different colors for headings
-                if (line.startsWith('#')) {
-                    ctx.fillStyle = '#1e40af'; // Blue for headings
-                    ctx.fillRect(leftMargin, y, Math.min(line.length * 0.8, width - leftMargin * 2), lineHeight - 0.5);
-                } else {
-                    ctx.fillStyle = '#64748b'; // Gray for normal text
-                    ctx.fillRect(leftMargin, y, Math.min(line.length * 0.6, width - leftMargin * 2), lineHeight - 0.5);
-                }
-            }
-        });
-    }, [content, highlightInfo]);
-
-    // Update viewport box on scroll
-    React.useEffect(() => {
-        const scrollContainer = document.getElementById(scrollContainerId);
-        if (!scrollContainer || !containerRef.current) return;
-
-        const updateViewport = () => {
-            const containerHeight = containerRef.current?.clientHeight || 600;
-            const scrollHeight = scrollContainer.scrollHeight;
-            const scrollTop = scrollContainer.scrollTop;
-            const clientHeight = scrollContainer.clientHeight;
-
-            const ratio = containerHeight / scrollHeight;
-            const top = scrollTop * ratio;
-            const height = clientHeight * ratio;
-
-            setViewportBox({ top, height: Math.max(height, 20) });
-        };
-
-        updateViewport();
-        scrollContainer.addEventListener('scroll', updateViewport);
-        window.addEventListener('resize', updateViewport);
-
-        return () => {
-            scrollContainer.removeEventListener('scroll', updateViewport);
-            window.removeEventListener('resize', updateViewport);
-        };
-    }, [scrollContainerId]);
-
-    // Handle minimap drag
-    const handleMouseDown = (e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-
-        const scrollContainer = document.getElementById(scrollContainerId);
-        if (!scrollContainer) return;
-
-        dragStartRef.current = {
-            y: e.clientY,
-            scrollTop: scrollContainer.scrollTop
-        };
-    };
-
-    React.useEffect(() => {
-        if (!isDragging) return;
-
-        const handleMouseMove = (e: MouseEvent) => {
-            const scrollContainer = document.getElementById(scrollContainerId);
-            const container = containerRef.current;
-            if (!scrollContainer || !container) return;
-
-            const deltaY = e.clientY - dragStartRef.current.y;
-            const containerHeight = container.clientHeight;
-            const scrollHeight = scrollContainer.scrollHeight;
-
-            const scrollDelta = (deltaY / containerHeight) * scrollHeight;
-            scrollContainer.scrollTop = dragStartRef.current.scrollTop + scrollDelta;
-        };
-
-        const handleMouseUp = () => {
-            setIsDragging(false);
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isDragging, scrollContainerId]);
-
-    return (
-        <div ref={containerRef} className="w-full h-full relative cursor-pointer select-none">
-            <canvas ref={canvasRef} className="w-full h-full" />
-            {/* Viewport indicator */}
-            <div
-                className="absolute left-0 right-0 bg-blue-500/20 border border-blue-500/50 cursor-grab active:cursor-grabbing"
-                style={{
-                    top: `${viewportBox.top}px`,
-                    height: `${viewportBox.height}px`,
-                }}
-                onMouseDown={handleMouseDown}
-            />
-        </div>
-    );
-};
-
-// --- Hybrid Preview Theme ---
-const hybridHighlightStyle = HighlightStyle.define([
-    // Headings
-    { tag: t.heading1, class: 'cm-md-h1' },
-    { tag: t.heading2, class: 'cm-md-h2' },
-    { tag: t.heading3, class: 'cm-md-h3' },
-    { tag: t.heading4, class: 'cm-md-h4' },
-    { tag: t.heading5, class: 'cm-md-h5' },
-    { tag: t.heading6, class: 'cm-md-h6' },
-
-    // Inline formatting
-    { tag: t.strong, class: 'cm-md-bold' },
-    { tag: t.emphasis, class: 'cm-md-italic' },
-    { tag: t.link, class: 'cm-md-link' },
-    { tag: t.url, class: 'cm-md-url' },
-
-    // Code
-    { tag: t.monospace, class: 'cm-md-code' },
-    { tag: customTags.codeBlockText, class: 'cm-md-block-code' },
-    { tag: customTags.codeBlockInfo, class: 'cm-md-block-info' },
-    { tag: customTags.taskMarker, class: 'cm-md-task' },
-
-    // Markdown Syntax Markers (The #, *, -, etc.)
-    { tag: t.processingInstruction, class: 'cm-md-mark' },
-
-    // Specific Overrides for structural markers we might want to keep visible or style differently
-    { tag: customTags.listMark, class: 'cm-md-list' }, // List bullets -, *, 1.
-    { tag: customTags.quoteMark, class: 'cm-md-quote' }, // Blockquote >
-    { tag: t.meta, class: 'cm-md-meta' }, // Misc meta info
-    { tag: t.separator, class: 'cm-md-table-border' }, // Table |
-    { tag: t.contentSeparator, class: 'cm-md-hr' }, // Horizontal Rule ---
-    { tag: t.strikethrough, class: 'cm-md-strike' }, // ~~Strike~~
-]);
-
-const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
-
-// --- Extended Markdown Configuration ---
-const markdownExtensions = {
-    props: [
-        styleTags({
-            "TableDelimiter": t.separator,
-            "HorizontalRule": t.contentSeparator,
-            "Strikethrough": t.strikethrough,
-            "StrikethroughMark": t.processingInstruction,
-            "CodeMark": t.processingInstruction,
-
-            // Differentiate Inline Code vs Block Code
-            "InlineCode": t.monospace,
-            "CodeText": customTags.codeBlockText,
-            "CodeInfo": customTags.codeBlockInfo,
-
-            // Task Lists
-            "TaskMarker": customTags.taskMarker,
-
-            // Specific override for Ordered List markers to avoid the .cm-md-list styling
-            // This MUST come before "ListMark" if the engine processes specifically
-            // (However, for safety, we used a different tag t.labelName above, so order is less critical, but let's be safe)
-            "OrderedList/ListMark": t.labelName,
-
-            // Broadly match all (other) ListMarks
-            "ListMark": customTags.listMark,
-
-            "QuoteMark": customTags.quoteMark,
-
-            // Block markers
-            "HeaderMark": t.processingInstruction,
-            "EmphasisMark": t.processingInstruction,
-            "LinkMark": t.processingInstruction,
-        })
-    ]
-};
+interface GroupState {
+    id: string;
+    tabs: string[]; // Paths
+    activePath: string | null;
+    isReadOnly: boolean;
+    flex: number;
+}
 
 function App() {
-    const [currentFile, setCurrentFile] = useState<string | null>(null);
-    const [openedTabs, setOpenedTabs] = useState<Tab[]>([]);
-    const [content, setContent] = useState<string>("# Welcome\n\nOpen a folder to get started.");
-    // const [editorInitialContent, setEditorInitialContent] = useState<string>("# Welcome\n\nOpen a folder to get started.");
+    // --- Global Data State ---
+    const [documents, setDocuments] = useState<Record<string, DocState>>({});
+
+    // --- Layout State ---
+    const [groups, setGroups] = useState<GroupState[]>([{ id: '1', tabs: [], activePath: null, isReadOnly: false, flex: 1 }]);
+    const [activeGroupId, setActiveGroupId] = useState('1');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeSideTab, setActiveSideTab] = useState<'explorer' | 'search' | 'outline'>('explorer');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [sidebarPanelWidth, setSidebarPanelWidth] = useState(240);
+    const [rootDir, setRootDir] = useState<string | null>(null);
+    const [rootFiles, setRootFiles] = useState<FileEntry[]>([]);
+
+    const groupsContainerRef = React.useRef<HTMLDivElement>(null);
+    const [resizingGroupIndex, setResizingGroupIndex] = useState<number | null>(null);
+
+    // --- Outline ---
     const [outline, setOutline] = useState<{ level: number; text: string; line: number }[]>([]);
-    const editorViewRef = React.useRef<EditorView | null>(null);
 
-    const [isSourceMode, setIsSourceMode] = useState(false);
-    const [previewType, setPreviewType] = useState<'smart' | 'full'>('smart'); // 'smart' = hybrid edit, 'full' = read only render
-    const [showSplitPreview, setShowSplitPreview] = useState(false);
-    const [htmlContent, setHtmlContent] = useState('');
-    const [typstSvg, setTypstSvg] = useState<string>('');
-    const [mermaidSvg, setMermaidSvg] = useState<string>(''); // Mermaid SVG state
+    // --- Resizing ---
+    const [resizingTarget, setResizingTarget] = useState<'sidebar' | null>(null);
 
-    // Initialize mermaid
-    useEffect(() => {
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: 'default',
-            securityLevel: 'loose',
-        });
-    }, []);
-
-    // Determine current document type based on extension
-    const getDocType = (path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'text' => {
-        if (!path) return 'text';
-        if (path.endsWith('.typ')) return 'typst';
-        if (path.endsWith('.md')) return 'markdown';
-        if (path.endsWith('.mmd') || path.endsWith('.mermaid')) return 'mermaid';
-        if (path.endsWith('.tex') || path.endsWith('.latex')) return 'latex';
-        return 'text';
+    // --- Helpers ---
+    const getActiveDoc = () => {
+        const group = groups.find(g => g.id === activeGroupId);
+        if (group && group.activePath && documents[group.activePath]) {
+            return documents[group.activePath];
+        }
+        return null;
     };
 
-    const docType = getDocType(currentFile);
+    const updateDoc = (path: string, updates: Partial<DocState>) => {
+        setDocuments(prev => ({
+            ...prev,
+            [path]: { ...prev[path], ...updates }
+        }));
+    };
 
-    // Auto-enable split preview for Typst and Mermaid and Latex
+    // --- Outline Effect (based on ACTIVE group's file) ---
     useEffect(() => {
-        if (docType === 'typst' || docType === 'mermaid') { // Removed 'latex' from auto-forcing source mode
-            setIsSourceMode(true);
-            setShowSplitPreview(true);
-        } else if (docType === 'latex') {
-            // For LaTeX, default to Code mode (Source + KaTeX Preview) initially as requested before,
-            // BUT now the user wants to be able to use Live mode.
-            // If we force true, they have to click back.
-            // To support "default to code mode" but allow toggle:
-            setIsSourceMode(true);
-            setShowSplitPreview(true);
-        } else if (docType === 'markdown') {
-            // Restore user preference or default
-            // setIsSourceMode(false); // Maybe?
+        const doc = getActiveDoc();
+        if (!doc) {
+            setOutline([]);
+            return;
         }
-    }, [docType]);
-
-    // Latex Rendering Effect
-    // Since we want to render Latex from the raw content which is NOT HTML, and katex.renderToString expects latex code.
-    // However, the "auto-render" extension scans HTML elements for delimiters like $...$ or $$...$$
-    // If the file is pure latex, we might want to wrap the whole content in a div and let auto-render handle it
-    // Or if it is a .tex file, the content IS the latex source.
-    // Let's assume for .tex files, we treat the whole content as something that might contain math, but usually .tex files are FULL of math.
-    // But renderMathInElement is designed for mixed content (text + math).
-    // For a pure .tex file preview, it's tricky because .tex has a lot of macros that KaTeX might not support.
-    // But assuming the user wants to see the math rendered:
-    useEffect(() => {
-        if (docType === 'latex' && content) {
-            const timer = setTimeout(() => {
-                const previewContainer = document.getElementById('latex-preview-container');
-                if (previewContainer) {
-                    // Update content: Use textContent to rely on CSS whitespace-pre-wrap for lines
-                    // This ensures text nodes are continuous for KaTeX to find match delimiters
-                    previewContainer.textContent = content;
-                    try {
-                        renderMathInElement(previewContainer, {
-                            delimiters: [
-                                { left: "$$", right: "$$", display: true },
-                                { left: "$", right: "$", display: false },
-                                { left: "\\(", right: "\\)", display: false },
-                                { left: "\\[", right: "\\]", display: true }
-                            ],
-                            throwOnError: false
-                        });
-                    } catch (e) {
-                        console.error("KaTeX rendering error:", e);
-                    }
-                }
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [content, docType]);
-
-    // Mermaid Rendering Effect
-    useEffect(() => {
-        if (docType === 'mermaid' && content) {
-            const timer = setTimeout(async () => {
-                try {
-                    // Generate a unique ID for the mermaid diagram container
-                    const id = `mermaid-${Date.now()}`;
-                    const { svg } = await mermaid.render(id, content);
-                    setMermaidSvg(svg);
-                } catch (e) {
-                    console.error("Mermaid rendering failed:", e);
-                    // Optionally set an error message in the preview
-                    setMermaidSvg(`<div class="text-red-500 p-4">Mermaid Syntax Error:<br/>${(e as Error).message}</div>`);
-                }
-            }, 500); // Debounce
-            return () => clearTimeout(timer);
-        }
-    }, [content, docType]);
-
-    // Typst Compilation Effect
-    useEffect(() => {
-        if (docType === 'typst' && content) {
-            const timer = setTimeout(async () => {
-                try {
-                    console.log("Compiling Typst...");
-                    const svg = await invoke<string>('compile_typst', { content });
-                    setTypstSvg(svg);
-                } catch (e) {
-                    console.error("Typst compilation failed:", e);
-                }
-            }, 500); // Debounce 500ms
-            return () => clearTimeout(timer);
-        }
-    }, [content, docType]);
-
-    useEffect(() => {
-        if (isSourceMode && showSplitPreview && docType === 'markdown') {
-            const timer = setTimeout(() => {
-                invoke('render_markdown', { text: content }).then((html) => {
-                    setHtmlContent(DOMPurify.sanitize(html as string));
-                });
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [content, isSourceMode, showSplitPreview]);
-
-    // Update outline
-    useEffect(() => {
-        const lines = content.split('\n');
+        const lines = doc.content.split('\n');
         const newOutline = [];
         for (let i = 0; i < lines.length; i++) {
             const match = lines[i].match(/^(#{1,6})\s+(.+)$/);
@@ -531,877 +86,334 @@ function App() {
             }
         }
         setOutline(newOutline);
-    }, [content]);
+    }, [documents, activeGroupId, groups]);
 
-    const scrollToLine = (lineNumber: number) => {
-        const view = editorViewRef.current;
-        if (view) {
-            const lineInfo = view.state.doc.line(lineNumber + 1);
-            view.dispatch({
-                effects: EditorView.scrollIntoView(lineInfo.from, { y: "center" }),
-                selection: { anchor: lineInfo.from }
-            });
-        }
-    };
 
-    const [isVimMode, setIsVimMode] = useState(false);
-    const [showLineNumbers, setShowLineNumbers] = useState(true);
-    const [showMinimap, setShowMinimap] = useState(true);
-    const [rootDir, setRootDir] = useState<string | null>(null);
-    const [rootFiles, setRootFiles] = useState<FileEntry[]>([]);
-
-    const [sidebarPanelWidth, setSidebarPanelWidth] = useState(240);
-    // Split headerHeight into titleBarHeight and tabBarHeight
-    const [titleBarHeight, setTitleBarHeight] = useState(56);
-    const [tabBarHeight, setTabBarHeight] = useState(34);
-    const [footerHeight, setFooterHeight] = useState(32);
-    const [activityBarWidth, setActivityBarWidth] = useState(48);
-    const [brandAreaHeight, setBrandAreaHeight] = useState(56);
-    const [resizingTarget, setResizingTarget] = useState<'sidebar' | 'titleBar' | 'tabBar' | 'footer' | 'activityBar' | 'brand' | 'editorSplit' | null>(null);
-    const [splitRatio, setSplitRatio] = useState(0.5);
-    const mainContentRef = React.useRef<HTMLDivElement>(null);
-
-    // Dynamic Window Resize Constraint
-    useEffect(() => {
-        const updateMinSize = async () => {
-            // Enforce min height to be at least the title bar height
-            // We set a reasonable min width (e.g. 300) to avoid layout breaking
-            try {
-                await appWindow.setMinSize(new LogicalSize(300, titleBarHeight));
-            } catch (e) {
-                console.error("Failed to set min window size", e);
-            }
-        };
-        updateMinSize();
-    }, [titleBarHeight]);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!resizingTarget) return;
-
-            if (resizingTarget === 'sidebar') {
-                // Total width minus activity bar
-                const newWidth = e.clientX - activityBarWidth;
-                const maxWidth = window.innerWidth - activityBarWidth;
-
-                // Allow range from 0 (collapsed) to maxWidth (full screen sidebar)
-                if (newWidth >= 0 && newWidth <= maxWidth) {
-                    setSidebarPanelWidth(newWidth);
-                } else if (newWidth < 0) {
-                    setSidebarPanelWidth(0);
-                } else if (newWidth > maxWidth) {
-                    setSidebarPanelWidth(maxWidth);
-                }
-            } else if (resizingTarget === 'titleBar') {
-                const newHeight = e.clientY;
-                if (newHeight >= 0) {
-                    setTitleBarHeight(newHeight);
-                }
-            } else if (resizingTarget === 'tabBar') {
-                // Determine new tab bar height based on mouse position relative to title bar
-                const newHeight = e.clientY - titleBarHeight;
-                if (newHeight >= 0) {
-                    setTabBarHeight(newHeight);
-                }
-            } else if (resizingTarget === 'footer') {
-                const newHeight = window.innerHeight - e.clientY;
-                const maxHeight = window.innerHeight;
-                if (newHeight >= 0 && newHeight <= maxHeight) {
-                    setFooterHeight(newHeight);
-                }
-            } else if (resizingTarget === 'brand') {
-                const newHeight = e.clientY;
-                // Allow range from 0 to 200
-                if (newHeight >= 0 && newHeight < 200) {
-                    setBrandAreaHeight(newHeight);
-                }
-            } else if (resizingTarget === 'activityBar') {
-                const newWidth = e.clientX;
-                // Min width 30, max 200
-                if (newWidth >= 30 && newWidth < 200) {
-                    setActivityBarWidth(newWidth);
-                }
-            } else if (resizingTarget === 'editorSplit') {
-                // Improved Resize Logic: Use actual container dimensions for accurate handle position
-                if (mainContentRef.current) {
-                    const rect = mainContentRef.current.getBoundingClientRect();
-                    const relativeX = e.clientX - rect.left;
-                    let newRatio = relativeX / rect.width;
-
-                    // Constraints
-                    if (newRatio < 0.1) newRatio = 0.1;
-                    if (newRatio > 0.9) newRatio = 0.9;
-
-                    setSplitRatio(newRatio);
-                }
-            }
-        };
-
-        const handleMouseUp = () => {
-            setResizingTarget(null);
-            document.body.style.cursor = 'default';
-            document.body.style.userSelect = 'auto';
-        };
-
-        if (resizingTarget) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            if (resizingTarget === 'sidebar' || resizingTarget === 'activityBar' || resizingTarget === 'editorSplit') {
-                document.body.style.cursor = 'col-resize';
-            } else {
-                document.body.style.cursor = 'row-resize';
-            }
-            document.body.style.userSelect = 'none';
-        }
-
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [resizingTarget, activityBarWidth, sidebarPanelWidth, sidebarOpen]);
-
-    const [breadcrumbDropdown, setBreadcrumbDropdown] = useState<{ path: string; type: 'file' | 'outline'; items: any[] } | null>(null);
-
-    // Close dropdown on click outside
-    useEffect(() => {
-        const h = () => setBreadcrumbDropdown(null);
-        window.addEventListener('click', h);
-        return () => window.removeEventListener('click', h);
-    }, []);
-
-    const breadcrumbs = React.useMemo(() => {
-        if (!currentFile) return [];
-
-        const parts: { name: string; path: string; isDir: boolean }[] = [];
-        let displayPath = currentFile.replace(/\\/g, '/');
-        const rootRaw = rootDir ? rootDir.replace(/\\/g, '/') : null;
-
-        // If we possess a workspace root, start from there
-        if (rootRaw) {
-            const rootName = rootRaw.split('/').pop() || rootRaw;
-            parts.push({ name: rootName, path: rootRaw, isDir: true });
-
-            if (displayPath.startsWith(rootRaw)) {
-                displayPath = displayPath.substring(rootRaw.length);
-            }
-        }
-
-        // Remove leading slash to split correctly
-        if (displayPath.startsWith('/')) displayPath = displayPath.substring(1);
-
-        const segments = displayPath.split('/');
-        let currentAccumulated = rootRaw || "";
-
-        segments.forEach((seg, index) => {
-            if (!seg) return;
-            // Reconstruct absolute path
-            if (currentAccumulated === "") {
-                currentAccumulated = seg;
-            } else if (currentAccumulated.endsWith('/')) {
-                currentAccumulated += seg;
-            } else {
-                currentAccumulated += '/' + seg;
-            }
-
-            const isLast = index === segments.length - 1;
-            parts.push({
-                name: seg,
-                path: currentAccumulated,
-                isDir: !isLast
-            });
-        });
-
-        return parts;
-    }, [currentFile, rootDir]);
-
-    const handleBreadcrumbClick = async (e: React.MouseEvent, item: { path: string; isDir: boolean }) => {
-        e.stopPropagation();
-
-        // If it's already open, close it
-        if (breadcrumbDropdown?.path === item.path) {
-            setBreadcrumbDropdown(null);
-            return;
-        }
-
-        // VS Code Behavior:
-        // Clicking any path segment (even the file itself) shows the contents of that directory level.
-        // - Folder: Shows contents of folder.
-        // - File: Shows siblings (contents of parent folder), highlighting the file.
-
-        let targetPath = item.path;
-        if (!item.isDir) {
-            const s = item.path.replace(/\\/g, '/').split('/');
-            s.pop();
-            targetPath = s.join('/');
-        }
-
-        try {
-            const files = await invoke<FileEntry[]>("read_dir", { path: targetPath });
-            // Sort: folders first
-            files.sort((a, b) => {
-                if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
-                return a.is_dir ? -1 : 1;
-            });
-            setBreadcrumbDropdown({ path: item.path, type: 'file', items: files });
-        } catch (err) {
-            console.error("Failed to read dir for breadcrumb", err);
-        }
-    };
-
-    const contentRef = React.useRef(content);
-    useEffect(() => { contentRef.current = content; }, [content]);
-
-    // Update tab content when user types
-    // Note: To avoid re-renders of the whole tab list on every keystroke, we might want to debounce this or only update on switch.
-    // However, to show the "dirty" indicator live, we need to update state.
-    // Optimization: Only update the "dirty" flag if it changes.
-    useEffect(() => {
-        if (!currentFile) return;
-        setOpenedTabs(prev => prev.map(t => {
-            if (t.path === currentFile) {
-                const isDirty = content !== t.originalContent;
-                if (t.isDirty !== isDirty || t.content !== content) {
-                    return { ...t, content, isDirty };
-                }
-            }
-            return t;
-        }));
-    }, [content, currentFile]);
-
-    // Load a file
+    // --- File Operations ---
     const loadFile = async (path: string) => {
-        // If already open, switch to it
-        if (openedTabs.find(t => t.path === path)) {
-            switchTab(path);
-            return;
+        // 1. Check if doc exists, if not load it
+        if (!documents[path]) {
+            try {
+                const content = await invoke<string>("read_content", { path });
+                const name = path.split(/[\\/]/).pop() || "Untitled";
+                setDocuments(prev => ({
+                    ...prev,
+                    [path]: { path, name, content, originalContent: content, isDirty: false }
+                }));
+            } catch (err) {
+                console.error("Failed to load file", err);
+                return;
+            }
         }
 
+        // 2. Add to active group if not present
+        setGroups(prev => prev.map(g => {
+            if (g.id === activeGroupId) {
+                const tabs = g.tabs.includes(path) ? g.tabs : [...g.tabs, path];
+                return { ...g, tabs, activePath: path };
+            }
+            return g;
+        }));
+    };
+
+    const handleCloseTab = (e: React.MouseEvent, path: string, groupId: string) => {
+        e.stopPropagation();
+        setGroups(prev => prev.map(g => {
+            if (g.id === groupId) {
+                const newTabs = g.tabs.filter(t => t !== path);
+                let newActive = g.activePath;
+                if (g.activePath === path) {
+                    newActive = newTabs.length > 0 ? newTabs[newTabs.length - 1] : null;
+                }
+                return { ...g, tabs: newTabs, activePath: newActive };
+            }
+            return g;
+        }));
+    };
+
+    const handleSave = async (groupId: string) => {
+        const group = groups.find(g => g.id === groupId);
+        if (!group || !group.activePath) return;
+        const doc = documents[group.activePath];
+        if (!doc) return;
+
         try {
-            // Save current file's state before switching/loading?
-            // The useEffect on [content] handles keeping the CURRENT tab updated.
-            // So we just need to ensure that runs (it does).
-
-            const fileContent = await invoke<string>("read_content", { path });
-            const fileName = path.split(/[\\/]/).pop() || "Untitled";
-
-            const newTab: Tab = {
-                path,
-                name: fileName,
-                content: fileContent,
-                originalContent: fileContent,
-                isDirty: false
-            };
-
-            setOpenedTabs(prev => [...prev, newTab]);
-            setCurrentFile(path);
-            setContent(fileContent);
+            await invoke("save_content", { path: doc.path, content: doc.content });
+            updateDoc(doc.path, { originalContent: doc.content, isDirty: false });
+            console.log("Saved", doc.path);
         } catch (err) {
             console.error(err);
         }
-    }
-
-    const switchTab = (path: string) => {
-        if (path === currentFile) return;
-        const target = openedTabs.find(t => t.path === path);
-        if (target) {
-            setCurrentFile(path);
-            setContent(target.content);
-        }
     };
 
-    const handleCloseTab = (e: React.MouseEvent, path: string) => {
-        e.stopPropagation();
-        const newTabs = openedTabs.filter(t => t.path !== path);
-        setOpenedTabs(newTabs);
+    const handleSplit = (sourceGroupId: string) => {
+        const newId = Date.now().toString();
 
-        if (currentFile === path) {
-            if (newTabs.length > 0) {
-                const next = newTabs[newTabs.length - 1];
-                setCurrentFile(next.path);
-                setContent(next.content);
-            } else {
-                setCurrentFile(null);
-                setContent("");
-            }
+        let newFlex = 1;
+
+        setGroups(prev => {
+            const sourceGroupIndex = prev.findIndex(g => g.id === sourceGroupId);
+            if (sourceGroupIndex === -1) return prev;
+
+            const sourceGroup = prev[sourceGroupIndex];
+            newFlex = sourceGroup.flex * 0.5;
+
+            // Create new group
+            const newGroup: GroupState = {
+                id: newId,
+                tabs: [...sourceGroup.tabs],
+                activePath: sourceGroup.activePath,
+                isReadOnly: sourceGroup.isReadOnly,
+                flex: newFlex
+            };
+
+            const newGroups = [...prev];
+            // Shrink the source group
+            newGroups[sourceGroupIndex] = { ...sourceGroup, flex: newFlex };
+            // Insert new group after source
+            newGroups.splice(sourceGroupIndex + 1, 0, newGroup);
+            return newGroups;
+        });
+
+        setActiveGroupId(newId);
+    };
+
+    const handleToggleLock = (groupId: string) => {
+        setGroups(prev => prev.map(g => {
+            if (g.id === groupId) return { ...g, isReadOnly: !g.isReadOnly };
+            return g;
+        }));
+    };
+
+    const handleCloseGroup = (groupId: string) => {
+        if (groups.length <= 1) return;
+        const index = groups.findIndex(g => g.id === groupId);
+        if (index === -1) return;
+
+        const groupToRemove = groups[index];
+        const newGroups = groups.filter(g => g.id !== groupId);
+
+        if (index > 0) {
+            newGroups[index - 1] = { ...newGroups[index - 1], flex: newGroups[index - 1].flex + groupToRemove.flex };
+            if (activeGroupId === groupId) setActiveGroupId(newGroups[index - 1].id);
+        } else if (newGroups.length > 0) {
+            newGroups[0] = { ...newGroups[0], flex: newGroups[0].flex + groupToRemove.flex };
+            if (activeGroupId === groupId) setActiveGroupId(newGroups[0].id);
         }
+        setGroups(newGroups);
     };
 
     const handleOpenFolder = async () => {
         try {
-            const selected = await open({
-                directory: true,
-                multiple: false,
-            });
-
+            const selected = await open({ directory: true, multiple: false });
             if (typeof selected === 'string') {
                 setRootDir(selected);
                 const files = await invoke<FileEntry[]>("read_dir", { path: selected });
                 setRootFiles(files);
                 setSidebarOpen(true);
             }
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
-    const handleSave = async () => {
-        try {
-            let filePath = currentFile;
-            if (!filePath) {
-                filePath = await save({
-                    filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
-                });
+    // --- Global Resizing ---
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!resizingTarget) return;
+            if (resizingTarget === 'sidebar') {
+                const newWidth = e.clientX - 48; // Activity bar width
+                if (newWidth >= 0 && newWidth < 800) setSidebarPanelWidth(newWidth);
             }
-
-            if (filePath) {
-                await invoke("save_content", { path: filePath, content: contentRef.current });
-
-                // Update dirty state
-                setOpenedTabs(prev => prev.map(t => t.path === filePath ? { ...t, originalContent: contentRef.current, isDirty: false } : t));
-
-                setCurrentFile(filePath);
-                console.log("Saved to", filePath);
-            }
-        } catch (err) {
-            console.error(err);
+        };
+        const handleMouseUp = () => {
+            setResizingTarget(null);
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+        };
+        if (resizingTarget) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
         }
-    };
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizingTarget]);
 
-    const [scrolled, setScrolled] = useState(false);
+    // --- Group Resizing Effect ---
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (resizingGroupIndex === null || !groupsContainerRef.current) return;
 
-    // ... existing contentRef and loadFile ...
+            // Current group is index, Next group is index + 1
+            const containerWidth = groupsContainerRef.current.clientWidth;
+            // Total flex units
+            const totalFlex = groups.reduce((sum, g) => sum + g.flex, 0);
+            const pixelsPerFlex = containerWidth / totalFlex;
 
-    // Scroll listener for the editor area
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        setScrolled(e.currentTarget.scrollTop > 10);
-    };
+            // Calculate movement in flex units
+            const deltaPixels = e.movementX;
+            if (deltaPixels === 0) return;
+
+            const deltaFlex = deltaPixels / pixelsPerFlex;
+
+            setGroups(prev => {
+                const newGroups = [...prev];
+                const leftGroup = newGroups[resizingGroupIndex];
+                const rightGroup = newGroups[resizingGroupIndex + 1];
+
+                if (!leftGroup || !rightGroup) return prev;
+
+                // Apply constraints (min width)
+                // Let's say min width is 50px?
+                // min flex = 50 / pixelsPerFlex
+                const minFlex = 100 / pixelsPerFlex;
+
+                let newLeftFlex = leftGroup.flex + deltaFlex;
+                let newRightFlex = rightGroup.flex - deltaFlex;
+
+                if (newLeftFlex < minFlex) {
+                    const diff = minFlex - newLeftFlex;
+                    newLeftFlex = minFlex;
+                    newRightFlex -= diff;
+                } else if (newRightFlex < minFlex) {
+                    const diff = minFlex - newRightFlex;
+                    newRightFlex = minFlex;
+                    newLeftFlex -= diff;
+                }
+
+                newGroups[resizingGroupIndex] = { ...leftGroup, flex: newLeftFlex };
+                newGroups[resizingGroupIndex + 1] = { ...rightGroup, flex: newRightFlex };
+
+                return newGroups;
+            });
+        };
+
+        const handleMouseUp = () => {
+            setResizingGroupIndex(null);
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+        };
+
+        if (resizingGroupIndex !== null) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        }
+    }, [resizingGroupIndex, groups]);
+
 
     return (
-        <div className="h-screen w-screen bg-white flex overflow-hidden">
-            {/* Sidebar - Full Height Left */}
-            {sidebarOpen && (
-                <>
-                    <div
-                        className="flex flex-col h-screen shrink-0 bg-gray-50/90 border-r border-gray-200 backdrop-blur-xl"
-                        style={{ width: `${sidebarPanelWidth + activityBarWidth}px` }}
-                    >
+        <div className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
+            {/* Main Layout: Sidebar | Content */}
 
-                        {/* Brand Area */}
-                        <div
-                            data-tauri-drag-region
-                            className="flex items-center px-4 border-b border-gray-200/50 shrink-0 select-none cursor-default relative overflow-hidden"
-                            style={{ height: `${brandAreaHeight}px` }}
-                        >
-                            <div className="flex items-center gap-3 text-gray-800 font-bold text-lg tracking-tight pointer-events-none">
-                                <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
-                                    <FileText size={18} />
-                                </div>
-                                <span className="font-sans">MarkEditor</span>
-                            </div>
-                            {/* Brand Height Resizer */}
-                            <div
-                                className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize hover:bg-blue-500/50 z-50 transition-colors"
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setResizingTarget('brand');
-                                }}
-                            />
-                        </div>
+            {/* Sidebar */}
+            <Sidebar
+                isOpen={sidebarOpen}
+                width={sidebarPanelWidth}
+                activeSideTab={activeSideTab}
+                onActiveSideTabChange={setActiveSideTab}
+                rootDir={rootDir}
+                rootFiles={rootFiles}
+                currentPath={getOpenFilePath()}
+                onOpenFile={loadFile}
+                onOpenFolder={handleOpenFolder}
+                outline={outline}
+                onResizeStart={() => setResizingTarget('sidebar')}
+            />
 
-                        <div className="flex flex-1 overflow-hidden">
-                            {/* Activity Bar */}
-                            <div
-                                className="bg-gray-100 border-r border-gray-200 flex flex-col items-center py-4 gap-4 z-40 relative shrink-0"
-                                style={{ width: `${activityBarWidth}px` }}
-                            >
-                                <button
-                                    onClick={() => setActiveSideTab('explorer')}
-                                    className={`p-2 rounded-lg transition-all ${activeSideTab === 'explorer' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                                    title="Explorer"
-                                >
-                                    <Files size={20} />
-                                </button>
-                                <button
-                                    onClick={() => setActiveSideTab('search')}
-                                    className={`p-2 rounded-lg transition-all ${activeSideTab === 'search' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                                    title="Search"
-                                >
-                                    <Search size={20} />
-                                </button>
-                                <button
-                                    onClick={() => setActiveSideTab('outline')}
-                                    className={`p-2 rounded-lg transition-all ${activeSideTab === 'outline' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                                    title="Outline"
-                                >
-                                    <ListTree size={20} />
-                                </button>
-                                {/* Activity Bar Resizer */}
-                                <div
-                                    className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500/50 z-50 transition-colors"
-                                    onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setResizingTarget('activityBar');
-                                    }}
-                                />
-                            </div>
-
-                            {/* Sidebar Panel */}
-                            <div className="flex flex-col bg-slate-50/50" style={{ width: `${sidebarPanelWidth}px` }}>
-
-                                {/* Content */}
-                                <div className="flex-1 overflow-hidden flex flex-col">
-                                    {activeSideTab === 'explorer' && (
-                                        <>
-                                            <div className="flex items-center px-4 py-3 gap-2 shrink-0 border-b border-transparent">
-                                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-1 pl-1">Explorer</span>
-                                                <button onClick={handleOpenFolder} className="p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Open Folder">
-                                                    <FolderOpen size={14} />
-                                                </button>
-                                            </div>
-                                            <div className="flex-1 overflow-y-auto p-2">
-                                                {!rootDir && (
-                                                    <div className="flex flex-col items-center justify-center mt-20 text-slate-400 text-sm gap-2">
-                                                        <FolderOpen size={32} className="opacity-20" />
-                                                        <p className="opacity-60">No folder opened</p>
-                                                        <button
-                                                            onClick={handleOpenFolder}
-                                                            className="mt-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm"
-                                                        >
-                                                            Open Folder
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                {rootFiles.map(file => (
-                                                    <SidebarItem
-                                                        key={file.path}
-                                                        entry={file}
-                                                        level={0}
-                                                        onSelect={(entry) => loadFile(entry.path)}
-                                                        currentPath={currentFile}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {activeSideTab === 'search' && (
-                                        <div className="p-4 flex flex-col gap-4">
-                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Search</span>
-                                            <div className="relative group">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search..."
-                                                    className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 group-hover:border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                />
-                                                <Search size={14} className="absolute left-3 top-2.5 text-slate-400 group-hover:text-slate-500 transition-colors" />
-                                            </div>
-                                            <div className="text-xs text-slate-400 text-center mt-8 italic opacity-70">
-                                                Global search coming soon
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {activeSideTab === 'outline' && (
-                                        <div className="flex flex-col h-full">
-                                            <div className="flex items-center px-4 py-3 gap-2 shrink-0">
-                                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-1 pl-1">Outline</span>
-                                            </div>
-                                            <div className="flex-1 overflow-y-auto p-2">
-                                                {outline.length === 0 && (
-                                                    <div className="flex flex-col items-center justify-center mt-20 text-slate-400 text-sm gap-2">
-                                                        <ListTree size={32} className="opacity-20" />
-                                                        <p className="opacity-60">No headings</p>
-                                                    </div>
-                                                )}
-                                                {outline.map((item, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        onClick={() => scrollToLine(item.line)}
-                                                        className="cursor-pointer hover:bg-slate-100 px-2 py-1.5 rounded-sm text-sm text-slate-600 truncate transition-colors border-l-2 border-transparent hover:border-slate-300"
-                                                        style={{ paddingLeft: `${(item.level - 1) * 12 + 8}px` }}
-                                                    >
-                                                        {item.text}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+            {/* Content Area */}
+            <div className="flex-1 flex flex-col min-w-0 bg-white">
+                {/* Top Title Bar / Controls */}
+                <div className="h-[35px] border-b border-slate-200 flex items-center px-2 shrink-0 bg-white z-10">
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 hover:bg-slate-100 rounded text-slate-500"><Menu size={16} /></button>
+                    </div>
+                    {/* Drag Region */}
+                    <div className="flex-1 flex items-center justify-center h-full select-none" data-tauri-drag-region>
+                        <div className="text-xs font-medium text-slate-500 pointer-events-none">
+                            {groups.find(g => g.id === activeGroupId)?.activePath?.split(/[\\/]/).pop() || "MarkEditor"}
                         </div>
                     </div>
-                    {/* Resizer Handle */}
-                    <div
-                        onMouseDown={() => setResizingTarget('sidebar')}
-                        className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 flex items-center justify-center -ml-[1px] ${resizingTarget === 'sidebar' ? 'bg-blue-600' : 'bg-transparent'}`}
-                        title="Drag to resize"
-                    />
-                </>
-            )}
-
-            {/* Right Main Area - Flex Column */}
-            <div className="flex-1 flex flex-col min-w-0 bg-white relative overflow-hidden">
-
-                {/* Title Bar (Function Bar) */}
-                <div
-                    className={`shrink-0 border-b flex items-center px-4 gap-3 bg-white z-20 relative transition-colors overflow-hidden pr-32 ${scrolled ? 'border-slate-200 shadow-sm' : 'border-slate-100'}`}
-                    style={{ height: `${titleBarHeight}px` }}
-                >
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded text-slate-500 mr-2 shrink-0 z-30 transition-colors">
-                        <Menu size={18} />
-                    </button>
-
-                    {/* Title or Breadcrumbs - ACTS AS DRAG REGION */}
-                    <div className="flex-1 overflow-hidden h-full flex items-center min-w-0" data-tauri-drag-region>
-                        <div className="font-semibold text-slate-700 truncate max-w-full pointer-events-none select-none opacity-80 decoration-slate-900 pr-4" data-tauri-drag-region>
-                            {currentFile ? currentFile.split(/[\\/]/).pop() : "Untitled"}
-                        </div>
+                    <div className="flex items-center gap-1 z-50">
+                        <button onClick={() => appWindow.minimize()} className="p-2 hover:bg-slate-100 rounded cursor-pointer"><Minus size={14} /></button>
+                        <button onClick={() => appWindow.toggleMaximize()} className="p-2 hover:bg-slate-100 rounded cursor-pointer"><Square size={12} /></button>
+                        <button onClick={() => appWindow.close()} className="p-2 hover:bg-red-500 hover:text-white rounded cursor-pointer"><X size={14} /></button>
                     </div>
-
-                    {/* Right Toolbar - Functional Groups - Pushed to right, will overlay content if needed via background */}
-                    <div className="flex items-center gap-2 z-40 shrink-0 bg-white/90 backdrop-blur pl-2 shadow-[-12px_0_12px_-8px_rgba(0,0,0,0.1)] h-full ml-auto">
-
-                        {/* Group 1: Editor Modes */}
-                        <div className="flex bg-slate-100 p-0.5 rounded-lg shrink-0 border border-slate-200">
-                            <button
-                                onClick={() => setIsSourceMode(false)}
-                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${!isSourceMode ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                title="Visual Mode"
-                            >
-                                <Eye size={13} />
-                                <span className="hidden 2xl:inline">Visual</span>
-                            </button>
-                            <button
-                                onClick={() => setIsSourceMode(true)}
-                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${isSourceMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                title="Code Mode"
-                            >
-                                <Code size={13} />
-                                <span className="hidden 2xl:inline">Code</span>
-                            </button>
-                        </div>
-
-                        <div className="w-[1px] h-5 bg-slate-200 mx-1"></div>
-
-                        {/* Group 2: View Options */}
-                        <div className="flex items-center gap-1">
-                            {isSourceMode && (
-                                <button
-                                    onClick={() => setShowSplitPreview(!showSplitPreview)}
-                                    className={`p-1.5 rounded-md transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
-                                    title="Toggle Split View"
-                                >
-                                    <Columns size={16} />
-                                </button>
-                            )}
-                            {/* Sub-mode Toggle for Preview (Visual Mode) */}
-                            {!isSourceMode && (
-                                <button
-                                    onClick={() => setPreviewType(prev => prev === 'smart' ? 'full' : 'smart')}
-                                    className={`p-1.5 rounded-md transition-all ${previewType === 'smart' ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
-                                    title={previewType === 'smart' ? "Smart Mode: Edit active line source" : "Full Preview: Always rendered"}
-                                >
-                                    {previewType === 'smart' ? <TextCursorInput size={16} /> : <BookOpen size={16} />}
-                                </button>
-                            )}
-
-                            <button
-                                onClick={() => setShowLineNumbers(!showLineNumbers)}
-                                className={`p-1.5 rounded-md transition-all ${showLineNumbers ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
-                                title="Toggle Line Numbers"
-                            >
-                                <ListOrdered size={16} />
-                            </button>
-                            <button
-                                onClick={() => setShowMinimap(!showMinimap)}
-                                className={`p-1.5 rounded-md transition-all ${showMinimap ? 'bg-purple-50 text-purple-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
-                                title="Toggle Minimap"
-                            >
-                                <MapIcon size={16} />
-                            </button>
-                        </div>
-
-                        <div className="w-[1px] h-5 bg-slate-200 mx-1"></div>
-
-                        {/* Group 3: Primary Actions */}
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setIsVimMode(!isVimMode)}
-                                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all border ${isVimMode ? 'bg-green-50 text-green-700 border-green-200' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                                title="Toggle Vim Mode"
-                            >
-                                <Keyboard size={14} />
-                                <span className="hidden xl:inline">Vim</span>
-                            </button>
-
-                            <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 text-white hover:bg-slate-700 rounded-md text-xs font-bold transition-all shadow-sm active:translate-y-px">
-                                <Save size={14} />
-                                <span className="hidden sm:inline">Save</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Window Controls - Fixed Positioned - Fixed Z-Index Problem */}
-                    {/* Changed from absolute to fixed to ensure it stays on top of Sidebar when window is narrow */}
-                    <div
-                        className="fixed top-0 right-0 flex items-center pr-2 pl-4 gap-1 text-slate-400 z-[9999] bg-white/80 backdrop-blur-sm transition-all"
-                        style={{ height: `${titleBarHeight}px` }}
-                    >
-                        <div className="h-4 w-[1px] bg-slate-200 mx-2"></div>
-                        <button
-                            onClick={() => appWindow.minimize()}
-                            className="p-2 hover:bg-slate-100 rounded-md transition-colors"
-                            title="Minimize"
-                        >
-                            <Minus size={16} />
-                        </button>
-                        <button
-                            onClick={async () => {
-                                if (await appWindow.isMaximized()) {
-                                    await appWindow.unmaximize();
-                                } else {
-                                    await appWindow.maximize();
-                                }
-                            }}
-                            className="p-2 hover:bg-slate-100 rounded-md transition-colors"
-                            title="Maximize"
-                        >
-                            <Square size={14} />
-                        </button>
-                        <button
-                            onClick={() => appWindow.close()}
-                            className="p-2 hover:bg-red-500 hover:text-white rounded-md transition-colors"
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
-
-                    {/* Title Bar Resizer */}
-                    <div
-                        onMouseDown={() => setResizingTarget('titleBar')}
-                        className={`absolute bottom-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 ${resizingTarget === 'titleBar' ? 'bg-blue-600' : 'bg-transparent'}`}
-                    />
                 </div>
 
-                {/* Tab Bar Container */}
-                <div
-                    className="flex bg-slate-100/50 border-b border-slate-200 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 backdrop-blur-sm relative pt-1"
-                    style={{ height: `${tabBarHeight}px` }}
-                >
-                    {openedTabs.map(tab => (
-                        <div
-                            key={tab.path}
-                            onClick={() => switchTab(tab.path)}
-                            className={`group relative flex items-center gap-2 px-4 min-w-[120px] max-w-[200px] border-r border-slate-200/50 text-xs select-none cursor-pointer transition-all ${tab.path === currentFile ? 'bg-white text-blue-600 shadow-sm rounded-t-lg mb-[-1px] border-t-2 border-t-blue-500 border-x border-slate-200' : 'bg-transparent text-slate-500 hover:bg-slate-200/50 hover:text-slate-700 border-t-2 border-t-transparent'}`}
-                            style={{ height: 'calc(100% - 1px)' }}
-                        >
-                            <FileText size={14} className={tab.path === currentFile ? 'text-blue-500' : 'text-slate-400'} />
-                            <span className="truncate flex-1 font-medium">{tab.name}</span>
-                            {tab.isDirty && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
-                            <button
-                                onClick={(e) => handleCloseTab(e, tab.path)}
-                                className={`p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-slate-200 hover:text-red-500 transition-all ${tab.isDirty ? 'hidden group-hover:block' : ''}`}
-                            >
-                                <X size={12} />
-                            </button>
-                        </div>
-                    ))}
+                {/* Editors Container */}
+                <div className="flex-1 flex overflow-hidden" ref={groupsContainerRef}>
+                    {groups.map((group, index) => {
+                        const doc = group.activePath && documents[group.activePath];
+                        // Construct Tab objects for the group
+                        const groupTabs: Tab[] = group.tabs.map(p => {
+                            const d = documents[p];
+                            if (d) return { path: d.path, name: d.name, content: d.content, originalContent: d.originalContent, isDirty: d.isDirty };
+                            return { path: p, name: p.split(/[\\/]/).pop() || "Loading", content: "", originalContent: "", isDirty: false };
+                        });
 
-                    {/* Tab Bar Resizer */}
-                    <div
-                        onMouseDown={() => setResizingTarget('tabBar')}
-                        className={`absolute bottom-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 ${resizingTarget === 'tabBar' ? 'bg-blue-600' : 'bg-transparent'}`}
-                    />
-                </div>
-
-                {/* Breadcrumbs - VS Code Style */}
-                <div className="flex items-center gap-1 px-4 py-0.5 text-[11px] text-slate-500 bg-white border-b border-slate-100 shrink-0 select-none relative z-50 h-[22px]">
-                    {breadcrumbs.map((part, index) => (
-                        <React.Fragment key={part.path}>
-                            {index > 0 && <ChevronRight size={10} className="opacity-40 shrink-0" />}
-                            <div className="relative flex items-center">
-                                <span
-                                    className={`hover:bg-slate-100 px-1.5 py-0.5 rounded cursor-pointer transition-colors flex items-center gap-1 ${index === breadcrumbs.length - 1 ? 'font-medium text-slate-800' : 'text-slate-500'
-                                        } ${breadcrumbDropdown?.path === part.path ? 'bg-slate-100 text-slate-800' : ''}`}
-                                    title={part.path}
-                                    onClick={(e) => handleBreadcrumbClick(e, part)}
-                                >
-                                    {part.isDir ? <Folder size={12} className={index === breadcrumbs.length - 1 ? "text-slate-400" : "opacity-70"} /> : <FileText size={12} className="text-blue-500" />}
-                                    <span className="whitespace-nowrap">{part.name}</span>
-                                </span>
-
-                                {/* Dropdown */}
-                                {breadcrumbDropdown?.path === part.path && (
-                                    <div className="absolute top-full left-0 mt-1 bg-white shadow-xl border border-slate-200 rounded-lg py-1 min-w-[200px] w-max max-w-[400px] max-h-[300px] overflow-y-auto z-[100] flex flex-col items-stretch animate-in fade-in zoom-in-95 duration-100">
-                                        {breadcrumbDropdown.items.length === 0 && (
-                                            <div className="px-4 py-2 text-slate-400 italic text-xs">Empty</div>
-                                        )}
-                                        {breadcrumbDropdown.type === 'file' ? (
-                                            (breadcrumbDropdown.items as FileEntry[]).map(file => (
-                                                <div
-                                                    key={file.path}
-                                                    className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${file.path === currentFile ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (!file.is_dir) {
-                                                            loadFile(file.path);
-                                                            setBreadcrumbDropdown(null);
-                                                        }
-                                                    }}
-                                                >
-                                                    {file.is_dir ? <Folder size={14} className="text-blue-400" /> : <FileText size={14} className={file.path === currentFile ? "text-blue-500" : "text-slate-400"} />}
-                                                    <span className="truncate">{file.name}</span>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            (breadcrumbDropdown.items as { level: number, text: string, line: number }[]).map((item, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-slate-700 hover:text-blue-600 transition-colors"
-                                                    style={{ paddingLeft: `${(item.level || 0) * 12 + 12}px` }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        scrollToLine(item.line);
-                                                        setBreadcrumbDropdown(null);
-                                                    }}
-                                                >
-                                                    <ListTree size={12} className="opacity-50 shrink-0" />
-                                                    <span className="truncate text-xs">{item.text}</span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </React.Fragment>
-                    ))}
-                </div>
-
-                {/* Content Scroll Container */}
-                <div
-                    className={`flex-1 relative bg-white ${isSourceMode && showSplitPreview ? 'overflow-hidden' : 'overflow-auto'}`}
-                    onScroll={handleScroll}
-                    id="editor-scroll-container"
-                >
-                    <div className="flex min-h-full w-full">
-                        {/* Main Editor Area */}
-                        <div className="flex-1 min-w-0" ref={mainContentRef}>
-                            {/* Simplified container for both modes to ensure consistent size */}
-                            {/* Scaled up for larger editing area while maintaining readable margins */}
-                            <div className={`mx-auto min-h-full transition-all duration-300 ${isSourceMode && showSplitPreview ? 'w-full flex h-full' : 'w-full max-w-[900px] py-8 px-8'}`}>
-                                <div
-                                    className={`${isSourceMode && showSplitPreview ? 'border-r border-slate-200' : 'w-full'} h-full relative ${!isSourceMode ? `preview-mode-cm ${previewType === 'full' ? 'preview-mode-full' : ''}` : ""}`}
-                                    style={{ width: isSourceMode && showSplitPreview ? `${splitRatio * 100}%` : '100%' }}
-                                >
-                                    <CodeMirror
-                                        value={content}
-                                        height="100%"
-                                        minHeight="calc(100vh - 150px)"
-                                        extensions={[
-                                            markdownLang({ extensions: [markdownExtensions] }), // Apply custom extension
-                                            ...(isVimMode ? [vim({ status: true })] : []),
-                                            ...(docType === 'latex' ? [latexLivePreview()] : []), // Apply LaTeX Live Preview
-                                            // Apply hybrid theme ONLY in Visual Mode (not source mode)
-                                            ...(!isSourceMode ? [hybridTheme, EditorView.lineWrapping] : [])
-                                        ]}
-                                        onChange={(value) => setContent(value)}
-                                        theme="light"
-                                        onCreateEditor={(view) => {
-                                            editorViewRef.current = view;
-                                        }}
-                                        basicSetup={{
-                                            lineNumbers: showLineNumbers,
-                                            foldGutter: showLineNumbers,
-                                            highlightActiveLine: isSourceMode || previewType === 'smart',
-                                        }}
-                                        className={isSourceMode && showSplitPreview ? "h-full" : ""}
-                                    />
-                                </div>
-
-                                {/* Resizer Handle */}
-                                {isSourceMode && showSplitPreview && (
+                        return (
+                            <React.Fragment key={group.id}>
+                                {index > 0 && (
                                     <div
-                                        className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 -ml-[1px] ${resizingTarget === 'editorSplit' ? 'bg-blue-600' : 'bg-transparent'}`}
+                                        className="w-1 cursor-col-resize z-50 h-full shrink-0 -ml-[0.5px] -mr-[0.5px] flex justify-center group/resizer"
                                         onMouseDown={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            setResizingTarget('editorSplit');
+                                            setResizingGroupIndex(index - 1);
                                         }}
-                                    />
-                                )}
-
-                                {isSourceMode && showSplitPreview && (
-                                    <div
-                                        className="h-full overflow-y-auto bg-slate-50/50"
-                                        style={{ width: `${(1 - splitRatio) * 100}%` }}
                                     >
-                                        {docType === 'typst' ? (
-                                            <div
-                                                className="typst-preview-container h-full"
-                                                dangerouslySetInnerHTML={{ __html: typstSvg }}
-                                            />
-                                        ) : docType === 'mermaid' ? (
-                                            <div
-                                                className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto"
-                                                dangerouslySetInnerHTML={{ __html: mermaidSvg }}
-                                            />
-                                        ) : docType === 'latex' ? (
-                                            <div
-                                                id="latex-preview-container"
-                                                className="latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed"
-                                            />
-                                        ) : (
-                                            <div
-                                                className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8"
-                                                dangerouslySetInnerHTML={{ __html: htmlContent }}
-                                            />
-                                        )}
+                                        <div className={`w-[1px] h-full transition-colors ${resizingGroupIndex === index - 1 ? 'bg-blue-600' : 'bg-slate-200 group-hover/resizer:bg-blue-400'}`} />
                                     </div>
                                 )}
-                            </div>
-                        </div>
-
-                        {/* Minimap */}
-                        {showMinimap && (
-                            <div className="w-[120px] shrink-0 border-l border-slate-200 bg-slate-50/30 sticky top-0 h-screen">
-                                <MinimapView content={content} scrollContainerId="editor-scroll-container" />
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Status Bar - Floating or Fixed Bottom */}
-                <div
-                    className="shrink-0 bg-white border-t border-slate-200 flex items-center px-4 text-xs text-slate-500 justify-between relative z-20 overflow-hidden"
-                    style={{ height: `${footerHeight}px` }}
-                >
-                    {/* Footer Resizer */}
-                    <div
-                        onMouseDown={() => setResizingTarget('footer')}
-                        className={`absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 ${resizingTarget === 'footer' ? 'bg-blue-600' : 'bg-transparent'}`}
-                    />
-
-                    <div className="flex items-center gap-4">
-                        {isVimMode && <span className="font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">VIM</span>}
-                        <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${isSourceMode ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
-                            <span>{isSourceMode ? "Code Mode" : "Visual Mode"}</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 font-mono text-[10px] opacity-80">
-                        <span>{content.length} chars</span>
-                        <span>{content.split(/\s+/).filter(w => w.length > 0).length} words</span>
-                        <span>Pre-Alpha Build</span>
-
-                    </div>
+                                <div
+                                    className="flex flex-col min-w-[50px] h-full"
+                                    style={{ flex: `${group.flex} 1 0%` }}
+                                    onClick={() => setActiveGroupId(group.id)}
+                                >
+                                    <EditorGroup
+                                        groupId={group.id}
+                                        groupIndex={index}
+                                        isActiveGroup={group.id === activeGroupId}
+                                        tabs={groupTabs}
+                                        activePath={group.activePath}
+                                        content={doc ? doc.content : ""}
+                                        isReadOnly={group.isReadOnly}
+                                        onSwitchTab={(path) => {
+                                            setGroups(prev => prev.map(g => g.id === group.id ? { ...g, activePath: path } : g));
+                                            setActiveGroupId(group.id);
+                                        }}
+                                        onCloseTab={(e, path) => handleCloseTab(e, path, group.id)}
+                                        onContentChange={(val) => {
+                                            if (group.activePath) updateDoc(group.activePath, { content: val, isDirty: true });
+                                        }}
+                                        onSave={() => handleSave(group.id)}
+                                        onSplit={() => handleSplit(group.id)}
+                                        onToggleLock={() => handleToggleLock(group.id)}
+                                        onCloseGroup={groups.length > 1 ? () => handleCloseGroup(group.id) : undefined}
+                                        rootDir={rootDir}
+                                    />
+                                </div>
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
         </div>
     );
+
+    function getOpenFilePath() {
+        const group = groups.find(g => g.id === activeGroupId);
+        return group?.activePath || null;
+    }
 }
 
 export default App;
