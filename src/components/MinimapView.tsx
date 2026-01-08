@@ -20,7 +20,7 @@ export const MinimapView: React.FC<{ content: string; scrollContainerId: string 
             // A better approach would be to pass the EditorView instance to the MinimapView.
             // For now, we will stick to the existing logic but knowing it might be buggy with multiple splits.
             // TODO: Refactor to accept editorView reference or use a more specific selector scoped to the container.
-            
+
             // To fix "activeLine" showing up on both minimaps for the focused editor:
             // We really need the editor view. But let's proceed with this for now and fix if needed.
             // Ideally passing the editorViewRef would allow us to query state directly without DOM polling.
@@ -41,12 +41,12 @@ export const MinimapView: React.FC<{ content: string; scrollContainerId: string 
                     const range = selection.getRangeAt(0);
                     // Check if selection is inside THIS editor
                     if (editorElement.contains(range.commonAncestorContainer)) {
-                         const startLine = allLines.findIndex(line => line.contains(range.startContainer));
-                         const endLine = allLines.findIndex(line => line.contains(range.endContainer));
+                        const startLine = allLines.findIndex(line => line.contains(range.startContainer));
+                        const endLine = allLines.findIndex(line => line.contains(range.endContainer));
 
-                         if (startLine !== -1 && endLine !== -1) {
-                             selectionInfo = { from: startLine, to: endLine };
-                         }
+                        if (startLine !== -1 && endLine !== -1) {
+                            selectionInfo = { from: startLine, to: endLine };
+                        }
                     }
                 }
 
