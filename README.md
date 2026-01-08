@@ -1,6 +1,6 @@
 # MarkEditor
 
-A modern, high-performance hybrid editor for **Markdown** and **Typst**, built with efficiency and aesthetics in mind.
+A modern, high-performance hybrid editor for **Markdown**, **Typst**, and **Mermaid** built with efficiency and aesthetics in mind.
 
 ![Editor Screenshot](https://via.placeholder.com/800x450?text=MarkEditor+Preview)
 
@@ -19,8 +19,7 @@ A modern, high-performance hybrid editor for **Markdown** and **Typst**, built w
 
 ### ⚡ Power User Tools
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
-*   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
-*   **Minimap**: Visual overview of your document with active line and selection indicators.
+*   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
 *   **Outline View**: Auto-generated table of contents for quick navigation.
 
 ## 🛠️ Tech Stack

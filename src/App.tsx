@@ -10,6 +10,7 @@ import { vim } from "@replit/codemirror-vim";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t, styleTags, Tag } from "@lezer/highlight";
 import { EditorView } from "@codemirror/view";
+import mermaid from "mermaid"; // Import mermaid
 
 import "./styles.css";
 const appWindow = getCurrentWebviewWindow()
@@ -389,20 +390,31 @@ function App() {
     const [showSplitPreview, setShowSplitPreview] = useState(false);
     const [htmlContent, setHtmlContent] = useState('');
     const [typstSvg, setTypstSvg] = useState<string>('');
+    const [mermaidSvg, setMermaidSvg] = useState<string>(''); // Mermaid SVG state
+
+    // Initialize mermaid
+    useEffect(() => {
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+        });
+    }, []);
 
     // Determine current document type based on extension
-    const getDocType = (path: string | null): 'markdown' | 'typst' | 'text' => {
+    const getDocType = (path: string | null): 'markdown' | 'typst' | 'mermaid' | 'text' => {
         if (!path) return 'text';
         if (path.endsWith('.typ')) return 'typst';
         if (path.endsWith('.md')) return 'markdown';
+        if (path.endsWith('.mmd') || path.endsWith('.mermaid')) return 'mermaid';
         return 'text';
     };
 
     const docType = getDocType(currentFile);
 
-    // Auto-enable split preview for Typst
+    // Auto-enable split preview for Typst and Mermaid
     useEffect(() => {
-        if (docType === 'typst') {
+        if (docType === 'typst' || docType === 'mermaid') {
             setIsSourceMode(true);
             setShowSplitPreview(true);
         } else if (docType === 'markdown') {
@@ -410,6 +422,25 @@ function App() {
             // setIsSourceMode(false); // Maybe?
         }
     }, [docType]);
+
+    // Mermaid Rendering Effect
+    useEffect(() => {
+        if (docType === 'mermaid' && content) {
+            const timer = setTimeout(async () => {
+                try {
+                    // Generate a unique ID for the mermaid diagram container
+                    const id = `mermaid-${Date.now()}`;
+                    const { svg } = await mermaid.render(id, content);
+                    setMermaidSvg(svg);
+                } catch (e) {
+                    console.error("Mermaid rendering failed:", e);
+                    // Optionally set an error message in the preview
+                    setMermaidSvg(`<div class="text-red-500 p-4">Mermaid Syntax Error:<br/>${(e as Error).message}</div>`);
+                }
+            }, 500); // Debounce
+            return () => clearTimeout(timer);
+        }
+    }, [content, docType]);
 
     // Typst Compilation Effect
     useEffect(() => {
@@ -1091,6 +1122,11 @@ function App() {
                                             <div
                                                 className="typst-preview-container h-full"
                                                 dangerouslySetInnerHTML={{ __html: typstSvg }}
+                                            />
+                                        ) : docType === 'mermaid' ? (
+                                            <div
+                                                className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto"
+                                                dangerouslySetInnerHTML={{ __html: mermaidSvg }}
                                             />
                                         ) : (
                                             <div
