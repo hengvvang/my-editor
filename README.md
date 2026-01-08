@@ -15,7 +15,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 
 ### 🎨 Modern & Flexible UI
 *   **Ergonomic Window Controls**: VS Code-style window controls that stay accessible and visible regardless of window size.
-*   **Navigation Breadcrumbs**: VS Code-style file path navigation bar for quick context awareness.
+*   **Interactive Breadcrumbs**: VS Code-style file path navigation bar with dropdowns for quick browsing and navigating sibling files.
 *   **Dynamic Resizing Constraints**: Smart window management that prevents layout breaking by enforcing minimum dimensions based on UI elements.
 *   **Resizable Panes**: Customize the width of the Sidebar, Activity Bar, and Split Views to your liking.
 *   **Tab System**: Multi-tab support to work on multiple files simultaneously.
