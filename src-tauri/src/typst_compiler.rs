@@ -1,9 +1,8 @@
-use std::path::Path;
 use std::time::SystemTime;
 
 use typst::diag::{FileError, FileResult};
-use typst::foundations::{Bytes, Datetime, Smart};
-use typst::syntax::{FileId, Source, VirtualPath};
+use typst::foundations::{Bytes, Datetime};
+use typst::syntax::{FileId, Source};
 use typst::text::{Font, FontBook};
 use typst::utils::LazyHash;
 use typst::{Library, World};
@@ -15,7 +14,8 @@ pub struct SimpleWorld {
     book: LazyHash<FontBook>,
     fonts: Vec<Font>,
     source: Source,
-    /// current time for `datetime.today()`
+    /// current time for `datetime.today()` (kept for future use)
+    #[allow(dead_code)]
     now: SystemTime,
 }
 

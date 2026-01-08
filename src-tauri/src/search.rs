@@ -1,10 +1,8 @@
 use anyhow::Result;
-use grep_matcher::Matcher;
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{sinks::UTF8, Searcher};
 use ignore::WalkBuilder;
 use serde::Serialize;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 #[derive(Serialize, Debug, Clone)]
