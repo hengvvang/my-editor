@@ -660,6 +660,22 @@ function App() {
         };
     }, [resizingTarget, activityBarWidth, sidebarPanelWidth, sidebarOpen]);
 
+    const breadcrumbs = React.useMemo(() => {
+        if (!currentFile) return [];
+        let displayPath = currentFile;
+        // Normalize slashes for display consistency
+        displayPath = displayPath.replace(/\\/g, '/');
+        const normalizedRootRaw = rootDir ? rootDir.replace(/\\/g, '/') : null;
+
+        if (normalizedRootRaw && displayPath.startsWith(normalizedRootRaw)) {
+            displayPath = displayPath.substring(normalizedRootRaw.length);
+        }
+
+        // Remove leading slash
+        displayPath = displayPath.replace(/^\//, '');
+        return displayPath.split('/');
+    }, [currentFile, rootDir]);
+
     const contentRef = React.useRef(content);
     useEffect(() => { contentRef.current = content; }, [content]);
 
@@ -1130,6 +1146,24 @@ function App() {
                     />
                 </div>
 
+                {/* Breadcrumbs - VS Code Style */}
+                <div className="flex items-center gap-0.5 px-4 py-0.5 text-[11px] text-slate-500 bg-white border-b border-slate-100 shrink-0 select-none overflow-hidden h-[22px]">
+                    <span className="opacity-50 hover:bg-slate-100 px-1 rounded cursor-pointer transition-colors flex items-center gap-1" title={rootDir || ""}>
+                        {rootDir ? rootDir.split(/[\\/]/).pop() : "..."}
+                    </span>
+                    {breadcrumbs.map((part, index) => (
+                        <React.Fragment key={index}>
+                            <ChevronRight size={10} className="opacity-40 shrink-0" />
+                            <span
+                                className={`hover:bg-slate-100 px-1 rounded cursor-pointer transition-colors whitespace-nowrap ${index === breadcrumbs.length - 1 ? 'font-medium text-slate-700' : ''
+                                    }`}
+                                title={part}
+                            >
+                                {part}
+                            </span>
+                        </React.Fragment>
+                    ))}
+                </div>
 
                 {/* Content Scroll Container */}
                 <div
