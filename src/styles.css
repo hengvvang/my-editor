@@ -48,6 +48,35 @@
     font-size: inherit;
 }
 
+/* --- Typst Preview Styles --- */
+.typst-preview-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: #f1f5f9; /* Slate-100/200 like Chrome PDF viewer */
+    display: flex;
+    flex-direction: column; /* Stack pages */
+    align-items: center; /* Center pages */
+    padding: 3rem 1rem;
+}
+
+.typst-page {
+    background-color: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+    margin-bottom: 2rem;
+    /* Ensure the SVG scales well but respects bounds */
+    max-width: 100%;
+    width: fit-content; /* Hug the SVG size */
+    display: flex;
+}
+
+.typst-page svg {
+    /* Make SVG responsive but crisp */
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
 /* --- Live Preview Logic for CodeMirror --- */
 
 /* 1. Base Container */
@@ -312,4 +341,12 @@
 }
 .cm-gutters:hover .cm-gutterElement.cm-activeLineGutter {
     color: #0f172a !important; /* Keep active line dark even on hover */
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import DOMPurify from "dompurify";
-import { FileText, Folder, FolderOpen, Save, ChevronRight, ChevronDown, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
+import { FileText, Folder, FolderOpen, Save, ChevronRight, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
@@ -44,11 +44,13 @@ interface Tab {
 const SidebarItem = ({
     entry,
     level,
-    onSelect
+    onSelect,
+    currentPath
 }: {
     entry: FileEntry,
     level: number,
-    onSelect: (entry: FileEntry) => void
+    onSelect: (entry: FileEntry) => void,
+    currentPath: string | null
 }) => {
     const [expanded, setExpanded] = useState(false);
     const [children, setChildren] = useState<FileEntry[]>([]);
@@ -60,6 +62,11 @@ const SidebarItem = ({
         if (!expanded) {
             try {
                 const files = await invoke<FileEntry[]>("read_dir", { path: entry.path });
+                // Sort folders first
+                files.sort((a, b) => {
+                    if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
+                    return a.is_dir ? -1 : 1;
+                });
                 setChildren(files);
             } catch (err) {
                 console.error("Failed to read dir", err);
@@ -68,24 +75,32 @@ const SidebarItem = ({
         setExpanded(!expanded);
     }
 
+    const isSelected = !entry.is_dir && currentPath === entry.path;
+
     return (
         <div>
             <div
-                className="flex items-center gap-2 p-1 hover:bg-gray-200 cursor-pointer text-sm truncate"
-                style={{ paddingLeft: `${level * 12 + 8}px` }}
+                className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'bg-blue-50/50 border-blue-500 text-blue-700 font-medium' : 'border-transparent hover:bg-slate-100 text-slate-600'}`}
+                style={{ paddingLeft: `${level * 12 + 12}px` }}
                 onClick={() => entry.is_dir ? handleExpand({ stopPropagation: () => { } } as any) : onSelect(entry)}
             >
-                {entry.is_dir ? (
-                    <span onClick={handleExpand} className="p-0.5 hover:bg-gray-300 rounded">
-                        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </span>
-                ) : <span className="w-4" />}
+                <span className={`shrink-0 flex items-center justify-center w-4 h-4 transition-transform duration-200 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
+                    onClick={(e) => {
+                        if (entry.is_dir) handleExpand(e);
+                    }}
+                >
+                    {entry.is_dir && <ChevronRight size={12} className="text-slate-400 group-hover:text-slate-600" />}
+                </span>
 
-                {entry.is_dir ? <Folder size={16} className="text-blue-400" /> : <FileText size={16} className="text-gray-500" />}
-                <span className="truncate">{entry.name}</span>
+                {entry.is_dir ? (
+                    <Folder size={14} className={`shrink-0 ${expanded ? 'text-blue-500' : 'text-blue-400/80 group-hover:text-blue-500'}`} />
+                ) : (
+                    <FileText size={14} className={`shrink-0 ${isSelected ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-500'}`} />
+                )}
+                <span className="truncate flex-1 pt-0.5">{entry.name}</span>
             </div>
             {expanded && children.map(child => (
-                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} />
+                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} currentPath={currentPath} />
             ))}
         </div>
     );
@@ -365,7 +380,6 @@ function App() {
     // const [editorInitialContent, setEditorInitialContent] = useState<string>("# Welcome\n\nOpen a folder to get started.");
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeSideTab, setActiveSideTab] = useState<'explorer' | 'search' | 'outline'>('explorer');
-    const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [outline, setOutline] = useState<{ level: number; text: string; line: number }[]>([]);
     const editorViewRef = React.useRef<EditorView | null>(null);
@@ -374,9 +388,47 @@ function App() {
     const [previewType, setPreviewType] = useState<'smart' | 'full'>('smart'); // 'smart' = hybrid edit, 'full' = read only render
     const [showSplitPreview, setShowSplitPreview] = useState(false);
     const [htmlContent, setHtmlContent] = useState('');
+    const [typstSvg, setTypstSvg] = useState<string>('');
+
+    // Determine current document type based on extension
+    const getDocType = (path: string | null): 'markdown' | 'typst' | 'text' => {
+        if (!path) return 'text';
+        if (path.endsWith('.typ')) return 'typst';
+        if (path.endsWith('.md')) return 'markdown';
+        return 'text';
+    };
+
+    const docType = getDocType(currentFile);
+
+    // Auto-enable split preview for Typst
+    useEffect(() => {
+        if (docType === 'typst') {
+            setIsSourceMode(true);
+            setShowSplitPreview(true);
+        } else if (docType === 'markdown') {
+            // Restore user preference or default
+            // setIsSourceMode(false); // Maybe?
+        }
+    }, [docType]);
+
+    // Typst Compilation Effect
+    useEffect(() => {
+        if (docType === 'typst' && content) {
+            const timer = setTimeout(async () => {
+                try {
+                    console.log("Compiling Typst...");
+                    const svg = await invoke<string>('compile_typst', { content });
+                    setTypstSvg(svg);
+                } catch (e) {
+                    console.error("Typst compilation failed:", e);
+                }
+            }, 500); // Debounce 500ms
+            return () => clearTimeout(timer);
+        }
+    }, [content, docType]);
 
     useEffect(() => {
-        if (isSourceMode && showSplitPreview) {
+        if (isSourceMode && showSplitPreview && docType === 'markdown') {
             const timer = setTimeout(() => {
                 invoke('render_markdown', { text: content }).then((html) => {
                     setHtmlContent(DOMPurify.sanitize(html as string));
@@ -427,7 +479,9 @@ function App() {
     const [footerHeight, setFooterHeight] = useState(32);
     const [activityBarWidth, setActivityBarWidth] = useState(48);
     const [brandAreaHeight, setBrandAreaHeight] = useState(56);
-    const [resizingTarget, setResizingTarget] = useState<'sidebar' | 'titleBar' | 'tabBar' | 'footer' | 'activityBar' | 'brand' | null>(null);
+    const [resizingTarget, setResizingTarget] = useState<'sidebar' | 'titleBar' | 'tabBar' | 'footer' | 'activityBar' | 'brand' | 'editorSplit' | null>(null);
+    const [splitRatio, setSplitRatio] = useState(0.5);
+    const mainContentRef = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -475,6 +529,19 @@ function App() {
                 if (newWidth >= 30 && newWidth < 200) {
                     setActivityBarWidth(newWidth);
                 }
+            } else if (resizingTarget === 'editorSplit') {
+                // Improved Resize Logic: Use actual container dimensions for accurate handle position
+                if (mainContentRef.current) {
+                    const rect = mainContentRef.current.getBoundingClientRect();
+                    const relativeX = e.clientX - rect.left;
+                    let newRatio = relativeX / rect.width;
+
+                    // Constraints
+                    if (newRatio < 0.1) newRatio = 0.1;
+                    if (newRatio > 0.9) newRatio = 0.9;
+
+                    setSplitRatio(newRatio);
+                }
             }
         };
 
@@ -487,7 +554,7 @@ function App() {
         if (resizingTarget) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
-            if (resizingTarget === 'sidebar' || resizingTarget === 'activityBar') {
+            if (resizingTarget === 'sidebar' || resizingTarget === 'activityBar' || resizingTarget === 'editorSplit') {
                 document.body.style.cursor = 'col-resize';
             } else {
                 document.body.style.cursor = 'row-resize';
@@ -499,7 +566,7 @@ function App() {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizingTarget, activityBarWidth]);
+    }, [resizingTarget, activityBarWidth, sidebarPanelWidth, sidebarOpen]);
 
     const contentRef = React.useRef(content);
     useEffect(() => { contentRef.current = content; }, [content]);
@@ -701,23 +768,29 @@ function App() {
                             </div>
 
                             {/* Sidebar Panel */}
-                            <div className="flex flex-col" style={{ width: `${sidebarPanelWidth}px` }}>
+                            <div className="flex flex-col bg-slate-50/50" style={{ width: `${sidebarPanelWidth}px` }}>
 
                                 {/* Content */}
                                 <div className="flex-1 overflow-hidden flex flex-col">
                                     {activeSideTab === 'explorer' && (
                                         <>
-                                            <div className="flex items-center px-4 py-3 gap-2 shrink-0">
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex-1 pl-1">Explorer</span>
-                                                <button onClick={handleOpenFolder} className="p-1.5 hover:bg-gray-200 hover:text-gray-800 rounded transition-colors text-gray-400" title="Open Folder">
-                                                    <FolderOpen size={16} />
+                                            <div className="flex items-center px-4 py-3 gap-2 shrink-0 border-b border-transparent">
+                                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-1 pl-1">Explorer</span>
+                                                <button onClick={handleOpenFolder} className="p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Open Folder">
+                                                    <FolderOpen size={14} />
                                                 </button>
                                             </div>
                                             <div className="flex-1 overflow-y-auto p-2">
                                                 {!rootDir && (
-                                                    <div className="text-center mt-10 text-gray-400 text-sm">
-                                                        <FolderOpen size={32} className="mx-auto mb-2 opacity-50" />
-                                                        <p>No folder opened</p>
+                                                    <div className="flex flex-col items-center justify-center mt-20 text-slate-400 text-sm gap-2">
+                                                        <FolderOpen size={32} className="opacity-20" />
+                                                        <p className="opacity-60">No folder opened</p>
+                                                        <button
+                                                            onClick={handleOpenFolder}
+                                                            className="mt-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm"
+                                                        >
+                                                            Open Folder
+                                                        </button>
                                                     </div>
                                                 )}
                                                 {rootFiles.map(file => (
@@ -726,6 +799,7 @@ function App() {
                                                         entry={file}
                                                         level={0}
                                                         onSelect={(entry) => loadFile(entry.path)}
+                                                        currentPath={currentFile}
                                                     />
                                                 ))}
                                             </div>
@@ -734,19 +808,19 @@ function App() {
 
                                     {activeSideTab === 'search' && (
                                         <div className="p-4 flex flex-col gap-4">
-                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Search</span>
-                                            <div className="relative">
+                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Search</span>
+                                            <div className="relative group">
                                                 <input
                                                     type="text"
-                                                    placeholder="Search"
-                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Search..."
+                                                    className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 group-hover:border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
                                                 />
-                                                <Search size={14} className="absolute right-3 top-2.5 text-gray-400" />
+                                                <Search size={14} className="absolute left-3 top-2.5 text-slate-400 group-hover:text-slate-500 transition-colors" />
                                             </div>
-                                            <div className="text-xs text-gray-400 text-center mt-4">
-                                                Global search not implemented yet.
+                                            <div className="text-xs text-slate-400 text-center mt-8 italic opacity-70">
+                                                Global search coming soon
                                             </div>
                                         </div>
                                     )}
@@ -754,20 +828,20 @@ function App() {
                                     {activeSideTab === 'outline' && (
                                         <div className="flex flex-col h-full">
                                             <div className="flex items-center px-4 py-3 gap-2 shrink-0">
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex-1 pl-1">Outline</span>
+                                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-1 pl-1">Outline</span>
                                             </div>
                                             <div className="flex-1 overflow-y-auto p-2">
                                                 {outline.length === 0 && (
-                                                    <div className="text-center mt-10 text-gray-400 text-sm">
-                                                        <ListTree size={32} className="mx-auto mb-2 opacity-50" />
-                                                        <p>No headings found</p>
+                                                    <div className="flex flex-col items-center justify-center mt-20 text-slate-400 text-sm gap-2">
+                                                        <ListTree size={32} className="opacity-20" />
+                                                        <p className="opacity-60">No headings</p>
                                                     </div>
                                                 )}
                                                 {outline.map((item, idx) => (
                                                     <div
                                                         key={idx}
                                                         onClick={() => scrollToLine(item.line)}
-                                                        className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded text-sm text-gray-600 truncate transition-colors"
+                                                        className="cursor-pointer hover:bg-slate-100 px-2 py-1.5 rounded-sm text-sm text-slate-600 truncate transition-colors border-l-2 border-transparent hover:border-slate-300"
                                                         style={{ paddingLeft: `${(item.level - 1) * 12 + 8}px` }}
                                                     >
                                                         {item.text}
@@ -794,36 +868,45 @@ function App() {
 
                 {/* Title Bar (Function Bar) */}
                 <div
-                    className={`shrink-0 border-b flex items-center px-6 gap-4 bg-white z-20 relative transition-colors overflow-hidden ${scrolled ? 'border-gray-200 shadow-sm' : 'border-gray-100'}`}
+                    className={`shrink-0 border-b flex items-center px-4 gap-3 bg-white z-20 relative transition-colors overflow-hidden ${scrolled ? 'border-slate-200 shadow-sm' : 'border-slate-100'}`}
                     style={{ height: `${titleBarHeight}px` }}
                 >
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100/50 rounded text-gray-600 mr-2 shrink-0 z-30">
+                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded text-slate-500 mr-2 shrink-0 z-30 transition-colors">
                         <Menu size={18} />
                     </button>
 
                     {/* Title or Breadcrumbs - ACTS AS DRAG REGION */}
                     <div className="flex-1 overflow-hidden h-full flex items-center" data-tauri-drag-region>
-                        <div className="font-semibold text-gray-700 truncate max-w-[300px] pointer-events-none select-none opacity-80 decoration-slate-900" data-tauri-drag-region>
+                        <div className="font-medium text-slate-700 truncate max-w-[400px] pointer-events-none select-none text-sm" data-tauri-drag-region>
                             {currentFile ? currentFile.split(/[\\/]/).pop() : "Untitled"}
                         </div>
                     </div>
 
                     <div className="ml-auto flex items-center gap-2 z-30">
-                        <button
-                            onClick={() => {
-                                setIsSourceMode(!isSourceMode);
-                            }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isSourceMode ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100/50 hover:text-gray-900 text-gray-500'}`}
-                        >
-                            {isSourceMode ? <Eye size={16} /> : <Code size={16} />}
-                            <span className="hidden sm:inline">{isSourceMode ? "Preview" : "Source"}</span>
-                        </button>
+                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                            <button
+                                onClick={() => setIsSourceMode(true)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${isSourceMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                                title="Edit Markdown Source"
+                            >
+                                <Code size={14} />
+                                <span className="hidden sm:inline">Code</span>
+                            </button>
+                            <button
+                                onClick={() => setIsSourceMode(false)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${!isSourceMode ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                                title="Visual Edit Mode"
+                            >
+                                <Eye size={14} />
+                                <span className="hidden sm:inline">Visual</span>
+                            </button>
+                        </div>
 
                         {/* Sub-mode Toggle for Source: Split View */}
                         {isSourceMode && (
                             <button
                                 onClick={() => setShowSplitPreview(!showSplitPreview)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${showSplitPreview ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100/50 text-gray-500'}`}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-500'}`}
                                 title="Toggle Split Preview"
                             >
                                 <Columns size={16} />
@@ -835,7 +918,7 @@ function App() {
                         {!isSourceMode && (
                             <button
                                 onClick={() => setPreviewType(prev => prev === 'smart' ? 'full' : 'smart')}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:bg-gray-100/50 text-gray-500"
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:bg-slate-100 text-slate-500"
                                 title={previewType === 'smart' ? "Smart Mode: Edit active line source" : "Full Preview: Always rendered"}
                             >
                                 {previewType === 'smart' ? <TextCursorInput size={16} /> : <BookOpen size={16} />}
@@ -846,7 +929,7 @@ function App() {
                         {/* Line Numbers Toggle */}
                         <button
                             onClick={() => setShowLineNumbers(!showLineNumbers)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${showLineNumbers ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100/50 hover:text-gray-900 text-gray-500'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showLineNumbers ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-500'}`}
                             title="Toggle Line Numbers"
                         >
                             <ListOrdered size={16} />
@@ -855,7 +938,7 @@ function App() {
                         {/* Minimap Toggle */}
                         <button
                             onClick={() => setShowMinimap(!showMinimap)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${showMinimap ? 'bg-purple-100 text-purple-700' : 'hover:bg-gray-100/50 hover:text-gray-900 text-gray-500'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${showMinimap ? 'bg-purple-50 text-purple-600' : 'hover:bg-slate-100 text-slate-500'}`}
                             title="Toggle Minimap"
                         >
                             <MapIcon size={16} />
@@ -863,26 +946,26 @@ function App() {
 
                         <button
                             onClick={() => setIsVimMode(!isVimMode)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isVimMode ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100/50 hover:text-gray-900 text-gray-500'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${isVimMode ? 'bg-green-50 text-green-600' : 'hover:bg-slate-100 text-slate-500'}`}
                             title="Toggle Vim Mode"
                         >
                             <Keyboard size={16} />
                             <span className="hidden sm:inline">Vim</span>
                         </button>
 
-                        <div className="h-4 w-[1px] bg-gray-300 mx-1"></div>
+                        <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
 
-                        <button onClick={handleSave} className="flex items-center gap-2 px-3 py-1.5 bg-black text-white hover:opacity-80 rounded-lg text-sm font-medium transition-all shadow-sm">
-                            <Save size={16} />
+                        <button onClick={handleSave} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white hover:bg-slate-700 rounded-md text-xs font-medium transition-all shadow-sm">
+                            <Save size={14} />
                             <span>Save</span>
                         </button>
 
                         {/* Window Controls */}
-                        <div className="h-4 w-[1px] bg-gray-300 mx-2"></div>
-                        <div className="flex items-center gap-1 -mr-2 text-gray-500">
+                        <div className="h-4 w-[1px] bg-slate-200 mx-2"></div>
+                        <div className="flex items-center gap-1 -mr-2 text-slate-400">
                             <button
                                 onClick={() => appWindow.minimize()}
-                                className="p-2 hover:bg-gray-200/50 rounded-md transition-colors"
+                                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
                                 title="Minimize"
                             >
                                 <Minus size={16} />
@@ -895,7 +978,7 @@ function App() {
                                         await appWindow.maximize();
                                     }
                                 }}
-                                className="p-2 hover:bg-gray-200/50 rounded-md transition-colors"
+                                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
                                 title="Maximize"
                             >
                                 <Square size={14} />
@@ -918,22 +1001,22 @@ function App() {
 
                 {/* Tab Bar Container */}
                 <div
-                    className="flex bg-gray-50/50 border-b border-gray-200/50 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 backdrop-blur-sm relative"
+                    className="flex bg-slate-100/50 border-b border-slate-200 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 backdrop-blur-sm relative pt-1"
                     style={{ height: `${tabBarHeight}px` }}
                 >
                     {openedTabs.map(tab => (
                         <div
                             key={tab.path}
                             onClick={() => switchTab(tab.path)}
-                            className={`group relative flex items-center gap-2 px-3 min-w-[120px] max-w-[200px] border-r border-gray-200/50 text-xs select-none cursor-pointer transition-colors ${tab.path === currentFile ? 'bg-white text-blue-600 shadow-sm z-10 h-full' : 'bg-transparent text-gray-500 hover:bg-white/50 h-full'}`}
+                            className={`group relative flex items-center gap-2 px-4 min-w-[120px] max-w-[200px] border-r border-slate-200/50 text-xs select-none cursor-pointer transition-all ${tab.path === currentFile ? 'bg-white text-blue-600 shadow-sm rounded-t-lg mb-[-1px] border-t-2 border-t-blue-500 border-x border-slate-200' : 'bg-transparent text-slate-500 hover:bg-slate-200/50 hover:text-slate-700 border-t-2 border-t-transparent'}`}
+                            style={{ height: 'calc(100% - 1px)' }}
                         >
-                            <span className={`absolute top-0 left-0 w-full h-[2px] ${tab.path === currentFile ? 'bg-blue-600' : 'bg-transparent'}`} />
-                            <FileText size={14} className={tab.path === currentFile ? 'text-blue-500' : 'text-gray-400'} />
+                            <FileText size={14} className={tab.path === currentFile ? 'text-blue-500' : 'text-slate-400'} />
                             <span className="truncate flex-1 font-medium">{tab.name}</span>
                             {tab.isDirty && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
                             <button
                                 onClick={(e) => handleCloseTab(e, tab.path)}
-                                className={`p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-red-500 transition-all ${tab.isDirty ? 'hidden group-hover:block' : ''}`}
+                                className={`p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-slate-200 hover:text-red-500 transition-all ${tab.isDirty ? 'hidden group-hover:block' : ''}`}
                             >
                                 <X size={12} />
                             </button>
@@ -950,17 +1033,20 @@ function App() {
 
                 {/* Content Scroll Container */}
                 <div
-                    className="flex-1 overflow-auto relative bg-gray-50/30"
+                    className={`flex-1 relative bg-white ${isSourceMode && showSplitPreview ? 'overflow-hidden' : 'overflow-auto'}`}
                     onScroll={handleScroll}
                     id="editor-scroll-container"
                 >
-                    <div className="flex min-h-full">
+                    <div className="flex min-h-full w-full">
                         {/* Main Editor Area */}
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0" ref={mainContentRef}>
                             {/* Simplified container for both modes to ensure consistent size */}
                             {/* Scaled up for larger editing area while maintaining readable margins */}
-                            <div className={`mx-auto min-h-full py-8 transition-all duration-300 ${isSourceMode && showSplitPreview ? 'w-full px-4 flex gap-6' : 'w-full max-w-[1400px] px-10'}`}>
-                                <div className={`${isSourceMode && showSplitPreview ? 'w-1/2' : 'w-full'} h-full relative ${!isSourceMode ? `preview-mode-cm ${previewType === 'full' ? 'preview-mode-full' : ''}` : ""}`}>
+                            <div className={`mx-auto min-h-full transition-all duration-300 ${isSourceMode && showSplitPreview ? 'w-full flex h-full' : 'w-full max-w-[900px] py-8 px-8'}`}>
+                                <div
+                                    className={`${isSourceMode && showSplitPreview ? 'border-r border-slate-200' : 'w-full'} h-full relative ${!isSourceMode ? `preview-mode-cm ${previewType === 'full' ? 'preview-mode-full' : ''}` : ""}`}
+                                    style={{ width: isSourceMode && showSplitPreview ? `${splitRatio * 100}%` : '100%' }}
+                                >
                                     <CodeMirror
                                         value={content}
                                         height="100%"
@@ -980,14 +1066,38 @@ function App() {
                                             foldGutter: showLineNumbers,
                                             highlightActiveLine: isSourceMode || previewType === 'smart',
                                         }}
+                                        className={isSourceMode && showSplitPreview ? "h-full" : ""}
                                     />
                                 </div>
+
+                                {/* Resizer Handle */}
                                 {isSourceMode && showSplitPreview && (
-                                    <div className="w-1/2 h-full overflow-y-auto pl-2 border-l border-gray-100">
-                                        <div
-                                            className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600"
-                                            dangerouslySetInnerHTML={{ __html: htmlContent }}
-                                        />
+                                    <div
+                                        className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 -ml-[1px] ${resizingTarget === 'editorSplit' ? 'bg-blue-600' : 'bg-transparent'}`}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setResizingTarget('editorSplit');
+                                        }}
+                                    />
+                                )}
+
+                                {isSourceMode && showSplitPreview && (
+                                    <div
+                                        className="h-full overflow-y-auto bg-slate-50/50"
+                                        style={{ width: `${(1 - splitRatio) * 100}%` }}
+                                    >
+                                        {docType === 'typst' ? (
+                                            <div
+                                                className="typst-preview-container h-full"
+                                                dangerouslySetInnerHTML={{ __html: typstSvg }}
+                                            />
+                                        ) : (
+                                            <div
+                                                className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8"
+                                                dangerouslySetInnerHTML={{ __html: htmlContent }}
+                                            />
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -995,7 +1105,7 @@ function App() {
 
                         {/* Minimap */}
                         {showMinimap && (
-                            <div className="w-[120px] shrink-0 border-l border-gray-200 bg-gray-50/50 sticky top-0 h-screen">
+                            <div className="w-[120px] shrink-0 border-l border-slate-200 bg-slate-50/30 sticky top-0 h-screen">
                                 <MinimapView content={content} scrollContainerId="editor-scroll-container" />
                             </div>
                         )}
@@ -1004,7 +1114,7 @@ function App() {
 
                 {/* Status Bar - Floating or Fixed Bottom */}
                 <div
-                    className="shrink-0 bg-white/90 border-t backdrop-blur-sm flex items-center px-4 text-xs text-gray-500 justify-between relative z-20 overflow-hidden"
+                    className="shrink-0 bg-white border-t border-slate-200 flex items-center px-4 text-xs text-slate-500 justify-between relative z-20 overflow-hidden"
                     style={{ height: `${footerHeight}px` }}
                 >
                     {/* Footer Resizer */}
@@ -1013,13 +1123,18 @@ function App() {
                         className={`absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 ${resizingTarget === 'footer' ? 'bg-blue-600' : 'bg-transparent'}`}
                     />
 
-                    <div className="flex items-center gap-3">
-                        {isVimMode && <span className="font-bold text-green-600">VIM</span>}
-                        <span>{isSourceMode ? "Source" : "Preview"}</span>
+                    <div className="flex items-center gap-4">
+                        {isVimMode && <span className="font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">VIM</span>}
+                        <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${isSourceMode ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
+                            <span>{isSourceMode ? "Code Mode" : "Visual Mode"}</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4 font-mono text-[10px] opacity-80">
                         <span>{content.length} chars</span>
                         <span>{content.split(/\s+/).filter(w => w.length > 0).length} words</span>
+                        <span>Pre-Alpha Build</span>
+
                     </div>
                 </div>
             </div>

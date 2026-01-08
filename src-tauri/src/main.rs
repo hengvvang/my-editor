@@ -2,6 +2,9 @@ use comrak::{markdown_to_html, ComrakOptions};
 use serde::{Deserialize, Serialize};
 use std::fs;
 
+// Import the typst compiler module
+mod typst_compiler;
+
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct FileEntry {
@@ -75,6 +78,11 @@ fn render_markdown(text: String) -> String {
     markdown_to_html(&text, &options)
 }
 
+#[tauri::command]
+fn compile_typst(content: String) -> Result<String, String> {
+    typst_compiler::compile(content)
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -84,7 +92,8 @@ fn main() {
             save_content,
             read_content,
             read_dir,
-            render_markdown
+            render_markdown,
+            compile_typst
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
