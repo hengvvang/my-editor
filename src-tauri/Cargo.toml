@@ -18,6 +18,11 @@ serde_json = "1"
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
+ignore = "0.4"
+grep-regex = "0.1"
+grep-searcher = "0.1"
+grep-matcher = "0.1"
+anyhow = "1.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

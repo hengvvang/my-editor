@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 // Import the typst compiler module
+mod search;
 mod typst_compiler;
+use search::FileResult;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -111,6 +113,22 @@ fn copy_item(path: String, new_path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn search_in_files(
+    path: String,
+    query: String,
+    case_sensitive: bool,
+    whole_word: bool,
+    is_regex: bool,
+) -> Result<Vec<FileResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        search::search(&path, &query, case_sensitive, whole_word, is_regex)
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -125,7 +143,8 @@ fn main() {
             create_directory,
             delete_item,
             rename_item,
-            copy_item
+            copy_item,
+            search_in_files
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

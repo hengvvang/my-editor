@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { FileText, Folder, ChevronRight, Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen } from "lucide-react";
-import { FileEntry } from "../types";
+import { FileText, Folder, ChevronRight, Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen, ArrowRight, Loader2 } from "lucide-react";
+import { FileEntry, SearchResult } from "../types";
 
 export interface SidebarProps {
     isOpen: boolean;
@@ -12,6 +12,7 @@ export interface SidebarProps {
     rootFiles: FileEntry[];
     currentPath: string | null;
     onOpenFile: (path: string) => void;
+    onOpenFileAtLine?: (path: string, line: number) => void;
     onOpenFolder: () => void;
     outline: { level: number; text: string; line: number }[];
     onResizeStart: () => void;
@@ -21,7 +22,65 @@ export interface SidebarProps {
     onCreateFile?: (parentPath: string | null, name: string) => Promise<boolean>;
     onCreateFolder?: (parentPath: string | null, name: string) => Promise<boolean>;
     onDeleteItem?: (path: string) => Promise<boolean>;
+    search?: {
+        query: string;
+        setQuery: (q: string) => void;
+        options: { caseSensitive: boolean; wholeWord: boolean; isRegex: boolean };
+        setOption: (k: "caseSensitive" | "wholeWord" | "isRegex", v: boolean) => void;
+        results: SearchResult[];
+        isSearching: boolean;
+        search: (root: string | null) => void;
+    };
 }
+
+const SearchResultItem = ({
+    result,
+    rootDir,
+    onOpenFileAtLine
+}: {
+    result: SearchResult,
+    rootDir: string | null,
+    onOpenFileAtLine?: (path: string, line: number) => void
+}) => {
+    const [expanded, setExpanded] = useState(true);
+    const relPath = rootDir && result.path.startsWith(rootDir)
+        ? result.path.slice(rootDir.length + (rootDir.endsWith('\\') || rootDir.endsWith('/') ? 0 : 1))
+        : result.path;
+    const fileName = relPath.split(/[\\/]/).pop() || relPath;
+    const dirPath = relPath.slice(0, -fileName.length);
+
+    return (
+        <div className="flex flex-col">
+            <div
+                className="flex items-center gap-1 py-1 px-2 hover:bg-slate-100 cursor-pointer text-xs select-none group"
+                onClick={() => setExpanded(!expanded)}
+            >
+                <span className={`shrink-0 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>
+                    <ChevronRight size={12} className="text-slate-400" />
+                </span>
+                <span className="font-medium text-slate-700 truncate" title={result.path}>{fileName}</span>
+                <span className="text-slate-400 truncate text-[10px] ml-1">{dirPath}</span>
+                <div className="ml-auto bg-slate-200 text-slate-600 rounded-full px-1.5 text-[10px] min-w-[16px] text-center">
+                    {result.matches.length}
+                </div>
+            </div>
+            {expanded && (
+                <div className="flex flex-col">
+                    {result.matches.map((m, i) => (
+                        <div
+                            key={i}
+                            className="pl-6 pr-2 py-0.5 hover:bg-blue-50 cursor-pointer group/line flex items-start gap-2 text-xs font-mono"
+                            onClick={() => onOpenFileAtLine?.(result.path, m.line_number)}
+                        >
+                            <span className="text-slate-400 text-[10px] w-6 shrink-0 text-right select-none mt-0.5">{m.line_number}</span>
+                            <span className="text-slate-600 truncate flex-1">{m.line_text.trim()}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const SidebarItem = ({
     entry,
@@ -129,7 +188,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onRemoveWorkspace,
     onCreateFile,
     onCreateFolder,
-    onDeleteItem
+    onDeleteItem,
+    search,
+    onOpenFileAtLine,
 }) => {
 
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -261,9 +322,62 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     )}
 
                     {activeSideTab === 'search' && (
-                        <div className="flex-1 overflow-auto p-4 bg-slate-50/30">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Search</div>
-                            <div className="text-xs text-slate-400">Search functionality coming soon.</div>
+                        <div className="flex-1 flex flex-col bg-slate-50/30 overflow-hidden">
+                            {/* Search Box */}
+                            <div className="p-3 border-b border-slate-200 bg-white">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Search</div>
+                                <div className="relative flex items-center mb-1">
+                                    <input
+                                        type="text"
+                                        className="w-full text-xs pl-2 pr-2 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-blue-500"
+                                        placeholder="Search"
+                                        value={search?.query || ""}
+                                        onChange={(e) => search?.setQuery(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && search?.search(rootDir)}
+                                    />
+                                </div>
+                                <div className="flex gap-1 justify-end mt-1.5">
+                                    <button
+                                        onClick={() => search?.setOption("caseSensitive", !search.options.caseSensitive)}
+                                        className={`px-1.5 py-0.5 text-[10px] border rounded ${search?.options.caseSensitive ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-500'}`}
+                                        title="Match Case"
+                                    >Aa</button>
+                                    <button
+                                        onClick={() => search?.setOption("wholeWord", !search.options.wholeWord)}
+                                        className={`px-1.5 py-0.5 text-[10px] border rounded ${search?.options.wholeWord ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-500'}`}
+                                        title="Match Whole Word"
+                                    >\b</button>
+                                    <button
+                                        onClick={() => search?.setOption("isRegex", !search.options.isRegex)}
+                                        className={`px-1.5 py-0.5 text-[10px] border rounded ${search?.options.isRegex ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-500'}`}
+                                        title="Use Regular Expression"
+                                    >.*</button>
+                                </div>
+                            </div>
+
+                            {/* Results */}
+                            <div className="flex-1 overflow-auto">
+                                {search?.isSearching ? (
+                                    <div className="p-4 text-xs text-slate-400 flex items-center justify-center gap-2">
+                                        <Loader2 size={14} className="animate-spin" /> Searching...
+                                    </div>
+                                ) : (
+                                    <>
+                                        {search && search.results.length === 0 && search.query && (
+                                            <div className="p-4 text-xs text-slate-400 text-center">No results found</div>
+                                        )}
+
+                                        {search && search.results.map((result) => (
+                                            <SearchResultItem
+                                                key={result.path}
+                                                result={result}
+                                                rootDir={rootDir}
+                                                onOpenFileAtLine={onOpenFileAtLine}
+                                            />
+                                        ))}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )}
 

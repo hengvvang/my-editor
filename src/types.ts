@@ -35,3 +35,13 @@ export interface Workspace {
     name: string;
     lastOpened: number;
 }
+
+export interface SearchMatch {
+    line_number: number;
+    line_text: string;
+}
+
+export interface SearchResult {
+    path: string;
+    matches: SearchMatch[];
+}

@@ -12,6 +12,7 @@ import { useEditorGroups } from "./hooks/useEditorGroups";
 import { useWorkspace } from "./hooks/useWorkspace";
 import { useSidebar } from "./hooks/useSidebar";
 import { useOutline } from "./hooks/useOutline";
+import { useSearch } from "./hooks/useSearch";
 
 const appWindow = getCurrentWebviewWindow()
 
@@ -48,6 +49,12 @@ function App() {
         return loaded;
     };
 
+    const openFileAtLine = async (path: string, line: number) => {
+        await loadFile(path);
+        // TODO: Implement scroll to line mechanism
+        // This requires communicating with the CodeMirror instance inside EditorGroup
+    };
+
     const {
         rootDir,
         rootFiles,
@@ -72,6 +79,8 @@ function App() {
     } = useSidebar();
 
     const outline = useOutline(documents, groups, activeGroupId);
+
+    const search = useSearch();
 
     // Sync sidebar open state when workspace loads
     useEffect(() => {
@@ -161,8 +170,10 @@ function App() {
                 rootFiles={rootFiles}
                 currentPath={getOpenFilePath()}
                 onOpenFile={(path) => loadFile(path)}
+                onOpenFileAtLine={openFileAtLine}
                 onOpenFolder={openFolder}
                 outline={outline}
+                search={search}
                 onResizeStart={startSidebarResizing}
                 workspaces={workspaces}
                 onSwitchWorkspace={loadWorkspace}

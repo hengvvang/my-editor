@@ -22,6 +22,10 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Project Persistence**: Save and switch between different project contexts.
     *   **State Restoration**: Automatically restores your layout, open groups, and active tabs when switching workspaces.
     *   **Recent Workspaces**: Quick access list to your frequently used projects.
+*   **Global Search**:
+    *   **High Performance**: Powered by Rust's `ripgrep` engine for blazing fast results.
+    *   **Advanced Filtering**: Support for Case Sensitive, Whole Word, and Regex queries.
+    *   **Smart Ignoring**: Automatically respects `.gitignore` rules to keep results relevant.
 *   **Ergonomic Window Controls**: VS Code-style window controls that stay accessible and visible regardless of window size.
 *   **Interactive Breadcrumbs**: VS Code-style file path navigation bar with dropdowns for quick browsing and navigating sibling files.
 *   **Dynamic Resizing Constraints**: Smart window management that prevents layout breaking by enforcing minimum dimensions based on UI elements.
