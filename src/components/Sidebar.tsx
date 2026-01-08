@@ -82,7 +82,7 @@ const SidebarItem = ({
         <div>
             <div
                 className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'border-blue-500' : 'border-transparent'} ${isFocused ? 'bg-blue-100 text-blue-800' : (isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100 text-slate-600')}`}
-                style={{ paddingLeft: `${level * 12 + 12}px` }}
+                style={{ paddingLeft: `${level * 10 + 4}px` }}
                 onClick={(e) => {
                     e.stopPropagation();
                     onFocus(entry);
@@ -197,14 +197,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
         <div className="flex flex-col shrink-0 h-full border-r border-slate-200 bg-slate-50/50 relative" style={{ width: width }}>
             {/* 1. Header ("EXPLORER") */}
-            <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0 justify-between" data-tauri-drag-region>
-                <span>EXPLORER</span>
-                <div className="flex items-center gap-1">
-                    <button onClick={handleNewFile} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New File"><FilePlus size={14} /></button>
-                    <button onClick={handleNewFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New Folder"><FolderPlus size={14} /></button>
-                    <button onClick={onOpenFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="Open Folder"><FolderOpen size={14} /></button>
-                    <button onClick={handleDelete} className={`p-1 hover:bg-slate-200 rounded ${selectedEntry ? 'text-slate-500 hover:text-red-500' : 'text-slate-300 cursor-not-allowed'}`} title="Delete"><Trash2 size={14} /></button>
-                </div>
+            <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0" data-tauri-drag-region>
+                EXPLORER
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Window */}
@@ -238,21 +232,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex-1 bg-white overflow-hidden flex flex-col">
                     {/* Content Header (Optional, maybe just showing content) */}
 
+
                     {activeSideTab === 'explorer' && (
-                        <div className="flex-1 overflow-auto p-2 bg-slate-50/30">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 pt-2">Folders</div>
-                            {!rootDir && <button onClick={onOpenFolder} className="w-full py-2 bg-blue-500 text-white rounded text-xs mb-2">Open Folder</button>}
-                            {rootFiles.map(file => (
-                                <SidebarItem
-                                    key={file.path}
-                                    entry={file}
-                                    level={0}
-                                    currentPath={currentPath}
-                                    selectedPath={selectedPath}
-                                    onSelect={f => onOpenFile(f.path)}
-                                    onFocus={handleFocus}
-                                />
-                            ))}
+                        <div className="flex-1 overflow-auto bg-slate-50/30">
+                            <div className="flex items-center justify-end px-2 pt-2 pb-1 bg-slate-50/50 sticky top-0 z-10">
+                                <div className="flex items-center gap-1">
+                                    <button onClick={handleNewFile} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New File"><FilePlus size={14} /></button>
+                                    <button onClick={handleNewFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New Folder"><FolderPlus size={14} /></button>
+                                    <button onClick={onOpenFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="Open Folder"><FolderOpen size={14} /></button>
+                                    <button onClick={handleDelete} className={`p-1 hover:bg-slate-200 rounded ${selectedEntry ? 'text-slate-500 hover:text-red-500' : 'text-slate-300 cursor-not-allowed'}`} title="Delete"><Trash2 size={14} /></button>
+                                </div>
+                            </div>
+                            <div className="px-2">
+                                {!rootDir && <button onClick={onOpenFolder} className="w-full py-2 bg-blue-500 text-white rounded text-xs mb-2">Open Folder</button>}
+                                {rootFiles.map(file => (
+                                    <SidebarItem
+                                        key={file.path}
+                                        entry={file}
+                                        level={0}
+                                        currentPath={currentPath}
+                                        selectedPath={selectedPath}
+                                        onSelect={f => onOpenFile(f.path)}
+                                        onFocus={handleFocus}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
 
