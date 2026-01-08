@@ -13,3 +13,25 @@ export interface FileEntry {
     is_dir: boolean;
     children?: FileEntry[];
 }
+
+export interface DocState {
+    path: string;
+    name: string;
+    content: string;
+    originalContent: string;
+    isDirty: boolean;
+}
+
+export interface GroupState {
+    id: string;
+    tabs: string[]; // Paths
+    activePath: string | null;
+    isReadOnly: boolean;
+    flex: number;
+}
+
+export interface Workspace {
+    path: string;
+    name: string;
+    lastOpened: number;
+}

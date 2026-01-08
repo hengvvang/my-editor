@@ -1,319 +1,156 @@
-import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import React, { useEffect, useRef } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Menu, Minus, Square, X } from "lucide-react";
 
 import { EditorGroup } from "./components/EditorGroup";
 import { Sidebar } from "./components/Sidebar";
-import { Tab, FileEntry } from "./types";
+import { Tab } from "./types";
 import "./styles.css";
+
+import { useDocuments } from "./hooks/useDocuments";
+import { useEditorGroups } from "./hooks/useEditorGroups";
+import { useWorkspace } from "./hooks/useWorkspace";
+import { useSidebar } from "./hooks/useSidebar";
+import { useOutline } from "./hooks/useOutline";
 
 const appWindow = getCurrentWebviewWindow()
 
-// --- Data Models ---
-interface DocState {
-    path: string;
-    name: string;
-    content: string;
-    originalContent: string;
-    isDirty: boolean;
-}
-
-interface GroupState {
-    id: string;
-    tabs: string[]; // Paths
-    activePath: string | null;
-    isReadOnly: boolean;
-    flex: number;
-}
-
 function App() {
-    // --- Global Data State ---
-    const [documents, setDocuments] = useState<Record<string, DocState>>({});
+    // --- State Hooks ---
+    const {
+        documents,
+        ensureDocumentLoaded,
+        updateDoc,
+        saveDocument
+    } = useDocuments();
 
-    // --- Layout State ---
-    const [groups, setGroups] = useState<GroupState[]>([{ id: '1', tabs: [], activePath: null, isReadOnly: false, flex: 1 }]);
-    const [activeGroupId, setActiveGroupId] = useState('1');
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [activeSideTab, setActiveSideTab] = useState<'explorer' | 'search' | 'outline'>('explorer');
-    const [sidebarPanelWidth, setSidebarPanelWidth] = useState(240);
-    const [rootDir, setRootDir] = useState<string | null>(null);
-    const [rootFiles, setRootFiles] = useState<FileEntry[]>([]);
+    const {
+        groups,
+        setGroups,
+        activeGroupId,
+        setActiveGroupId,
+        resizingGroupIndex,
+        setResizingGroupIndex,
+        openTab,
+        closeTab,
+        switchTab,
+        splitGroup,
+        closeGroup,
+        toggleLock
+    } = useEditorGroups();
 
-    const groupsContainerRef = React.useRef<HTMLDivElement>(null);
-    const [resizingGroupIndex, setResizingGroupIndex] = useState<number | null>(null);
-
-    // --- Outline ---
-    const [outline, setOutline] = useState<{ level: number; text: string; line: number }[]>([]);
-
-    // --- Resizing ---
-    const [resizingTarget, setResizingTarget] = useState<'sidebar' | null>(null);
-
-    // --- Helpers ---
-    const getActiveDoc = () => {
-        const group = groups.find(g => g.id === activeGroupId);
-        if (group && group.activePath && documents[group.activePath]) {
-            return documents[group.activePath];
+    // Wrapper for loading a file that also adds it to the active group
+    const loadFile = async (path: string, addToGroup = true) => {
+        const loaded = await ensureDocumentLoaded(path);
+        if (loaded && addToGroup) {
+            openTab(path);
         }
-        return null;
+        return loaded;
     };
 
-    const updateDoc = (path: string, updates: Partial<DocState>) => {
-        setDocuments(prev => ({
-            ...prev,
-            [path]: { ...prev[path], ...updates }
-        }));
-    };
+    const {
+        rootDir,
+        rootFiles,
+        workspaces,
+        loadWorkspace,
+        removeWorkspace,
+        createFile,
+        createFolder,
+        deleteItem,
+        openFolder,
+        shouldShowSidebar,
+        setShouldShowSidebar
+    } = useWorkspace(groups, activeGroupId, setGroups, setActiveGroupId, loadFile);
 
-    // --- Outline Effect (based on ACTIVE group's file) ---
+    const {
+        isOpen: sidebarOpen,
+        setIsOpen: setSidebarOpen,
+        width: sidebarPanelWidth,
+        activeTab: activeSideTab,
+        setActiveTab: setActiveSideTab,
+        startResizing: startSidebarResizing
+    } = useSidebar();
+
+    const outline = useOutline(documents, groups, activeGroupId);
+
+    // Sync sidebar open state when workspace loads
     useEffect(() => {
-        const doc = getActiveDoc();
-        if (!doc) {
-            setOutline([]);
-            return;
+        if (shouldShowSidebar) {
+            setSidebarOpen(true);
+            setShouldShowSidebar(false);
         }
-        const lines = doc.content.split('\n');
-        const newOutline = [];
-        for (let i = 0; i < lines.length; i++) {
-            const match = lines[i].match(/^(#{1,6})\s+(.+)$/);
-            if (match) {
-                newOutline.push({
-                    level: match[1].length,
-                    text: match[2],
-                    line: i
-                });
-            }
-        }
-        setOutline(newOutline);
-    }, [documents, activeGroupId, groups]);
+    }, [shouldShowSidebar, setSidebarOpen, setShouldShowSidebar]);
 
+    const groupsContainerRef = useRef<HTMLDivElement>(null);
 
-    // --- File Operations ---
-    const loadFile = async (path: string) => {
-        // 1. Check if doc exists, if not load it
-        if (!documents[path]) {
-            try {
-                const content = await invoke<string>("read_content", { path });
-                const name = path.split(/[\\/]/).pop() || "Untitled";
-                setDocuments(prev => ({
-                    ...prev,
-                    [path]: { path, name, content, originalContent: content, isDirty: false }
-                }));
-            } catch (err) {
-                console.error("Failed to load file", err);
-                return;
-            }
-        }
-
-        // 2. Add to active group if not present
-        setGroups(prev => prev.map(g => {
-            if (g.id === activeGroupId) {
-                const tabs = g.tabs.includes(path) ? g.tabs : [...g.tabs, path];
-                return { ...g, tabs, activePath: path };
-            }
-            return g;
-        }));
-    };
-
-    const handleCloseTab = (e: React.MouseEvent, path: string, groupId: string) => {
-        e.stopPropagation();
-        setGroups(prev => prev.map(g => {
-            if (g.id === groupId) {
-                const newTabs = g.tabs.filter(t => t !== path);
-                let newActive = g.activePath;
-                if (g.activePath === path) {
-                    newActive = newTabs.length > 0 ? newTabs[newTabs.length - 1] : null;
-                }
-                return { ...g, tabs: newTabs, activePath: newActive };
-            }
-            return g;
-        }));
-    };
-
-    const handleSave = async (groupId: string) => {
-        const group = groups.find(g => g.id === groupId);
-        if (!group || !group.activePath) return;
-        const doc = documents[group.activePath];
-        if (!doc) return;
-
-        try {
-            await invoke("save_content", { path: doc.path, content: doc.content });
-            updateDoc(doc.path, { originalContent: doc.content, isDirty: false });
-            console.log("Saved", doc.path);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleSplit = (sourceGroupId: string) => {
-        const newId = Date.now().toString();
-
-        let newFlex = 1;
-
-        setGroups(prev => {
-            const sourceGroupIndex = prev.findIndex(g => g.id === sourceGroupId);
-            if (sourceGroupIndex === -1) return prev;
-
-            const sourceGroup = prev[sourceGroupIndex];
-            newFlex = sourceGroup.flex * 0.5;
-
-            // Create new group
-            const newGroup: GroupState = {
-                id: newId,
-                tabs: [...sourceGroup.tabs],
-                activePath: sourceGroup.activePath,
-                isReadOnly: sourceGroup.isReadOnly,
-                flex: newFlex
-            };
-
-            const newGroups = [...prev];
-            // Shrink the source group
-            newGroups[sourceGroupIndex] = { ...sourceGroup, flex: newFlex };
-            // Insert new group after source
-            newGroups.splice(sourceGroupIndex + 1, 0, newGroup);
-            return newGroups;
-        });
-
-        setActiveGroupId(newId);
-    };
-
-    const handleToggleLock = (groupId: string) => {
-        setGroups(prev => prev.map(g => {
-            if (g.id === groupId) return { ...g, isReadOnly: !g.isReadOnly };
-            return g;
-        }));
-    };
-
-    const handleCloseGroup = (groupId: string) => {
-        if (groups.length <= 1) return;
-        const index = groups.findIndex(g => g.id === groupId);
-        if (index === -1) return;
-
-        const groupToRemove = groups[index];
-        const newGroups = groups.filter(g => g.id !== groupId);
-
-        if (index > 0) {
-            newGroups[index - 1] = { ...newGroups[index - 1], flex: newGroups[index - 1].flex + groupToRemove.flex };
-            if (activeGroupId === groupId) setActiveGroupId(newGroups[index - 1].id);
-        } else if (newGroups.length > 0) {
-            newGroups[0] = { ...newGroups[0], flex: newGroups[0].flex + groupToRemove.flex };
-            if (activeGroupId === groupId) setActiveGroupId(newGroups[0].id);
-        }
-        setGroups(newGroups);
-    };
-
-    const handleOpenFolder = async () => {
-        try {
-            const selected = await open({ directory: true, multiple: false });
-            if (typeof selected === 'string') {
-                setRootDir(selected);
-                const files = await invoke<FileEntry[]>("read_dir", { path: selected });
-                setRootFiles(files);
-                setSidebarOpen(true);
-            }
-        } catch (err) { console.error(err); }
-    };
-
-    // --- Global Resizing ---
+    // Handle Split Resizing
     useEffect(() => {
+        if (resizingGroupIndex === null) return;
+
         const handleMouseMove = (e: MouseEvent) => {
-            if (!resizingTarget) return;
-            if (resizingTarget === 'sidebar') {
-                const newWidth = e.clientX - 48; // Activity bar width
-                if (newWidth >= 0 && newWidth < 800) setSidebarPanelWidth(newWidth);
-            }
-        };
-        const handleMouseUp = () => {
-            setResizingTarget(null);
-            document.body.style.cursor = 'default';
-            document.body.style.userSelect = 'auto';
-        };
-        if (resizingTarget) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [resizingTarget]);
+            if (!groupsContainerRef.current) return;
 
-    // --- Group Resizing Effect ---
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (resizingGroupIndex === null || !groupsContainerRef.current) return;
+            // We are resizing the split between group[index] and group[index+1]
+            // We filter out the splitter divs to get just the group containers
+            const children = Array.from(groupsContainerRef.current.children).filter(c => !c.classList.contains("group/resizer")) as HTMLElement[];
 
-            // Current group is index, Next group is index + 1
-            const containerWidth = groupsContainerRef.current.clientWidth;
-            // Total flex units
-            const totalFlex = groups.reduce((sum, g) => sum + g.flex, 0);
-            const pixelsPerFlex = containerWidth / totalFlex;
+            const leftEl = children[resizingGroupIndex];
+            const rightEl = children[resizingGroupIndex + 1];
 
-            // Calculate movement in flex units
-            const deltaPixels = e.movementX;
-            if (deltaPixels === 0) return;
+            if (!leftEl || !rightEl) return;
 
-            const deltaFlex = deltaPixels / pixelsPerFlex;
+            const leftRect = leftEl.getBoundingClientRect();
+            // const rightRect = rightEl.getBoundingClientRect();
 
-            setGroups(prev => {
-                const newGroups = [...prev];
-                const leftGroup = newGroups[resizingGroupIndex];
-                const rightGroup = newGroups[resizingGroupIndex + 1];
+            // Calculate new flex ratio
+            // We assume the total flex of these two groups is conserved
+            const groupLeft = groups[resizingGroupIndex];
+            const groupRight = groups[resizingGroupIndex + 1];
+            const totalFlex = groupLeft.flex + groupRight.flex;
 
-                if (!leftGroup || !rightGroup) return prev;
+            // New width for left element
+            // e.clientX is current mouse X
+            // leftRect.left is the left edge of the left element
+            // Width = mouseX - leftEdge
+            let newLeftWidth = e.clientX - leftRect.left;
 
-                // Apply constraints (min width)
-                // Let's say min width is 50px?
-                // min flex = 50 / pixelsPerFlex
-                const minFlex = 100 / pixelsPerFlex;
+            // Total width of both elements
+            const totalWidth = leftEl.offsetWidth + rightEl.offsetWidth;
 
-                let newLeftFlex = leftGroup.flex + deltaFlex;
-                let newRightFlex = rightGroup.flex - deltaFlex;
+            // Constrain
+            if (newLeftWidth < 50) newLeftWidth = 50;
+            if (newLeftWidth > totalWidth - 50) newLeftWidth = totalWidth - 50;
 
-                if (newLeftFlex < minFlex) {
-                    const diff = minFlex - newLeftFlex;
-                    newLeftFlex = minFlex;
-                    newRightFlex -= diff;
-                } else if (newRightFlex < minFlex) {
-                    const diff = minFlex - newRightFlex;
-                    newRightFlex = minFlex;
-                    newLeftFlex -= diff;
-                }
+            const newLeftFlex = (newLeftWidth / totalWidth) * totalFlex;
+            const newRightFlex = totalFlex - newLeftFlex;
 
-                newGroups[resizingGroupIndex] = { ...leftGroup, flex: newLeftFlex };
-                newGroups[resizingGroupIndex + 1] = { ...rightGroup, flex: newRightFlex };
+            const newGroups = [...groups];
+            newGroups[resizingGroupIndex] = { ...groupLeft, flex: newLeftFlex };
+            newGroups[resizingGroupIndex + 1] = { ...groupRight, flex: newRightFlex };
 
-                return newGroups;
-            });
+            setGroups(newGroups);
         };
 
         const handleMouseUp = () => {
             setResizingGroupIndex(null);
-            document.body.style.cursor = 'default';
-            document.body.style.userSelect = 'auto';
         };
 
-        if (resizingGroupIndex !== null) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-        }
-
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
         return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        }
-    }, [resizingGroupIndex, groups]);
+            document.removeEventListener("mousemove", handleMouseMove);
+            document.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, [resizingGroupIndex, groups, setGroups, setResizingGroupIndex]);
 
+    // --- Helper ---
+    function getOpenFilePath() {
+        const group = groups.find(g => g.id === activeGroupId);
+        return group?.activePath || null;
+    }
 
     return (
         <div className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
-            {/* Main Layout: Sidebar | Content */}
-
             {/* Sidebar */}
             <Sidebar
                 isOpen={sidebarOpen}
@@ -323,10 +160,16 @@ function App() {
                 rootDir={rootDir}
                 rootFiles={rootFiles}
                 currentPath={getOpenFilePath()}
-                onOpenFile={loadFile}
-                onOpenFolder={handleOpenFolder}
+                onOpenFile={(path) => loadFile(path)}
+                onOpenFolder={openFolder}
                 outline={outline}
-                onResizeStart={() => setResizingTarget('sidebar')}
+                onResizeStart={startSidebarResizing}
+                workspaces={workspaces}
+                onSwitchWorkspace={loadWorkspace}
+                onRemoveWorkspace={removeWorkspace}
+                onCreateFile={createFile}
+                onCreateFolder={createFolder}
+                onDeleteItem={deleteItem}
             />
 
             {/* Content Area */}
@@ -387,18 +230,18 @@ function App() {
                                         activePath={group.activePath}
                                         content={doc ? doc.content : ""}
                                         isReadOnly={group.isReadOnly}
-                                        onSwitchTab={(path) => {
-                                            setGroups(prev => prev.map(g => g.id === group.id ? { ...g, activePath: path } : g));
-                                            setActiveGroupId(group.id);
+                                        onSwitchTab={(path) => switchTab(group.id, path)}
+                                        onCloseTab={(e, path) => {
+                                            e.stopPropagation();
+                                            closeTab(path, group.id);
                                         }}
-                                        onCloseTab={(e, path) => handleCloseTab(e, path, group.id)}
                                         onContentChange={(val) => {
                                             if (group.activePath) updateDoc(group.activePath, { content: val, isDirty: true });
                                         }}
-                                        onSave={() => handleSave(group.id)}
-                                        onSplit={() => handleSplit(group.id)}
-                                        onToggleLock={() => handleToggleLock(group.id)}
-                                        onCloseGroup={groups.length > 1 ? () => handleCloseGroup(group.id) : undefined}
+                                        onSave={() => group.activePath && saveDocument(group.activePath)}
+                                        onSplit={() => splitGroup(group.id)}
+                                        onToggleLock={() => toggleLock(group.id)}
+                                        onCloseGroup={groups.length > 1 ? () => closeGroup(group.id) : undefined}
                                         rootDir={rootDir}
                                     />
                                 </div>
@@ -409,11 +252,6 @@ function App() {
             </div>
         </div>
     );
-
-    function getOpenFilePath() {
-        const group = groups.find(g => g.id === activeGroupId);
-        return group?.activePath || null;
-    }
 }
 
 export default App;

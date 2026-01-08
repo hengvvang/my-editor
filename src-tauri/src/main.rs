@@ -83,6 +83,34 @@ fn compile_typst(content: String) -> Result<String, String> {
     typst_compiler::compile(content)
 }
 
+#[tauri::command]
+fn create_directory(path: String) -> Result<(), String> {
+    fs::create_dir_all(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_item(path: String) -> Result<(), String> {
+    let metadata = fs::metadata(&path).map_err(|e| e.to_string())?;
+    if metadata.is_dir() {
+        fs::remove_dir_all(path).map_err(|e| e.to_string())
+    } else {
+        fs::remove_file(path).map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+fn rename_item(path: String, new_path: String) -> Result<(), String> {
+    fs::rename(path, new_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn copy_item(path: String, new_path: String) -> Result<(), String> {
+    // Simple file copy for now. For directories, it's more complex.
+    fs::copy(path, new_path)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -93,7 +121,11 @@ fn main() {
             read_content,
             read_dir,
             render_markdown,
-            compile_typst
+            compile_typst,
+            create_directory,
+            delete_item,
+            rename_item,
+            copy_item
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

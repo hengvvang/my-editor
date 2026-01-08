@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { FileText, Folder, ChevronRight, Search, ListTree, Files, Info, Database } from "lucide-react";
+import { FileText, Folder, ChevronRight, Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen } from "lucide-react";
 import { FileEntry } from "../types";
 
 export interface SidebarProps {
@@ -15,68 +15,98 @@ export interface SidebarProps {
     onOpenFolder: () => void;
     outline: { level: number; text: string; line: number }[];
     onResizeStart: () => void;
+    workspaces?: { path: string; name: string }[];
+    onSwitchWorkspace?: (path: string) => void;
+    onRemoveWorkspace?: (path: string, e: React.MouseEvent) => void;
+    onCreateFile?: (parentPath: string | null, name: string) => Promise<boolean>;
+    onCreateFolder?: (parentPath: string | null, name: string) => Promise<boolean>;
+    onDeleteItem?: (path: string) => Promise<boolean>;
 }
 
 const SidebarItem = ({
     entry,
     level,
     onSelect,
-    currentPath
+    currentPath,
+    selectedPath,
+    onFocus,
 }: {
     entry: FileEntry,
     level: number,
     onSelect: (entry: FileEntry) => void,
-    currentPath: string | null
+    currentPath: string | null,
+    selectedPath: string | null,
+    onFocus: (entry: FileEntry) => void,
 }) => {
     const [expanded, setExpanded] = useState(false);
     const [children, setChildren] = useState<FileEntry[]>([]);
 
+    // We need to expose a way to refresh children if parent updates
+    // For now, simpler: expand/collapse toggles fetch.
+
+    const fetchChildren = async () => {
+        try {
+            const files = await invoke<FileEntry[]>("read_dir", { path: entry.path });
+            files.sort((a, b) => {
+                if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
+                return a.is_dir ? -1 : 1;
+            });
+            setChildren(files);
+        } catch (err) {
+            console.error("Failed to read dir", err);
+        }
+    };
+
     const handleExpand = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        onFocus(entry); // Select directory when toggling too
+
         if (!entry.is_dir) return;
 
         if (!expanded) {
-            try {
-                const files = await invoke<FileEntry[]>("read_dir", { path: entry.path });
-                // Sort folders first
-                files.sort((a, b) => {
-                    if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
-                    return a.is_dir ? -1 : 1;
-                });
-                setChildren(files);
-            } catch (err) {
-                console.error("Failed to read dir", err);
-            }
+            await fetchChildren();
         }
         setExpanded(!expanded);
     }
 
+    // Allow re-fetch
+    const refresh = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (expanded) await fetchChildren();
+    }
+
     const isSelected = !entry.is_dir && currentPath === entry.path;
+    const isFocused = selectedPath === entry.path;
 
     return (
         <div>
             <div
-                className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'bg-blue-50/50 border-blue-500 text-blue-700 font-medium' : 'border-transparent hover:bg-slate-100 text-slate-600'}`}
+                className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'border-blue-500' : 'border-transparent'} ${isFocused ? 'bg-blue-100 text-blue-800' : (isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100 text-slate-600')}`}
                 style={{ paddingLeft: `${level * 12 + 12}px` }}
-                onClick={() => entry.is_dir ? handleExpand({ stopPropagation: () => { } } as any) : onSelect(entry)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onFocus(entry);
+                    if (!entry.is_dir) onSelect(entry);
+                    else handleExpand(e);
+                }}
             >
                 <span className={`shrink-0 flex items-center justify-center w-4 h-4 transition-transform duration-200 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
                     onClick={(e) => {
                         if (entry.is_dir) handleExpand(e);
                     }}
                 >
-                    {entry.is_dir && <ChevronRight size={12} className="text-slate-400 group-hover:text-slate-600" />}
+                    {entry.is_dir && <ChevronRight size={12} className={`group-hover:text-slate-600 ${isFocused ? 'text-blue-500' : 'text-slate-400'}`} />}
                 </span>
 
                 {entry.is_dir ? (
-                    <Folder size={14} className={`shrink-0 ${expanded ? 'text-blue-500' : 'text-blue-400/80 group-hover:text-blue-500'}`} />
+                    <Folder size={14} className={`shrink-0 ${expanded ? 'text-blue-500' : (isFocused ? 'text-blue-400' : 'text-blue-400/80 group-hover:text-blue-500')}`} />
                 ) : (
-                    <FileText size={14} className={`shrink-0 ${isSelected ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-500'}`} />
+                    <FileText size={14} className={`shrink-0 ${isSelected ? 'text-blue-500' : (isFocused ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-500')}`} />
                 )}
-                <span className="truncate flex-1 pt-0.5">{entry.name}</span>
+                <span className="truncate flex-1 pt-0.5 font-medium">{entry.name}</span>
             </div>
             {expanded && children.map(child => (
-                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} currentPath={currentPath} />
+                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} currentPath={currentPath} selectedPath={selectedPath} onFocus={onFocus} />
             ))}
         </div>
     );
@@ -93,15 +123,88 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onOpenFile,
     onOpenFolder,
     outline,
-    onResizeStart
+    onResizeStart,
+    workspaces = [],
+    onSwitchWorkspace,
+    onRemoveWorkspace,
+    onCreateFile,
+    onCreateFolder,
+    onDeleteItem
 }) => {
+
+    const [selectedPath, setSelectedPath] = useState<string | null>(null);
+    const [selectedEntry, setSelectedEntry] = useState<FileEntry | null>(null);
+
+    const handleFocus = (entry: FileEntry) => {
+        setSelectedPath(entry.path);
+        setSelectedEntry(entry);
+    };
+
+    const handleNewFile = async () => {
+        const name = prompt("Enter file name:");
+        if (!name || !onCreateFile) return;
+
+        let parentPath = rootDir;
+        if (selectedEntry) {
+            if (selectedEntry.is_dir) parentPath = selectedEntry.path;
+            else {
+                // Determine parent of file... strict text processing for now
+                const sep = selectedEntry.path.includes("\\") ? "\\" : "/";
+                const parts = selectedEntry.path.split(sep);
+                parts.pop();
+                parentPath = parts.join(sep);
+            }
+        }
+
+        await onCreateFile(parentPath, name);
+        // Note: Refresh logic is limited for subdirectories without global signal
+        if (parentPath === rootDir) {
+            // Root auto-refreshes via prop update
+        } else {
+            alert("File created. Please collapse and expand folder to refresh.");
+        }
+    };
+
+    const handleNewFolder = async () => {
+        const name = prompt("Enter folder name:");
+        if (!name || !onCreateFolder) return;
+
+        let parentPath = rootDir;
+        if (selectedEntry) {
+            if (selectedEntry.is_dir) parentPath = selectedEntry.path;
+            else {
+                const sep = selectedEntry.path.includes("\\") ? "\\" : "/";
+                const parts = selectedEntry.path.split(sep);
+                parts.pop();
+                parentPath = parts.join(sep);
+            }
+        }
+        await onCreateFolder(parentPath, name);
+        if (parentPath !== rootDir) {
+            alert("Folder created. Please collapse and expand folder to refresh.");
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!selectedEntry || !onDeleteItem) return;
+        if (confirm(`Delete ${selectedEntry.name}?`)) {
+            await onDeleteItem(selectedEntry.path);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="flex flex-col shrink-0 h-full border-r border-slate-200 bg-slate-50/50 relative" style={{ width: width }}>
             {/* 1. Header ("EXPLORER") */}
-            <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0" data-tauri-drag-region>
-                EXPLORER
+            <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0 justify-between" data-tauri-drag-region>
+                <span>EXPLORER</span>
+                <div className="flex items-center gap-1">
+                    <button onClick={handleNewFile} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New File"><FilePlus size={14} /></button>
+                    <button onClick={handleNewFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New Folder"><FolderPlus size={14} /></button>
+                    <button onClick={onOpenFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="Open Folder"><FolderOpen size={14} /></button>
+                    <button onClick={handleDelete} className={`p-1 hover:bg-slate-200 rounded ${selectedEntry ? 'text-slate-500 hover:text-red-500' : 'text-slate-300 cursor-not-allowed'}`} title="Delete"><Trash2 size={14} /></button>
+                </div>
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Window */}
@@ -140,7 +243,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 pt-2">Folders</div>
                             {!rootDir && <button onClick={onOpenFolder} className="w-full py-2 bg-blue-500 text-white rounded text-xs mb-2">Open Folder</button>}
                             {rootFiles.map(file => (
-                                <SidebarItem key={file.path} entry={file} level={0} currentPath={currentPath} onSelect={f => onOpenFile(f.path)} />
+                                <SidebarItem
+                                    key={file.path}
+                                    entry={file}
+                                    level={0}
+                                    currentPath={currentPath}
+                                    selectedPath={selectedPath}
+                                    onSelect={f => onOpenFile(f.path)}
+                                    onFocus={handleFocus}
+                                />
                             ))}
                         </div>
                     )}
@@ -173,30 +284,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            {/* Lower: Info Panel */}
-            <div className="shrink-0 border-t border-slate-200 bg-white p-4 flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-xs">
-                        <Database size={12} className="text-slate-400" />
-                        <span>Workspace</span>
+            {/* Lower: Workspaces Panel */}
+            <div className="flex flex-col shrink-0 border-t border-slate-200 bg-slate-50 min-h-[120px] max-h-[40%]">
+                <div className="h-[30px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-100 border-b border-slate-200 shrink-0 select-none">
+                    Workspaces
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 min-h-[100px]">
+                    {/* Active Workspace Card */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white border border-blue-200 rounded-md shadow-sm cursor-default relative overflow-hidden group">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+                        <Database size={14} className="text-blue-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <div className="font-medium text-xs text-slate-800 truncate">{rootDir ? rootDir.split(/[\\/]/).pop() : "No Workspace"}</div>
+                            <div className="text-[10px] text-slate-400 truncate">{rootDir || "Open a folder to start"}</div>
+                        </div>
                     </div>
-                    <div className="text-[11px] text-slate-500 truncate pl-4.5" title={rootDir || "No Folder"}>
-                        {rootDir ? rootDir.split(/[\\/]/).pop() : "No Open Folder"}
-                    </div>
-                    {rootDir && <div className="text-[10px] text-slate-400 truncate pl-4.5">{rootDir}</div>}
+
+                    {/* Recent Workspaces List */}
+                    {workspaces
+                        .filter(w => w.path !== rootDir)
+                        .map((ws) => (
+                            <div
+                                key={ws.path}
+                                onClick={() => onSwitchWorkspace && onSwitchWorkspace(ws.path)}
+                                className="flex items-center gap-2 px-3 py-2 bg-white border border-transparent hover:border-slate-200 rounded-md shadow-sm cursor-pointer relative overflow-hidden group opacity-60 hover:opacity-100 transition-opacity"
+                            >
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-300 group-hover:bg-slate-400" />
+                                <Database size={14} className="text-slate-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-xs text-slate-700 truncate">{ws.name}</div>
+                                    <div className="text-[10px] text-slate-400 truncate">{ws.path}</div>
+                                </div>
+                                {onRemoveWorkspace && (
+                                    <button
+                                        onClick={(e) => onRemoveWorkspace(ws.path, e)}
+                                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Remove from Recent"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+
+                    <button onClick={onOpenFolder} className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-blue-600 hover:bg-white rounded transition-colors border border-transparent hover:border-slate-200 mt-1">
+                        <span className="font-bold">+</span>
+                        <span>Open New Workspace...</span>
+                    </button>
                 </div>
 
-                <div className="w-full h-[1px] bg-slate-100"></div>
-
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-xs">
-                        <Info size={12} className="text-slate-400" />
-                        <span>MarkEditor</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 pl-4.5">
-                        Version 0.1.0 (Beta)<br />
-                        Powered by Tauri & React
-                    </div>
+                {/* Footer Info (Merged) */}
+                <div className="px-3 py-1.5 border-t border-slate-200 text-[10px] text-slate-400 flex items-center justify-between bg-zinc-50">
+                    <span className="truncate">MarkEditor Beta 0.1.0</span>
+                    <Info size={12} className="opacity-50 hover:opacity-100 cursor-pointer shrink-0" />
                 </div>
             </div>
 
