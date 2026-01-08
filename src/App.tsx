@@ -4,7 +4,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import DOMPurify from "dompurify";
-import { FileText, Folder, FolderOpen, Save, ChevronRight, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
+import { FileText, Folder, FolderOpen, Save, ChevronRight, ChevronDown, Menu, Code, Eye, Keyboard, Minus, Square, X, BookOpen, TextCursorInput, Search, ListTree, Files, ListOrdered, Map as MapIcon, Columns } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
@@ -660,21 +660,93 @@ function App() {
         };
     }, [resizingTarget, activityBarWidth, sidebarPanelWidth, sidebarOpen]);
 
+    const [breadcrumbDropdown, setBreadcrumbDropdown] = useState<{ path: string; type: 'file' | 'outline'; items: any[] } | null>(null);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        const h = () => setBreadcrumbDropdown(null);
+        window.addEventListener('click', h);
+        return () => window.removeEventListener('click', h);
+    }, []);
+
     const breadcrumbs = React.useMemo(() => {
         if (!currentFile) return [];
-        let displayPath = currentFile;
-        // Normalize slashes for display consistency
-        displayPath = displayPath.replace(/\\/g, '/');
-        const normalizedRootRaw = rootDir ? rootDir.replace(/\\/g, '/') : null;
 
-        if (normalizedRootRaw && displayPath.startsWith(normalizedRootRaw)) {
-            displayPath = displayPath.substring(normalizedRootRaw.length);
+        const parts: { name: string; path: string; isDir: boolean }[] = [];
+        let displayPath = currentFile.replace(/\\/g, '/');
+        const rootRaw = rootDir ? rootDir.replace(/\\/g, '/') : null;
+
+        // If we possess a workspace root, start from there
+        if (rootRaw) {
+            const rootName = rootRaw.split('/').pop() || rootRaw;
+            parts.push({ name: rootName, path: rootRaw, isDir: true });
+
+            if (displayPath.startsWith(rootRaw)) {
+                displayPath = displayPath.substring(rootRaw.length);
+            }
         }
 
-        // Remove leading slash
-        displayPath = displayPath.replace(/^\//, '');
-        return displayPath.split('/');
+        // Remove leading slash to split correctly
+        if (displayPath.startsWith('/')) displayPath = displayPath.substring(1);
+
+        const segments = displayPath.split('/');
+        let currentAccumulated = rootRaw || "";
+
+        segments.forEach((seg, index) => {
+            if (!seg) return;
+            // Reconstruct absolute path
+            if (currentAccumulated === "") {
+                currentAccumulated = seg;
+            } else if (currentAccumulated.endsWith('/')) {
+                currentAccumulated += seg;
+            } else {
+                currentAccumulated += '/' + seg;
+            }
+
+            const isLast = index === segments.length - 1;
+            parts.push({
+                name: seg,
+                path: currentAccumulated,
+                isDir: !isLast
+            });
+        });
+
+        return parts;
     }, [currentFile, rootDir]);
+
+    const handleBreadcrumbClick = async (e: React.MouseEvent, item: { path: string; isDir: boolean }) => {
+        e.stopPropagation();
+
+        // If it's already open, close it
+        if (breadcrumbDropdown?.path === item.path) {
+            setBreadcrumbDropdown(null);
+            return;
+        }
+
+        // VS Code Behavior:
+        // Clicking any path segment (even the file itself) shows the contents of that directory level.
+        // - Folder: Shows contents of folder.
+        // - File: Shows siblings (contents of parent folder), highlighting the file.
+
+        let targetPath = item.path;
+        if (!item.isDir) {
+            const s = item.path.replace(/\\/g, '/').split('/');
+            s.pop();
+            targetPath = s.join('/');
+        }
+
+        try {
+            const files = await invoke<FileEntry[]>("read_dir", { path: targetPath });
+            // Sort: folders first
+            files.sort((a, b) => {
+                if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
+                return a.is_dir ? -1 : 1;
+            });
+            setBreadcrumbDropdown({ path: item.path, type: 'file', items: files });
+        } catch (err) {
+            console.error("Failed to read dir for breadcrumb", err);
+        }
+    };
 
     const contentRef = React.useRef(content);
     useEffect(() => { contentRef.current = content; }, [content]);
@@ -1147,20 +1219,64 @@ function App() {
                 </div>
 
                 {/* Breadcrumbs - VS Code Style */}
-                <div className="flex items-center gap-0.5 px-4 py-0.5 text-[11px] text-slate-500 bg-white border-b border-slate-100 shrink-0 select-none overflow-hidden h-[22px]">
-                    <span className="opacity-50 hover:bg-slate-100 px-1 rounded cursor-pointer transition-colors flex items-center gap-1" title={rootDir || ""}>
-                        {rootDir ? rootDir.split(/[\\/]/).pop() : "..."}
-                    </span>
+                <div className="flex items-center gap-1 px-4 py-0.5 text-[11px] text-slate-500 bg-white border-b border-slate-100 shrink-0 select-none relative z-50 h-[22px]">
                     {breadcrumbs.map((part, index) => (
-                        <React.Fragment key={index}>
-                            <ChevronRight size={10} className="opacity-40 shrink-0" />
-                            <span
-                                className={`hover:bg-slate-100 px-1 rounded cursor-pointer transition-colors whitespace-nowrap ${index === breadcrumbs.length - 1 ? 'font-medium text-slate-700' : ''
-                                    }`}
-                                title={part}
-                            >
-                                {part}
-                            </span>
+                        <React.Fragment key={part.path}>
+                            {index > 0 && <ChevronRight size={10} className="opacity-40 shrink-0" />}
+                            <div className="relative flex items-center">
+                                <span
+                                    className={`hover:bg-slate-100 px-1.5 py-0.5 rounded cursor-pointer transition-colors flex items-center gap-1 ${index === breadcrumbs.length - 1 ? 'font-medium text-slate-800' : 'text-slate-500'
+                                        } ${breadcrumbDropdown?.path === part.path ? 'bg-slate-100 text-slate-800' : ''}`}
+                                    title={part.path}
+                                    onClick={(e) => handleBreadcrumbClick(e, part)}
+                                >
+                                    {part.isDir ? <Folder size={12} className={index === breadcrumbs.length - 1 ? "text-slate-400" : "opacity-70"} /> : <FileText size={12} className="text-blue-500" />}
+                                    <span className="whitespace-nowrap">{part.name}</span>
+                                </span>
+
+                                {/* Dropdown */}
+                                {breadcrumbDropdown?.path === part.path && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white shadow-xl border border-slate-200 rounded-lg py-1 min-w-[200px] w-max max-w-[400px] max-h-[300px] overflow-y-auto z-[100] flex flex-col items-stretch animate-in fade-in zoom-in-95 duration-100">
+                                        {breadcrumbDropdown.items.length === 0 && (
+                                            <div className="px-4 py-2 text-slate-400 italic text-xs">Empty</div>
+                                        )}
+                                        {breadcrumbDropdown.type === 'file' ? (
+                                            (breadcrumbDropdown.items as FileEntry[]).map(file => (
+                                                <div
+                                                    key={file.path}
+                                                    className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${file.path === currentFile ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!file.is_dir) {
+                                                            loadFile(file.path);
+                                                            setBreadcrumbDropdown(null);
+                                                        }
+                                                    }}
+                                                >
+                                                    {file.is_dir ? <Folder size={14} className="text-blue-400" /> : <FileText size={14} className={file.path === currentFile ? "text-blue-500" : "text-slate-400"} />}
+                                                    <span className="truncate">{file.name}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            (breadcrumbDropdown.items as { level: number, text: string, line: number }[]).map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-slate-700 hover:text-blue-600 transition-colors"
+                                                    style={{ paddingLeft: `${(item.level || 0) * 12 + 12}px` }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        scrollToLine(item.line);
+                                                        setBreadcrumbDropdown(null);
+                                                    }}
+                                                >
+                                                    <ListTree size={12} className="opacity-50 shrink-0" />
+                                                    <span className="truncate text-xs">{item.text}</span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </React.Fragment>
                     ))}
                 </div>
