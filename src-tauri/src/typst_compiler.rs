@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use std::time::SystemTime;
 
 use typst::diag::{FileError, FileResult};
@@ -7,21 +8,16 @@ use typst::text::{Font, FontBook};
 use typst::utils::LazyHash;
 use typst::{Library, World};
 
-/// A simple implementation of Typst World that can compile a single source string.
-/// It uses the system fonts and basic library.
-pub struct SimpleWorld {
+struct TypstAssets {
     library: LazyHash<Library>,
     book: LazyHash<FontBook>,
     fonts: Vec<Font>,
-    source: Source,
-    /// current time for `datetime.today()` (kept for future use)
-    #[allow(dead_code)]
-    now: SystemTime,
 }
 
-impl SimpleWorld {
-    pub fn new(content: String) -> Self {
-        // Load fonts
+static ASSETS: OnceLock<TypstAssets> = OnceLock::new();
+
+fn get_assets() -> &'static TypstAssets {
+    ASSETS.get_or_init(|| {
         let mut fonts = Vec::new();
         // Try to load Arial from system for basic rendering on Windows
         // In a real production app, use `fontdb` to scan system fonts properly.
@@ -38,10 +34,34 @@ impl SimpleWorld {
         // Create the standard library
         let library = Library::builder().build();
 
-        Self {
+        TypstAssets {
             library: LazyHash::new(library),
             book: LazyHash::new(book),
             fonts,
+        }
+    })
+}
+
+/// A simple implementation of Typst World that can compile a single source string.
+/// It uses the system fonts and basic library.
+pub struct SimpleWorld {
+    library: LazyHash<Library>,
+    book: LazyHash<FontBook>,
+    fonts: Vec<Font>,
+    source: Source,
+    /// current time for `datetime.today()` (kept for future use)
+    #[allow(dead_code)]
+    now: SystemTime,
+}
+
+impl SimpleWorld {
+    pub fn new(content: String) -> Self {
+        let assets = get_assets();
+
+        Self {
+            library: assets.library.clone(),
+            book: assets.book.clone(),
+            fonts: assets.fonts.clone(),
             source: Source::detached(content),
             now: SystemTime::now(),
         }
