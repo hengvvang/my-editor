@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileText, Folder, ChevronRight } from "lucide-react";
 import { FileEntry } from "../../types";
+import { NewItemInput } from "./NewItemInput";
 
 export interface SidebarItemProps {
     entry: FileEntry;
@@ -10,6 +11,13 @@ export interface SidebarItemProps {
     currentPath: string | null;
     selectedPath: string | null;
     onFocus: (entry: FileEntry) => void;
+
+    // New Props for specific actions
+    creatingItem: { parentPath: string; type: 'file' | 'folder' } | null;
+    onConfirmCreate: (name: string) => void;
+    onCancelCreate: () => void;
+    pathsToRefresh: string[];
+    onRefreshComplete: (path: string) => void;
 }
 
 export const SidebarItem = ({
@@ -19,12 +27,14 @@ export const SidebarItem = ({
     currentPath,
     selectedPath,
     onFocus,
+    creatingItem,
+    onConfirmCreate,
+    onCancelCreate,
+    pathsToRefresh,
+    onRefreshComplete
 }: SidebarItemProps) => {
     const [expanded, setExpanded] = useState(false);
     const [children, setChildren] = useState<FileEntry[]>([]);
-
-    // We need to expose a way to refresh children if parent updates
-    // For now, simpler: expand/collapse toggles fetch.
 
     const fetchChildren = async () => {
         try {
@@ -39,7 +49,24 @@ export const SidebarItem = ({
         }
     };
 
+    // Auto-expand if creating item in this folder
+    const isCreatingHere = creatingItem?.parentPath === entry.path;
+    useEffect(() => {
+        if (isCreatingHere && !expanded) {
+            setExpanded(true);
+            fetchChildren();
+        }
+    }, [isCreatingHere]);
+
+    // Refresh listener
+    useEffect(() => {
+        if (pathsToRefresh.includes(entry.path)) {
+            fetchChildren().then(() => onRefreshComplete(entry.path));
+        }
+    }, [pathsToRefresh, entry.path]);
+
     const handleExpand = async (e: React.MouseEvent) => {
+
         e.stopPropagation();
         onFocus(entry); // Select directory when toggling too
 
@@ -81,9 +108,34 @@ export const SidebarItem = ({
                 )}
                 <span className="truncate flex-1 pt-0.5 font-medium">{entry.name}</span>
             </div>
-            {expanded && children.map(child => (
-                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} currentPath={currentPath} selectedPath={selectedPath} onFocus={onFocus} />
-            ))}
+            {expanded && (
+                <>
+                    {isCreatingHere && creatingItem && (
+                        <NewItemInput
+                            type={creatingItem.type}
+                            level={level + 1}
+                            onConfirm={onConfirmCreate}
+                            onCancel={onCancelCreate}
+                        />
+                    )}
+                    {children.map(child => (
+                        <SidebarItem
+                            key={child.path}
+                            entry={child}
+                            level={level + 1}
+                            onSelect={onSelect}
+                            currentPath={currentPath}
+                            selectedPath={selectedPath}
+                            onFocus={onFocus}
+                            creatingItem={creatingItem}
+                            onConfirmCreate={onConfirmCreate}
+                            onCancelCreate={onCancelCreate}
+                            pathsToRefresh={pathsToRefresh}
+                            onRefreshComplete={onRefreshComplete}
+                        />
+                    ))}
+                </>
+            )}
         </div>
     );
 };

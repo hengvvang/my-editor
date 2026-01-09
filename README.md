@@ -25,6 +25,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 ### 🧩 Modern & Flexible UI
 *   **Smart Split Groups**: Create complex layouts with recursive **Vertical** and **Horizontal** splitting. Supports intuitive drag-and-drop resizing for all split directions.
 *   **Immersive Toolbars**: Editor controls (Lock, Split, Preview, Font Toggle) feature a glass-morphism effect that blends seamlessly.
+*   **Inline File Explorer**: Enhanced sidebar with VS Code-style inline input for creating files and folders, supporting keyboard navigation and intuitive management.
 *   **Interactive Breadcrumbs**: VS Code-style file path navigation bar.
 *   **Smart Layout**:
     *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes (including split view).

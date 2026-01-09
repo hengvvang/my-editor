@@ -3,6 +3,7 @@ import { Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash
 import { FileEntry, SearchResult } from "../types";
 import { SidebarItem } from "./sidebar/SidebarItem";
 import { SearchResultItem } from "./sidebar/SearchResultItem";
+import { NewItemInput } from "./sidebar/NewItemInput";
 
 export interface SidebarProps {
     isOpen: boolean;
@@ -59,20 +60,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
     const [selectedEntry, setSelectedEntry] = useState<FileEntry | null>(null);
 
+    // New File/Folder state
+    const [creatingItem, setCreatingItem] = useState<{ parentPath: string; type: 'file' | 'folder' } | null>(null);
+    const [pathsToRefresh, setPathsToRefresh] = useState<string[]>([]);
+
     const handleFocus = (entry: FileEntry) => {
         setSelectedPath(entry.path);
         setSelectedEntry(entry);
     };
 
     const handleNewFile = async () => {
-        const name = prompt("Enter file name:");
-        if (!name || !onCreateFile) return;
+        if (!onCreateFile) return;
 
         let parentPath = rootDir;
         if (selectedEntry) {
             if (selectedEntry.is_dir) parentPath = selectedEntry.path;
             else {
-                // Determine parent of file... strict text processing for now
                 const sep = selectedEntry.path.includes("\\") ? "\\" : "/";
                 const parts = selectedEntry.path.split(sep);
                 parts.pop();
@@ -80,18 +83,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }
         }
 
-        await onCreateFile(parentPath, name);
-        // Note: Refresh logic is limited for subdirectories without global signal
-        if (parentPath === rootDir) {
-            // Root auto-refreshes via prop update
-        } else {
-            alert("File created. Please collapse and expand folder to refresh.");
+        if (parentPath) {
+            setCreatingItem({ parentPath, type: 'file' });
         }
     };
 
     const handleNewFolder = async () => {
-        const name = prompt("Enter folder name:");
-        if (!name || !onCreateFolder) return;
+        if (!onCreateFolder) return;
 
         let parentPath = rootDir;
         if (selectedEntry) {
@@ -103,13 +101,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 parentPath = parts.join(sep);
             }
         }
-        await onCreateFolder(parentPath, name);
-        if (parentPath !== rootDir) {
-            alert("Folder created. Please collapse and expand folder to refresh.");
+        if (parentPath) {
+            setCreatingItem({ parentPath, type: 'folder' });
         }
     };
 
+    const handleConfirmCreate = async (name: string) => {
+        if (!creatingItem) return;
+        const { parentPath, type } = creatingItem;
+
+        try {
+            if (type === 'file' && onCreateFile) {
+                await onCreateFile(parentPath, name);
+            } else if (type === 'folder' && onCreateFolder) {
+                await onCreateFolder(parentPath, name);
+            }
+
+            // Refresh specific folder if not root
+            if (parentPath !== rootDir) {
+                setPathsToRefresh(prev => [...prev, parentPath]);
+            }
+            // Root refresh is handled by App update or prop change usually
+        } catch (e) {
+            console.error("Create failed", e);
+            alert("Failed to create " + type);
+        } finally {
+            setCreatingItem(null);
+        }
+    };
+
+    const handleCancelCreate = () => {
+        setCreatingItem(null);
+    };
+
+    const handleRefreshComplete = (path: string) => {
+        setPathsToRefresh(prev => prev.filter(p => p !== path));
+    };
+
     const handleDelete = async () => {
+
         if (!selectedEntry || !onDeleteItem) return;
         if (confirm(`Delete ${selectedEntry.name}?`)) {
             await onDeleteItem(selectedEntry.path);
@@ -169,6 +199,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                             <div className="px-2">
                                 {!rootDir && <button onClick={onOpenFolder} className="w-full py-2 bg-blue-500 text-white rounded text-xs mb-2">Open Folder</button>}
+
+                                {rootDir && creatingItem && creatingItem.parentPath === rootDir && (
+                                    <NewItemInput
+                                        type={creatingItem.type}
+                                        level={0}
+                                        onConfirm={handleConfirmCreate}
+                                        onCancel={handleCancelCreate}
+                                    />
+                                )}
+
                                 {rootFiles.map(file => (
                                     <SidebarItem
                                         key={file.path}
@@ -178,6 +218,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         selectedPath={selectedPath}
                                         onSelect={f => onOpenFile(f.path)}
                                         onFocus={handleFocus}
+                                        creatingItem={creatingItem}
+                                        onConfirmCreate={handleConfirmCreate}
+                                        onCancelCreate={handleCancelCreate}
+                                        pathsToRefresh={pathsToRefresh}
+                                        onRefreshComplete={handleRefreshComplete}
                                     />
                                 ))}
                             </div>
