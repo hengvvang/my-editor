@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, ListTree, Files } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban } from "lucide-react";
 import { FileEntry, SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./sidebar/SearchPane";
 import { ExplorerPane } from "./sidebar/ExplorerPane";
@@ -9,8 +9,8 @@ import { WorkspacesPane } from "./sidebar/WorkspacesPane";
 export interface SidebarProps {
     isOpen: boolean;
     width: number;
-    activeSideTab: 'explorer' | 'search' | 'outline';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline') => void;
+    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces';
+    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces') => void;
     rootDir: string | null;
     rootFiles: FileEntry[];
     currentPath: string | null;
@@ -19,9 +19,11 @@ export interface SidebarProps {
     onOpenFolder: () => void;
     outline: { level: number; text: string; line: number }[];
     onResizeStart: () => void;
-    workspaces?: { path: string; name: string }[];
+    workspaces?: { path: string; name: string; pinned?: boolean; active?: boolean }[];
     onSwitchWorkspace?: (path: string) => void;
     onRemoveWorkspace?: (path: string, e: React.MouseEvent) => void;
+    onTogglePinWorkspace?: (path: string, e: React.MouseEvent) => void;
+    onToggleActiveWorkspace?: (path: string, e: React.MouseEvent) => void;
     onCreateFile?: (parentPath: string | null, name: string) => Promise<boolean>;
     onCreateFolder?: (parentPath: string | null, name: string) => Promise<boolean>;
     onDeleteItem?: (path: string) => Promise<boolean>;
@@ -52,6 +54,8 @@ const SidebarBase: React.FC<SidebarProps> = ({
     workspaces = [],
     onSwitchWorkspace,
     onRemoveWorkspace,
+    onTogglePinWorkspace,
+    onToggleActiveWorkspace,
     onCreateFile,
     onCreateFolder,
     onDeleteItem,
@@ -69,32 +73,43 @@ const SidebarBase: React.FC<SidebarProps> = ({
                 {activeSideTab === 'explorer' && "EXPLORER"}
                 {activeSideTab === 'search' && "SEARCH"}
                 {activeSideTab === 'outline' && "OUTLINE"}
+                {activeSideTab === 'workspaces' && "WORKSPACES"}
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}
             <div className="flex-1 flex min-h-0">
                 {/* Left Side: Tabs (Activity Bar inside) */}
-                <div className="w-[40px] flex flex-col items-center py-2 gap-2 bg-slate-100 border-r border-slate-200 shrink-0">
+                <div className="w-[48px] flex flex-col items-center py-2 gap-2 bg-slate-100 border-r border-slate-200 shrink-0">
                     <button
                         onClick={() => onActiveSideTabChange('explorer')}
-                        className={`p-2 rounded-md transition-all ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Explorer"
                     >
-                        <Files size={18} />
+                        <Files size={20} />
                     </button>
                     <button
                         onClick={() => onActiveSideTabChange('search')}
-                        className={`p-2 rounded-md transition-all ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Search"
                     >
-                        <Search size={18} />
+                        <Search size={20} />
                     </button>
                     <button
                         onClick={() => onActiveSideTabChange('outline')}
-                        className={`p-2 rounded-md transition-all ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Outline"
                     >
-                        <ListTree size={18} />
+                        <ListTree size={20} />
+                    </button>
+
+                    <div className="flex-1" />
+
+                    <button
+                        onClick={() => onActiveSideTabChange('workspaces')}
+                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        title="Workspaces"
+                    >
+                        <FolderKanban size={20} />
                     </button>
                 </div>
 
@@ -131,17 +146,20 @@ const SidebarBase: React.FC<SidebarProps> = ({
                             onItemClick={(line) => onOpenFileAtLine && currentPath ? onOpenFileAtLine(currentPath, line) : undefined}
                         />
                     )}
+
+                    {activeSideTab === 'workspaces' && (
+                        <WorkspacesPane
+                            rootDir={rootDir}
+                            workspaces={workspaces}
+                            onSwitchWorkspace={onSwitchWorkspace}
+                            onRemoveWorkspace={onRemoveWorkspace}
+                            onTogglePinWorkspace={onTogglePinWorkspace}
+                            onToggleActiveWorkspace={onToggleActiveWorkspace}
+                            onOpenFolder={onOpenFolder}
+                        />
+                    )}
                 </div>
             </div>
-
-            {/* Lower: Workspaces Panel */}
-            <WorkspacesPane
-                rootDir={rootDir}
-                workspaces={workspaces}
-                onSwitchWorkspace={onSwitchWorkspace}
-                onRemoveWorkspace={onRemoveWorkspace}
-                onOpenFolder={onOpenFolder}
-            />
 
             {/* Resizer */}
             <div

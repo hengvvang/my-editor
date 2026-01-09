@@ -129,10 +129,21 @@ export function useWorkspace(
             // Update workspaces list to move current to top
             setWorkspaces(prev => {
                 const now = Date.now();
-                // Filter out current path to re-add at top, and prevent duplicates
+                const existing = prev.find(w => w.path === path);
+                const isPinned = existing?.pinned || false;
+                // Preserve existing active state, do not auto-activate
+                const isActive = existing?.active || false;
+
+                // Filter out current path to re-add at top/sort
                 const filtered = prev.filter(w => w.path !== path);
                 const name = path.split(/[\\/]/).pop() || path;
-                return [{ path, name, lastOpened: now }, ...filtered].slice(0, 10);
+                const newEntry = { path, name, lastOpened: now, pinned: isPinned, active: isActive };
+
+                const all = [newEntry, ...filtered];
+                 return all.sort((a, b) => {
+                    if (a.pinned === b.pinned) return b.lastOpened - a.lastOpened;
+                    return a.pinned ? -1 : 1;
+                }).slice(0, 20);
             });
 
             return true;
@@ -158,6 +169,24 @@ export function useWorkspace(
             e.stopPropagation();
         }
         setWorkspaces(prev => prev.filter(w => w.path !== path));
+    }, []);
+
+    const togglePinWorkspace = useCallback((path: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setWorkspaces(prev => {
+            const next = prev.map(w => w.path === path ? { ...w, pinned: !w.pinned } : w);
+            return next.sort((a, b) => {
+                if (a.pinned === b.pinned) return b.lastOpened - a.lastOpened;
+                return a.pinned ? -1 : 1;
+            });
+        });
+    }, []);
+
+    const toggleActiveWorkspace = useCallback((path: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setWorkspaces(prev => {
+            return prev.map(w => w.path === path ? { ...w, active: !w.active } : w);
+        });
     }, []);
 
     const createFile = useCallback(async (parentPath: string | null, name: string) => {
@@ -212,6 +241,8 @@ export function useWorkspace(
         workspaces,
         loadWorkspace,
         removeWorkspace,
+        togglePinWorkspace,
+        toggleActiveWorkspace,
         createFile,
         createFolder,
         deleteItem,

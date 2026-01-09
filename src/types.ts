@@ -44,6 +44,8 @@ export interface Workspace {
     path: string;
     name: string;
     lastOpened: number;
+    pinned?: boolean;
+    active?: boolean;
 }
 
 export interface SearchMatch {

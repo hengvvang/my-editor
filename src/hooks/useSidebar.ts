@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 export function useSidebar() {
     const [isOpen, setIsOpen] = useState(true);
     const [width, setWidth] = useState(240);
-    const [activeTab, setActiveTab] = useState<'explorer' | 'search' | 'outline'>('explorer');
+    const [activeTab, setActiveTab] = useState<'explorer' | 'search' | 'outline' | 'workspaces'>('explorer');
     const [resizingTarget, setResizingTarget] = useState<'sidebar' | null>(null);
 
      // --- Global Resizing ---

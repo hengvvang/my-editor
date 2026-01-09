@@ -31,7 +31,17 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes (including split view).
     *   **Responsive**: Layout automatically adjusts to viewport changes.
 
-### 🔍 Advanced Search & Replace
+### �️ Intelligent Workspace Management
+*   **Active Workspaces**: Mark frequent workspaces as "Active" for instant top-bar access (Green theme).
+    *   *Shortcuts*: Persistent, quick-switch buttons in the window title bar.
+    *   *Quick Actions*: Right-click or hover to easily deactivate.
+*   **Access Tiers**:
+    *   **⚡ Active**: For high-priority, daily projects.
+    *   **⭐ Archive**: For important pinned references (formerly Starred).
+    *   **🕒 Recent**: Automatic history of previously opened folders.
+*   **Visual Organization**: Clear color-coded sections (Green/Blue/Amber) and intuitive icons (Zap/Star) in the sidebar.
+
+### �🔍 Advanced Search & Replace
 *   **High Performance**: Multi-threaded parallel search backend powered by Rust, capable of handling large workspaces instantly.
 *   **Smart Scopes**: 5-level search scope control for precise targeting:
     *   📄 Current File
