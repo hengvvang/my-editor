@@ -37,7 +37,7 @@ export interface SidebarProps {
     activeGroupFiles?: string[];
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+const SidebarBase: React.FC<SidebarProps> = ({
     isOpen,
     width,
     activeSideTab,
@@ -152,3 +152,5 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div >
     );
 };
+
+export const Sidebar = React.memo(SidebarBase);

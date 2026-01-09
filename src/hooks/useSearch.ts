@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { SearchResult, SearchScope } from '../types';
 
 export interface SearchOptions {
@@ -90,7 +90,7 @@ export function useSearch() {
         setOptions(prev => ({ ...prev, [key]: value }));
     }, []);
 
-    return {
+    return useMemo(() => ({
         query,
         setQuery,
         options,
@@ -98,5 +98,5 @@ export function useSearch() {
         results,
         isSearching,
         search
-    };
+    }), [query, options, results, isSearching, search]);
 }
