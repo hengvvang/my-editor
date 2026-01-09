@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen, Loader2 } from "lucide-react";
-import { FileEntry, SearchResult } from "../types";
+import { Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen } from "lucide-react";
+import { FileEntry, SearchResult, SearchScope } from "../types";
 import { SidebarItem } from "./sidebar/SidebarItem";
-import { SearchResultItem } from "./sidebar/SearchResultItem";
 import { NewItemInput } from "./sidebar/NewItemInput";
+import { SearchPane } from "./sidebar/SearchPane";
 
 export interface SidebarProps {
     isOpen: boolean;
@@ -27,12 +27,13 @@ export interface SidebarProps {
     search?: {
         query: string;
         setQuery: (q: string) => void;
-        options: { caseSensitive: boolean; wholeWord: boolean; isRegex: boolean };
-        setOption: (k: "caseSensitive" | "wholeWord" | "isRegex", v: boolean) => void;
+        options: { caseSensitive: boolean; wholeWord: boolean; isRegex: boolean; scope: SearchScope };
+        setOption: (k: "caseSensitive" | "wholeWord" | "isRegex" | "scope", v: any) => void;
         results: SearchResult[];
         isSearching: boolean;
-        search: (root: string | null) => void;
+        search: (root: string | null, currentPath: string | null, activeGroupFiles: string[]) => void;
     };
+    activeGroupFiles?: string[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -55,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onDeleteItem,
     search,
     onOpenFileAtLine,
+    activeGroupFiles = [],
 }) => {
 
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -150,9 +152,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     return (
         <div className="flex flex-col shrink-0 h-full border-r border-slate-200 bg-slate-50/50 relative" style={{ width: width }}>
-            {/* 1. Header ("EXPLORER") */}
+            {/* 1. Header ("EXPLORER" / "SEARCH" / "OUTLINE") */}
             <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0" data-tauri-drag-region>
-                EXPLORER
+                {activeSideTab === 'explorer' && "EXPLORER"}
+                {activeSideTab === 'search' && "SEARCH"}
+                {activeSideTab === 'outline' && "OUTLINE"}
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Window */}
@@ -229,64 +233,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
 
-                    {activeSideTab === 'search' && (
-                        <div className="flex-1 flex flex-col bg-slate-50/30 overflow-hidden">
-                            {/* Search Box */}
-                            <div className="p-3 border-b border-slate-200 bg-white">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Search</div>
-                                <div className="relative flex items-center mb-1">
-                                    <input
-                                        type="text"
-                                        className="w-full text-xs pl-2 pr-2 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-blue-500"
-                                        placeholder="Search"
-                                        value={search?.query || ""}
-                                        onChange={(e) => search?.setQuery(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && search?.search(rootDir)}
-                                    />
-                                </div>
-                                <div className="flex gap-1 justify-end mt-1.5">
-                                    <button
-                                        onClick={() => search?.setOption("caseSensitive", !search.options.caseSensitive)}
-                                        className={`px-1.5 py-0.5 text-[10px] border rounded ${search?.options.caseSensitive ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-500'}`}
-                                        title="Match Case"
-                                    >Aa</button>
-                                    <button
-                                        onClick={() => search?.setOption("wholeWord", !search.options.wholeWord)}
-                                        className={`px-1.5 py-0.5 text-[10px] border rounded ${search?.options.wholeWord ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-500'}`}
-                                        title="Match Whole Word"
-                                    >\b</button>
-                                    <button
-                                        onClick={() => search?.setOption("isRegex", !search.options.isRegex)}
-                                        className={`px-1.5 py-0.5 text-[10px] border rounded ${search?.options.isRegex ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-500'}`}
-                                        title="Use Regular Expression"
-                                    >.*</button>
-                                </div>
-                            </div>
-
-                            {/* Results */}
-                            <div className="flex-1 overflow-auto">
-                                {search?.isSearching ? (
-                                    <div className="p-4 text-xs text-slate-400 flex items-center justify-center gap-2">
-                                        <Loader2 size={14} className="animate-spin" /> Searching...
-                                    </div>
-                                ) : (
-                                    <>
-                                        {search && search.results.length === 0 && search.query && (
-                                            <div className="p-4 text-xs text-slate-400 text-center">No results found</div>
-                                        )}
-
-                                        {search && search.results.map((result) => (
-                                            <SearchResultItem
-                                                key={result.path}
-                                                result={result}
-                                                rootDir={rootDir}
-                                                onOpenFileAtLine={onOpenFileAtLine}
-                                            />
-                                        ))}
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                    {activeSideTab === 'search' && search && (
+                        <SearchPane
+                            search={search}
+                            rootDir={rootDir}
+                            currentPath={currentPath}
+                            activeGroupFiles={activeGroupFiles}
+                            // Pass all workspace paths
+                            allWorkspaces={workspaces ? workspaces.map(w => w.path) : []}
+                            // TODO: Passing all Open Files from Sidebar parent would require prop drilling from App
+                            // For now, AllGroups search will effectively work if we had the list.
+                            // Assuming `activeGroupFiles` is just current group.
+                            onOpenFileAtLine={onOpenFileAtLine}
+                        />
                     )}
 
                     {activeSideTab === 'outline' && (

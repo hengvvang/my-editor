@@ -31,6 +31,21 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes (including split view).
     *   **Responsive**: Layout automatically adjusts to viewport changes.
 
+### 🔍 Advanced Search & Replace
+*   **High Performance**: Multi-threaded parallel search backend powered by Rust, capable of handling large workspaces instantly.
+*   **Smart Scopes**: 5-level search scope control for precise targeting:
+    *   📄 Current File
+    *   📖 Current Editor Group
+    *   📚 All Open Files
+    *   💼 Current Workspace
+    *   🗄️ All History Workspaces
+*   **Visual Overview**: VS Code-style "Overview Ruler" in the scrollbar area showing color-coded match distribution (Blue: Active File, Cyan: Active Group, etc.).
+*   **Ergonomic UI**:
+    *   Collapsible "Replace" interface.
+    *   VS Code-like auxiliary toolbar.
+    *   Intuitive icon-based scope switching.
+    *   Real-time regex highlighting.
+
 ### ⚡ Power User Tools
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.

@@ -6,12 +6,16 @@ export interface SearchResultItemProps {
     result: SearchResult;
     rootDir: string | null;
     onOpenFileAtLine?: (path: string, line: number) => void;
+    query: string;
+    options?: { caseSensitive: boolean; wholeWord: boolean; isRegex: boolean };
 }
 
 export const SearchResultItem = ({
     result,
     rootDir,
-    onOpenFileAtLine
+    onOpenFileAtLine,
+    query,
+    options
 }: SearchResultItemProps) => {
     const [expanded, setExpanded] = useState(true);
     const relPath = rootDir && result.path.startsWith(rootDir)
@@ -19,6 +23,40 @@ export const SearchResultItem = ({
         : result.path;
     const fileName = relPath.split(/[\\/]/).pop() || relPath;
     const dirPath = relPath.slice(0, -fileName.length);
+
+    // Highlight helper
+    const highlightMatch = (text: string) => {
+        if (!query) return text;
+
+        try {
+            let regex: RegExp;
+            if (options?.isRegex) {
+                // Determine flags
+                const flags = options.caseSensitive ? 'g' : 'gi';
+                regex = new RegExp(query, flags);
+            } else {
+                // Escape regex characters for literal search
+                const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const pattern = options?.wholeWord ? `\\b${escaped}\\b` : escaped;
+                const flags = options?.caseSensitive ? 'g' : 'gi';
+                regex = new RegExp(pattern, flags);
+            }
+
+            const parts = text.split(regex);
+            const matches = text.match(regex);
+
+            if (!matches) return text;
+
+            return parts.reduce((acc, part, i) => {
+                if (i === 0) return [part];
+                return [...acc, <span key={i} className="bg-yellow-200 text-slate-800 rounded-[1px] px-[1px]">{matches[i - 1]}</span>, part];
+            }, [] as any[]);
+
+        } catch (e) {
+            // Fallback if regex fails (e.g. invalid user regex)
+            return text;
+        }
+    };
 
     return (
         <div className="flex flex-col">
@@ -44,10 +82,13 @@ export const SearchResultItem = ({
                             onClick={() => onOpenFileAtLine?.(result.path, m.line_number)}
                         >
                             <span className="text-slate-400 text-[10px] w-6 shrink-0 text-right select-none mt-0.5">{m.line_number}</span>
-                            <span className="text-slate-600 truncate flex-1">{m.line_text.trim()}</span>
+                            <span className="text-slate-600 truncate flex-1" title={m.line_text.trim()}>
+                                {highlightMatch(m.line_text.trim())}
+                            </span>
                         </div>
                     ))}
                 </div>
+
             )}
         </div>
     );

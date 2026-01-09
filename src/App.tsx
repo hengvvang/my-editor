@@ -284,6 +284,7 @@ function App() {
                 onCreateFile={createFile}
                 onCreateFolder={createFolder}
                 onDeleteItem={deleteItem}
+                activeGroupFiles={groups.find(g => g.id === activeGroupId)?.tabs || []}
             />
 
             {/* Content Area */}
