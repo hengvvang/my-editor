@@ -29,19 +29,44 @@ export function useWorkspace(
         }
     }, []);
 
-    // Save workspaces
+    // Save workspaces list
     useEffect(() => {
         if (workspaces.length > 0) {
             localStorage.setItem('recentWorkspaces', JSON.stringify(workspaces));
         }
     }, [workspaces]);
 
-    const loadWorkspace = useCallback(async (path: string) => {
-        // Save current state if we have an open workspace
-        if (rootDir) {
-            const state = { layout, activeGroupId };
-            localStorage.setItem(`workspace_state:${rootDir}`, JSON.stringify(state));
+    // Auto-save current workspace state (Layout & Active Group)
+    useEffect(() => {
+        if (!rootDir) return;
+
+        const saveState = () => {
+             const state = { layout, activeGroupId };
+             localStorage.setItem(`workspace_state:${rootDir}`, JSON.stringify(state));
+             // Also update last opened path
+             localStorage.setItem('lastOpenedWorkspace', rootDir);
+        };
+
+        const timer = setTimeout(saveState, 1000); // Debounce 1s
+        return () => clearTimeout(timer);
+    }, [rootDir, layout, activeGroupId]);
+
+    // Restore last opened workspace on init
+    useEffect(() => {
+        // Only run once on mount
+        const lastPath = localStorage.getItem('lastOpenedWorkspace');
+        if (lastPath) {
+             loadWorkspace(lastPath).catch(err => {
+                 console.error("Failed to restore last workspace", err);
+                 localStorage.removeItem('lastOpenedWorkspace');
+             });
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const loadWorkspace = useCallback(async (path: string) => {
+        // No need to manually save previous state here anymore,
+        // the useEffect above handles it for the *current* rootDir before it changes.
 
         try {
             const files = await invoke<FileEntry[]>("read_dir", { path });
@@ -57,12 +82,20 @@ export function useWorkspace(
                     // Check if it's new layout format
                     if (parsed.layout) {
                         updateLayout(parsed.layout);
-                        setActiveGroupId(parsed.activeGroupId);
+                        // Ensure minimal valid layout if corrupted
+                        if (!parsed.activeGroupId) {
+                             setActiveGroupId('1');
+                        } else {
+                            setActiveGroupId(parsed.activeGroupId);
+                        }
 
                         // Need to verify this recursion helper or simple walker
                         const restoreTabs = (node: LayoutNode) => {
                             if (node.type === 'group') {
                                 if (node.activePath) onLoadFile(node.activePath, false);
+                                // We should also ensure tabs are loaded?
+                                // onLoadFile checks ensureDocumentLoaded.
+                                node.tabs.forEach(t => onLoadFile(t, false));
                             } else {
                                 node.children.forEach(restoreTabs);
                             }
@@ -93,24 +126,21 @@ export function useWorkspace(
                 setActiveGroupId('1');
             }
 
-            // Update workspaces list
+            // Update workspaces list to move current to top
             setWorkspaces(prev => {
                 const now = Date.now();
-                const existing = prev.find(w => w.path === path);
+                // Filter out current path to re-add at top, and prevent duplicates
                 const filtered = prev.filter(w => w.path !== path);
                 const name = path.split(/[\\/]/).pop() || path;
-                const newEntry = {
-                    path,
-                    name: existing && existing.name !== path ? existing.name : name,
-                    lastOpened: now
-                };
-                return [newEntry, ...filtered].slice(0, 10);
+                return [{ path, name, lastOpened: now }, ...filtered].slice(0, 10);
             });
 
+            return true;
         } catch (err) {
             console.error("Failed to load workspace", err);
+            return false;
         }
-    }, [rootDir, layout, activeGroupId, updateLayout, setActiveGroupId, onLoadFile]);
+    }, [updateLayout, setActiveGroupId, onLoadFile]);
 
     const openFolder = useCallback(async () => {
          try {
