@@ -17,7 +17,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *Smart Preview*: For generic files (Rust, JS, JSON, etc.), the preview pane automatically acts as a **Read-Only Source Viewer**, ensuring utility across all file types.
 
 ### 🎨 Typography & Design
-*   **Built-in Fonts**: Integrated **LXGW WenKai (霞鹜文楷)** font family for a superior reading and writing experience.
+*   **System Fonts**: Uses system native fonts for a consistent and optimized reading and writing experience.
     *   *Screen Version*: Optimized non-monospace font used for UI and reading.
     *   *Mono Version*: Native fallback to system monospaced fonts (Consolas/Monaco) for code alignment.
 *   **Font Switching**: Dedicated toggle button in the toolbar to switch the editor between **Variable Width** (Reading mode) and **Monospace** (Coding mode) on the fly.
@@ -44,7 +44,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Frontend**: React 18 + TypeScript.
 *   **Editor Engine**: [CodeMirror 6](https://codemirror.net/) - Robust and extensible.
 *   **Styling**: TailwindCSS - Beautiful, clean utility-first design.
-*   **Typography**: LXGW WenKai Webfont (Embedded).
+*   **Typography**: System fonts (San Francisco, Segoe UI, Roboto, etc.).
 *   **Backend**: Rust - Handling file I/O, native Search, and Typst compilation.
 
 ## 💻 Building & Running
@@ -71,7 +71,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 
 ## 📝 Roadmap
 
-*   [x] Custom Fonts (LXGW WenKai)
+*   [x] System Fonts Integration
 *   [x] Global Search
 *   [x] Minimap & Layout fixes
 *   [ ] Custom Themes support.

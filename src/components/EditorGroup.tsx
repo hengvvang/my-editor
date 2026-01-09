@@ -10,8 +10,6 @@ import mermaid from "mermaid";
 import renderMathInElement from "katex/dist/contrib/auto-render";
 import { latexLivePreview } from "../codemirror-latex";
 import { invoke } from "@tauri-apps/api/core";
-// 引入字体
-import "lxgw-wenkai-screen-webfont/style.css";
 
 import DOMPurify from "dompurify";
 import { Tab, FileEntry } from "../types";
@@ -203,19 +201,19 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- Font Styles Injection ---
     const fontStyles = `
-        /* 1. 基础 UI 和 Markdown 预览正文 -> 始终主要使用 "LXGW WenKai Screen" */
+        /* 1. 基础 UI 和 Markdown 预览正文 -> 使用系统默认字体 */
         :root, body, button, input, select, .breadcrumbs, .prose {
-            font-family: "LXGW WenKai Screen", "Microsoft YaHei", sans-serif !important;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
         }
 
         /* 2. 代码编辑器核心 (CodeMirror) -> 动态切换 */
         .cm-editor, .cm-scroller, .cm-content, .cm-line {
-            font-family: ${useMonospace ? 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace' : '"LXGW WenKai Screen", sans-serif'} !important;
+            font-family: ${useMonospace ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' : 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'} !important;
         }
 
-        /* 3. 预览区域内的代码块 (pre, code) -> 始终建议用 Mono */
+        /* 3. 预览区域内的代码块 (pre, code) -> 使用系统等宽字体 */
         .prose pre, .prose code {
-             font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace !important;
+             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
         }
 
         /* 优化行高 */
