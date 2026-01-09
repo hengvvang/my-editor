@@ -404,7 +404,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                         <div className={`transition-all duration-300 h-full ${showSplitPreview ? 'flex w-full' : 'w-full'}`}>
                             {/* Primary Editor */}
                             <div
-                                className={`h-full relative overflow-hidden ${!isSourceMode ? 'preview-mode-cm' : ""}`}
+                                className={`h-full relative overflow-hidden ${!isSourceMode && (docType === 'markdown' || docType === 'latex') ? 'preview-mode-cm' : ""}`}
                                 style={{ width: showSplitPreview ? `${splitRatio * 100}%` : '100%', borderRight: showSplitPreview ? '1px solid #e2e8f0' : 'none' }}
                             >
                                 <CodeMirror
@@ -414,7 +414,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                         markdownLang({ extensions: [markdownExtensions] }),
                                         ...(isVimMode ? [vim({ status: true })] : []),
                                         ...(docType === 'latex' && !isSourceMode ? [latexLivePreview()] : []),
-                                        ...(!isSourceMode ? [hybridTheme, EditorView.lineWrapping] : [])
+                                        ...(!isSourceMode && (docType === 'markdown' || docType === 'latex') ? [hybridTheme, EditorView.lineWrapping] : [])
                                     ]}
                                     onChange={onContentChange}
                                     theme="light"
