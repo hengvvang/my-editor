@@ -61,15 +61,15 @@ export const SearchResultItem = ({
     return (
         <div className="flex flex-col">
             <div
-                className="flex items-center gap-1 py-1 px-2 hover:bg-slate-100 cursor-pointer text-xs select-none group"
+                className="flex items-center gap-0.5 h-[22px] px-0 hover:bg-slate-100 cursor-pointer text-xs select-none group"
                 onClick={() => setExpanded(!expanded)}
             >
-                <span className={`shrink-0 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>
-                    <ChevronRight size={12} className="text-slate-400" />
+                <span className={`shrink-0 transition-transform duration-200 flex items-center justify-center w-5 ${expanded ? 'rotate-90' : ''}`}>
+                    <ChevronRight size={14} className="text-slate-400" />
                 </span>
-                <span className="font-medium text-slate-700 truncate" title={result.path}>{fileName}</span>
-                <span className="text-slate-400 truncate text-[10px] ml-1">{dirPath}</span>
-                <div className="ml-auto bg-slate-200 text-slate-600 rounded-full px-1.5 text-[10px] min-w-[16px] text-center">
+                <span className="font-medium text-[#424242] truncate" title={result.path}>{fileName}</span>
+                <span className="text-slate-400 truncate text-[10px] ml-1 opacity-70">{dirPath}</span>
+                <div className="ml-auto bg-slate-200/80 text-slate-600 rounded-full px-1.5 text-[10px] min-w-[16px] text-center mr-2">
                     {result.matches.length}
                 </div>
             </div>
@@ -78,11 +78,11 @@ export const SearchResultItem = ({
                     {result.matches.map((m, i) => (
                         <div
                             key={i}
-                            className="pl-6 pr-2 py-0.5 hover:bg-blue-50 cursor-pointer group/line flex items-start gap-2 text-xs font-mono"
+                            className="pl-6 pr-2 h-[22px] hover:bg-[#0090f1] hover:text-white cursor-pointer group/line flex items-center gap-2 text-xs font-mono"
                             onClick={() => onOpenFileAtLine?.(result.path, m.line_number)}
                         >
-                            <span className="text-slate-400 text-[10px] w-6 shrink-0 text-right select-none mt-0.5">{m.line_number}</span>
-                            <span className="text-slate-600 truncate flex-1" title={m.line_text.trim()}>
+                            <span className="text-slate-400 group-hover/line:text-blue-100 text-[10px] w-6 shrink-0 text-right select-none">{m.line_number}</span>
+                            <span className="text-slate-600 group-hover/line:text-white truncate flex-1" title={m.line_text.trim()}>
                                 {highlightMatch(m.line_text.trim())}
                             </span>
                         </div>

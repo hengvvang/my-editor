@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2, ChevronRight, ChevronDown, ReplaceAll, RefreshCcw, Eraser, BookOpen, FileText, Database, Layers, Briefcase } from "lucide-react";
+import { Loader2, ChevronRight, ChevronDown, ReplaceAll, RefreshCcw, Eraser, BookOpen, FileText, Database, Layers, Briefcase, AlignLeft } from "lucide-react";
 import { SearchResult, SearchScope } from "../../types";
 import { SearchResultItem } from "./SearchResultItem";
 
@@ -165,11 +165,15 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
     return (
         <div className="flex-1 flex flex-col bg-slate-50/30 overflow-hidden h-full">
             {/* Search Toolbar (Matches Explorer Style) */}
-            <div className="flex items-center justify-end px-2 pt-2 pb-1 bg-slate-50/50 shrink-0">
-                <div className="flex items-center gap-1">
+            <div className="flex items-center justify-between px-2 pt-1.5 pb-0.5 bg-slate-50/50 shrink-0">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <AlignLeft size={12} />
+                    SEARCH
+                </span>
+                <div className="flex items-center gap-0.5">
                     <button
                         onClick={handleSearch}
-                        className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
+                        className="p-0.5 hover:bg-slate-200 rounded text-slate-500 transition-colors"
                         title="Refresh Search"
                     >
                         <RefreshCcw size={14} />
@@ -179,17 +183,28 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
                             search.setQuery("");
                             setReplaceText("");
                         }}
-                        className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
+                        className="p-0.5 hover:bg-slate-200 rounded text-slate-500 transition-colors"
                         title="Clear Inputs"
                     >
                         <Eraser size={14} />
+                    </button>
+                    <button
+                        onClick={() => {
+                            // Expand/Collapse logic here if implemented, for now simple placeholder action or remove
+                            // Actually Search doesn't usually use collapse all, but Explorer does.
+                            // Keeping existing icons but tightening.
+                        }}
+                        className="p-0.5 hover:bg-slate-200 rounded text-slate-500 transition-colors hidden" // Hiding unused if any was scanned
+                        title="Collapse All"
+                    >
+                        {/* Hidden placeholder */}
                     </button>
                 </div>
             </div>
 
             {/* Search Box Container */}
-            <div className="p-3 border-b border-slate-200 bg-white shadow-sm z-10">
-                <div className="flex flex-col gap-2 relative pl-4">
+            <div className="p-2 border-b border-slate-200 bg-white shadow-sm z-10">
+                <div className="flex flex-col gap-1.5 relative pl-4">
                     {/* Toggle Replace Mode Arrow */}
                     <button
                         onClick={() => setReplaceMode(!replaceMode)}
@@ -203,7 +218,7 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
                         <div className="relative flex-1 group">
                             <input
                                 type="text"
-                                className="w-full text-xs pl-2 pr-16 py-1.5 bg-white border border-slate-300 rounded-sm focus:outline-none focus:border-blue-500 hover:border-slate-400 transition-colors shadow-sm text-slate-700 placeholder:text-slate-400"
+                                className="w-full text-xs pl-2 pr-16 py-1 bg-white border border-slate-300 rounded-sm focus:outline-none focus:border-blue-500 hover:border-slate-400 transition-colors shadow-sm text-slate-700 placeholder:text-slate-400"
                                 placeholder="Search"
                                 value={search.query}
                                 onChange={(e) => search.setQuery(e.target.value)}
@@ -213,17 +228,17 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
                             <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
                                 <button
                                     onClick={() => search.setOption("caseSensitive", !search.options.caseSensitive)}
-                                    className={`w-5 h-5 flex items-center justify-center text-[10px] rounded hover:bg-slate-200 transition-colors ${search.options.caseSensitive ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-400'}`}
+                                    className={`w-4 h-4 flex items-center justify-center text-[10px] rounded hover:bg-slate-200 transition-colors ${search.options.caseSensitive ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-400'}`}
                                     title="Match Case (Alt+C)"
                                 >Aa</button>
                                 <button
                                     onClick={() => search.setOption("wholeWord", !search.options.wholeWord)}
-                                    className={`w-5 h-5 flex items-center justify-center text-[10px] rounded hover:bg-slate-200 transition-colors ${search.options.wholeWord ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-400'}`}
+                                    className={`w-4 h-4 flex items-center justify-center text-[10px] rounded hover:bg-slate-200 transition-colors ${search.options.wholeWord ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-400'}`}
                                     title="Match Whole Word (Alt+W)"
                                 >ab</button>
                                 <button
                                     onClick={() => search.setOption("isRegex", !search.options.isRegex)}
-                                    className={`w-4 h-5 flex items-center justify-center text-[10px] rounded hover:bg-slate-200 transition-colors ${search.options.isRegex ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-400'}`}
+                                    className={`w-4 h-4 flex items-center justify-center text-[10px] rounded hover:bg-slate-200 transition-colors ${search.options.isRegex ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-400'}`}
                                     title="Use Regular Expression (Alt+R)"
                                 >.*</button>
                             </div>
@@ -231,13 +246,13 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
                     </div>
 
                     {/* Replace Input */}
-                    <div className={`grid transition-all duration-200 ease-in-out ${replaceMode ? 'grid-rows-[1fr] opacity-100 mb-2' : 'grid-rows-[0fr] opacity-0 invisible mb-0'}`}>
+                    <div className={`grid transition-all duration-200 ease-in-out ${replaceMode ? 'grid-rows-[1fr] opacity-100 mb-1.5' : 'grid-rows-[0fr] opacity-0 invisible mb-0'}`}>
                         <div className="overflow-hidden min-h-0">
                             <div className="relative flex-1 flex items-center gap-1">
                                 <div className="relative flex-1">
                                     <input
                                         type="text"
-                                        className="w-full text-xs pl-2 pr-8 py-1.5 bg-white border border-slate-300 rounded-sm focus:outline-none focus:border-blue-500 hover:border-slate-400 transition-colors shadow-sm text-slate-700 placeholder:text-slate-400"
+                                        className="w-full text-xs pl-2 pr-8 py-1 bg-white border border-slate-300 rounded-sm focus:outline-none focus:border-blue-500 hover:border-slate-400 transition-colors shadow-sm text-slate-700 placeholder:text-slate-400"
                                         placeholder="Replace"
                                         value={replaceText}
                                         onChange={(e) => setReplaceText(e.target.value)}
@@ -246,7 +261,7 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
                                         }}
                                     />
                                     <button
-                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
                                         onClick={() => performReplace(true)}
                                         title="Replace All (Ctrl+Alt+Enter)"
                                     >

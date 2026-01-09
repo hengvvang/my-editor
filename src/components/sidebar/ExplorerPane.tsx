@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FilePlus, FolderPlus, FolderOpen, Trash2 } from "lucide-react";
+import { FilePlus, FolderPlus, FolderOpen, Trash2, AlignLeft } from "lucide-react";
 import { FileEntry } from "../../types";
 import { SidebarItem } from "./SidebarItem";
 import { NewItemInput } from "./NewItemInput";
@@ -115,7 +115,11 @@ export const ExplorerPane: React.FC<ExplorerPaneProps> = ({
 
     return (
         <div className="flex-1 overflow-auto bg-slate-50/30">
-            <div className="flex items-center justify-end px-2 pt-2 pb-1 bg-slate-50/50 sticky top-0 z-10">
+            <div className="flex items-center justify-between px-2 pt-2 pb-1 bg-slate-50/50 sticky top-0 z-10">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <AlignLeft size={12} />
+                    EXPLORER
+                </span>
                 <div className="flex items-center gap-1">
                     <button onClick={handleNewFile} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New File"><FilePlus size={14} /></button>
                     <button onClick={handleNewFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New Folder"><FolderPlus size={14} /></button>
@@ -123,8 +127,8 @@ export const ExplorerPane: React.FC<ExplorerPaneProps> = ({
                     <button onClick={handleDelete} className={`p-1 hover:bg-slate-200 rounded ${selectedEntry ? 'text-slate-500 hover:text-red-500' : 'text-slate-300 cursor-not-allowed'}`} title="Delete"><Trash2 size={14} /></button>
                 </div>
             </div>
-            <div className="px-2">
-                {!rootDir && <button onClick={onOpenFolder} className="w-full py-2 bg-blue-500 text-white rounded text-xs mb-2">Open Folder</button>}
+            <div className="px-0">
+                {!rootDir && <button onClick={onOpenFolder} className="w-full py-2 bg-blue-500 text-white rounded text-xs mb-2 mx-2 w-[calc(100%-16px)]">Open Folder</button>}
 
                 {rootDir && creatingItem && creatingItem.parentPath === rootDir && (
                     <NewItemInput

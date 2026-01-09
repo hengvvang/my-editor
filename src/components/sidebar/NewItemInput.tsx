@@ -43,14 +43,12 @@ export const NewItemInput: React.FC<NewItemInputProps> = ({ type, level, onConfi
 
     return (
         <div
-            className="flex items-center gap-1.5 py-1 pr-2 bg-slate-100 border-l-2 border-transparent"
-            style={{ paddingLeft: `${level * 10 + 22}px` }} // +22 to align with file icon position (chevron 4 + gap 1.5 + icon 14 etc) -> needs tuning
+            className="flex items-center gap-1.5 h-[22px] bg-[#0090f1]/10 border border-[#0090f1] pr-1"
+            style={{ marginLeft: `${level * 10 + 16}px` }}
         >
-            {type === 'folder' ? (
-                <Folder size={14} className="shrink-0 text-blue-500" />
-            ) : (
-                <FileText size={14} className="shrink-0 text-slate-500" />
-            )}
+            <span className="shrink-0 text-[#424242] ml-1">
+                {type === 'folder' ? <Folder size={16} className="text-[#dcb67a]" fill="currentColor" /> : <FileText size={15} className="text-[#757575]" />}
+            </span>
             <input
                 ref={inputRef}
                 type="text"
@@ -58,9 +56,8 @@ export const NewItemInput: React.FC<NewItemInputProps> = ({ type, level, onConfi
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
-                className="flex-1 min-w-0 h-5 text-sm bg-white border border-blue-400 outline-none px-1 rounded-sm text-slate-700"
-                onClick={(e) => e.stopPropagation()}
-                placeholder={type === 'folder' ? 'Folder Name' : 'File Name'}
+                className="flex-1 bg-transparent border-none outline-none text-[13px] min-w-0"
+                placeholder={type === 'folder' ? "Folder Name" : "File Name"}
             />
         </div>
     );

@@ -79,13 +79,22 @@ export const SidebarItem = ({
     }
 
     const isSelected = !entry.is_dir && currentPath === entry.path;
-    const isFocused = selectedPath === entry.path;
+    const isFocused = selectedPath === entry.path; // Focused allows keyboard nav highlight separate from active tab
+
+    const rowHeight = "h-[22px]";
 
     return (
         <div>
             <div
-                className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'border-blue-500' : 'border-transparent'} ${isFocused ? 'bg-blue-100 text-blue-800' : (isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100 text-slate-600')}`}
-                style={{ paddingLeft: `${level * 10 + 4}px` }}
+                className={`
+                    group flex items-center gap-0.5 pr-2 cursor-pointer text-[13px] select-none transition-none
+                    ${rowHeight}
+                    ${isSelected
+                        ? 'bg-[#0090f1] text-white'
+                        : (isFocused ? 'bg-[#0090f1]/20' : 'hover:bg-[#f0f0f0] text-[#424242]')
+                    }
+                `}
+                style={{ paddingLeft: `${level * 10}px` }}
                 onClick={(e) => {
                     e.stopPropagation();
                     onFocus(entry);
@@ -93,20 +102,24 @@ export const SidebarItem = ({
                     else handleExpand(e);
                 }}
             >
-                <span className={`shrink-0 flex items-center justify-center w-4 h-4 transition-transform duration-200 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
+                <span className={`shrink-0 flex items-center justify-center w-[16px] h-full transition-transform duration-100 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
                     onClick={(e) => {
+                        e.stopPropagation(); // Only toggle expand, don't focus/select row if just clicking arrow
                         if (entry.is_dir) handleExpand(e);
                     }}
                 >
-                    {entry.is_dir && <ChevronRight size={12} className={`group-hover:text-slate-600 ${isFocused ? 'text-blue-500' : 'text-slate-400'}`} />}
+                    {entry.is_dir && <ChevronRight size={14} className={`${isSelected ? 'text-white' : 'text-[#424242]'}`} />}
                 </span>
 
-                {entry.is_dir ? (
-                    <Folder size={14} className={`shrink-0 ${expanded ? 'text-blue-500' : (isFocused ? 'text-blue-400' : 'text-blue-400/80 group-hover:text-blue-500')}`} />
-                ) : (
-                    <FileText size={14} className={`shrink-0 ${isSelected ? 'text-blue-500' : (isFocused ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-500')}`} />
-                )}
-                <span className="truncate flex-1 pt-0.5 font-medium">{entry.name}</span>
+                <div className="shrink-0 flex items-center justify-center w-[18px] mr-1">
+                    {entry.is_dir ? (
+                        <Folder size={16} className={`${expanded ? (isSelected ? 'text-white' : 'text-[#0090f1]') : (isSelected ? 'text-white' : 'text-[#dcb67a]')}`} fill="currentColor" />
+                    ) : (
+                        <FileText size={15} className={`${isSelected ? 'text-white' : 'text-[#757575]'}`} />
+                    )}
+                </div>
+
+                <span className="truncate flex-1 font-normal leading-none -mt-[1px]">{entry.name}</span>
             </div>
             {expanded && (
                 <>
