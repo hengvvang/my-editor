@@ -39,10 +39,10 @@
       }
     }
   },
-  "productName": "my-editor",
-  "mainBinaryName": "my-editor",
+  "productName": "Typoly",
+  "mainBinaryName": "typoly",
   "version": "0.0.0",
-  "identifier": "com.myeditor.app",
+  "identifier": "com.typoly.app",
   "plugins": {},
   "app": {
     "withGlobalTauri": false,
@@ -50,7 +50,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "MarkEditor",
+        "title": "Typoly",
         "width": 1000,
         "height": 700,
         "decorations": false,

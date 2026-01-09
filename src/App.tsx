@@ -13,6 +13,7 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useSidebar } from "./hooks/useSidebar";
 import { useOutline } from "./hooks/useOutline";
 import { useSearch } from "./hooks/useSearch";
+import { useLayoutResizing } from "./hooks/useLayoutResizing";
 
 const appWindow = getCurrentWebviewWindow()
 
@@ -49,7 +50,7 @@ function App() {
         return loaded;
     };
 
-    const openFileAtLine = async (path: string, line: number) => {
+    const openFileAtLine = async (path: string, _line: number) => {
         await loadFile(path);
         // TODO: Implement scroll to line mechanism
         // This requires communicating with the CodeMirror instance inside EditorGroup
@@ -93,64 +94,7 @@ function App() {
     const groupsContainerRef = useRef<HTMLDivElement>(null);
 
     // Handle Split Resizing
-    useEffect(() => {
-        if (resizingGroupIndex === null) return;
-
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!groupsContainerRef.current) return;
-
-            // We are resizing the split between group[index] and group[index+1]
-            // We filter out the splitter divs to get just the group containers
-            const children = Array.from(groupsContainerRef.current.children).filter(c => !c.classList.contains("group/resizer")) as HTMLElement[];
-
-            const leftEl = children[resizingGroupIndex];
-            const rightEl = children[resizingGroupIndex + 1];
-
-            if (!leftEl || !rightEl) return;
-
-            const leftRect = leftEl.getBoundingClientRect();
-            // const rightRect = rightEl.getBoundingClientRect();
-
-            // Calculate new flex ratio
-            // We assume the total flex of these two groups is conserved
-            const groupLeft = groups[resizingGroupIndex];
-            const groupRight = groups[resizingGroupIndex + 1];
-            const totalFlex = groupLeft.flex + groupRight.flex;
-
-            // New width for left element
-            // e.clientX is current mouse X
-            // leftRect.left is the left edge of the left element
-            // Width = mouseX - leftEdge
-            let newLeftWidth = e.clientX - leftRect.left;
-
-            // Total width of both elements
-            const totalWidth = leftEl.offsetWidth + rightEl.offsetWidth;
-
-            // Constrain
-            if (newLeftWidth < 50) newLeftWidth = 50;
-            if (newLeftWidth > totalWidth - 50) newLeftWidth = totalWidth - 50;
-
-            const newLeftFlex = (newLeftWidth / totalWidth) * totalFlex;
-            const newRightFlex = totalFlex - newLeftFlex;
-
-            const newGroups = [...groups];
-            newGroups[resizingGroupIndex] = { ...groupLeft, flex: newLeftFlex };
-            newGroups[resizingGroupIndex + 1] = { ...groupRight, flex: newRightFlex };
-
-            setGroups(newGroups);
-        };
-
-        const handleMouseUp = () => {
-            setResizingGroupIndex(null);
-        };
-
-        document.addEventListener("mousemove", handleMouseMove);
-        document.addEventListener("mouseup", handleMouseUp);
-        return () => {
-            document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseup", handleMouseUp);
-        };
-    }, [resizingGroupIndex, groups, setGroups, setResizingGroupIndex]);
+    useLayoutResizing(resizingGroupIndex, setResizingGroupIndex, groups, setGroups, groupsContainerRef);
 
     // --- Helper ---
     function getOpenFilePath() {
@@ -193,7 +137,7 @@ function App() {
                     {/* Drag Region */}
                     <div className="flex-1 flex items-center justify-center h-full select-none" data-tauri-drag-region>
                         <div className="text-xs font-medium text-slate-500 pointer-events-none">
-                            {groups.find(g => g.id === activeGroupId)?.activePath?.split(/[\\/]/).pop() || "MarkEditor"}
+                            {groups.find(g => g.id === activeGroupId)?.activePath?.split(/[\\/]/).pop() || "Typoly"}
                         </div>
                     </div>
                     <div className="flex items-center gap-1 z-50">

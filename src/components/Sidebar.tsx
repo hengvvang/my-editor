@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { FileText, Folder, ChevronRight, Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen, ArrowRight, Loader2 } from "lucide-react";
+import { Search, ListTree, Files, Info, Database, X, FilePlus, FolderPlus, Trash2, FolderOpen, Loader2 } from "lucide-react";
 import { FileEntry, SearchResult } from "../types";
+import { SidebarItem } from "./sidebar/SidebarItem";
+import { SearchResultItem } from "./sidebar/SearchResultItem";
 
 export interface SidebarProps {
     isOpen: boolean;
@@ -32,144 +33,6 @@ export interface SidebarProps {
         search: (root: string | null) => void;
     };
 }
-
-const SearchResultItem = ({
-    result,
-    rootDir,
-    onOpenFileAtLine
-}: {
-    result: SearchResult,
-    rootDir: string | null,
-    onOpenFileAtLine?: (path: string, line: number) => void
-}) => {
-    const [expanded, setExpanded] = useState(true);
-    const relPath = rootDir && result.path.startsWith(rootDir)
-        ? result.path.slice(rootDir.length + (rootDir.endsWith('\\') || rootDir.endsWith('/') ? 0 : 1))
-        : result.path;
-    const fileName = relPath.split(/[\\/]/).pop() || relPath;
-    const dirPath = relPath.slice(0, -fileName.length);
-
-    return (
-        <div className="flex flex-col">
-            <div
-                className="flex items-center gap-1 py-1 px-2 hover:bg-slate-100 cursor-pointer text-xs select-none group"
-                onClick={() => setExpanded(!expanded)}
-            >
-                <span className={`shrink-0 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>
-                    <ChevronRight size={12} className="text-slate-400" />
-                </span>
-                <span className="font-medium text-slate-700 truncate" title={result.path}>{fileName}</span>
-                <span className="text-slate-400 truncate text-[10px] ml-1">{dirPath}</span>
-                <div className="ml-auto bg-slate-200 text-slate-600 rounded-full px-1.5 text-[10px] min-w-[16px] text-center">
-                    {result.matches.length}
-                </div>
-            </div>
-            {expanded && (
-                <div className="flex flex-col">
-                    {result.matches.map((m, i) => (
-                        <div
-                            key={i}
-                            className="pl-6 pr-2 py-0.5 hover:bg-blue-50 cursor-pointer group/line flex items-start gap-2 text-xs font-mono"
-                            onClick={() => onOpenFileAtLine?.(result.path, m.line_number)}
-                        >
-                            <span className="text-slate-400 text-[10px] w-6 shrink-0 text-right select-none mt-0.5">{m.line_number}</span>
-                            <span className="text-slate-600 truncate flex-1">{m.line_text.trim()}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-const SidebarItem = ({
-    entry,
-    level,
-    onSelect,
-    currentPath,
-    selectedPath,
-    onFocus,
-}: {
-    entry: FileEntry,
-    level: number,
-    onSelect: (entry: FileEntry) => void,
-    currentPath: string | null,
-    selectedPath: string | null,
-    onFocus: (entry: FileEntry) => void,
-}) => {
-    const [expanded, setExpanded] = useState(false);
-    const [children, setChildren] = useState<FileEntry[]>([]);
-
-    // We need to expose a way to refresh children if parent updates
-    // For now, simpler: expand/collapse toggles fetch.
-
-    const fetchChildren = async () => {
-        try {
-            const files = await invoke<FileEntry[]>("read_dir", { path: entry.path });
-            files.sort((a, b) => {
-                if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
-                return a.is_dir ? -1 : 1;
-            });
-            setChildren(files);
-        } catch (err) {
-            console.error("Failed to read dir", err);
-        }
-    };
-
-    const handleExpand = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onFocus(entry); // Select directory when toggling too
-
-        if (!entry.is_dir) return;
-
-        if (!expanded) {
-            await fetchChildren();
-        }
-        setExpanded(!expanded);
-    }
-
-    // Allow re-fetch
-    const refresh = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (expanded) await fetchChildren();
-    }
-
-    const isSelected = !entry.is_dir && currentPath === entry.path;
-    const isFocused = selectedPath === entry.path;
-
-    return (
-        <div>
-            <div
-                className={`group flex items-center gap-1.5 py-1 pr-2 cursor-pointer text-xs select-none transition-colors border-l-2 ${isSelected ? 'border-blue-500' : 'border-transparent'} ${isFocused ? 'bg-blue-100 text-blue-800' : (isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100 text-slate-600')}`}
-                style={{ paddingLeft: `${level * 10 + 4}px` }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onFocus(entry);
-                    if (!entry.is_dir) onSelect(entry);
-                    else handleExpand(e);
-                }}
-            >
-                <span className={`shrink-0 flex items-center justify-center w-4 h-4 transition-transform duration-200 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
-                    onClick={(e) => {
-                        if (entry.is_dir) handleExpand(e);
-                    }}
-                >
-                    {entry.is_dir && <ChevronRight size={12} className={`group-hover:text-slate-600 ${isFocused ? 'text-blue-500' : 'text-slate-400'}`} />}
-                </span>
-
-                {entry.is_dir ? (
-                    <Folder size={14} className={`shrink-0 ${expanded ? 'text-blue-500' : (isFocused ? 'text-blue-400' : 'text-blue-400/80 group-hover:text-blue-500')}`} />
-                ) : (
-                    <FileText size={14} className={`shrink-0 ${isSelected ? 'text-blue-500' : (isFocused ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-500')}`} />
-                )}
-                <span className="truncate flex-1 pt-0.5 font-medium">{entry.name}</span>
-            </div>
-            {expanded && children.map(child => (
-                <SidebarItem key={child.path} entry={child} level={level + 1} onSelect={onSelect} currentPath={currentPath} selectedPath={selectedPath} onFocus={onFocus} />
-            ))}
-        </div>
-    );
-};
 
 export const Sidebar: React.FC<SidebarProps> = ({
     isOpen,
@@ -453,7 +316,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Footer Info (Merged) */}
                 <div className="px-3 py-1.5 border-t border-slate-200 text-[10px] text-slate-400 flex items-center justify-between bg-zinc-50">
-                    <span className="truncate">MarkEditor Beta 0.1.0</span>
+                    <span className="truncate">Typoly Beta 0.1.0</span>
                     <Info size={12} className="opacity-50 hover:opacity-100 cursor-pointer shrink-0" />
                 </div>
             </div>

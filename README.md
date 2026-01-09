@@ -1,8 +1,8 @@
-# MarkEditor
+# Typoly
 
 A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid**, and **LaTeX** built with efficiency and aesthetics in mind.
 
-![Editor Screenshot](https://via.placeholder.com/800x450?text=MarkEditor+Preview)
+![Editor Screenshot](https://via.placeholder.com/800x450?text=Typoly+Preview)
 
 ## 🚀 Key Features
 
@@ -45,7 +45,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Frontend**: React 18 + TypeScript.
 *   **Editor Engine**: [CodeMirror 6](https://codemirror.net/) - Robust and extensible.
 *   **Styling**: TailwindCSS - Beautiful, clean utility-first design.
-*   **Backend**: Rust - Handling file I/O and Typst compilation.
+*   **Backend**: Rust - Handling file I/O, native Search, and Typst compilation.
 
 ## 💻 Building & Running
 
