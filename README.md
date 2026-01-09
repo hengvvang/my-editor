@@ -23,7 +23,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Font Switching**: Dedicated toggle button in the toolbar to switch the editor between **Variable Width** (Reading mode) and **Monospace** (Coding mode) on the fly.
 
 ### 🧩 Modern & Flexible UI
-*   **Smart Split Groups**: Create multiple editor groups with drag-and-drop resizing. Each group is assigned a unique, cycling color theme.
+*   **Smart Split Groups**: Create complex layouts with recursive **Vertical** and **Horizontal** splitting. Supports intuitive drag-and-drop resizing for all split directions.
 *   **Immersive Toolbars**: Editor controls (Lock, Split, Preview, Font Toggle) feature a glass-morphism effect that blends seamlessly.
 *   **Interactive Breadcrumbs**: VS Code-style file path navigation bar.
 *   **Smart Layout**:

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FileText, Folder, Save, ChevronRight, X, Lock, SplitSquareHorizontal, Columns, Code, Eye, Keyboard, Map as MapIcon, Type } from "lucide-react";
+import { FileText, Folder, Save, ChevronRight, X, Lock, SplitSquareHorizontal, SplitSquareVertical, Columns, Code, Eye, Keyboard, Map as MapIcon, Type, ListOrdered } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
@@ -31,7 +31,7 @@ interface EditorGroupProps {
     onCloseTab: (e: React.MouseEvent, path: string) => void;
     onContentChange: (value: string) => void;
     onSave: () => void;
-    onSplit: () => void; // Trigger split (clone group)
+    onSplit: (direction?: 'horizontal' | 'vertical') => void; // Trigger split (clone group)
     maximized?: boolean; // If only one group is visible
     rootDir: string | null;
     onToggleLock: () => void;
@@ -63,7 +63,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const [showSplitPreview, setShowSplitPreview] = useState(false);
     const [isVimMode, setIsVimMode] = useState(false);
     const [useMonospace, setUseMonospace] = useState(false);
-    const [showLineNumbers] = useState(true);
+    const [showLineNumbers, setShowLineNumbers] = useState(true);
     const [showMinimap, setShowMinimap] = useState(false);
     const [splitRatio, setSplitRatio] = useState(0.5);
     const [resizingTarget, setResizingTarget] = useState<'editorSplit' | null>(null);
@@ -286,7 +286,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                         <X size={16} />
                     </button>
                 )}
-                <div onClick={onSplit} className="cursor-pointer mb-2 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all">
+                <div onClick={() => onSplit('horizontal')} className="cursor-pointer mb-2 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all">
                     <SplitSquareHorizontal size={32} className="opacity-50" />
                 </div>
                 <p>No file open</p>
@@ -328,11 +328,18 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                         <Columns size={14} />
                     </button>
                     <button
-                        onClick={onSplit}
+                        onClick={() => onSplit('horizontal')}
                         className="p-1 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
                         title="Split Editor Right"
                     >
                         <SplitSquareHorizontal size={14} />
+                    </button>
+                    <button
+                        onClick={() => onSplit('vertical')}
+                        className="p-1 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
+                        title="Split Editor Down"
+                    >
+                        <SplitSquareVertical size={14} />
                     </button>
                     <button
                         onClick={onToggleLock}
@@ -430,6 +437,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 title={useMonospace ? "Switch to Variable Width Font" : "Switch to Monospace Font"}
                             ><Type size={12} /></button>
                             <button onClick={() => setIsVimMode(!isVimMode)} className={`p-1 rounded ${isVimMode ? 'bg-green-100 text-green-700' : 'text-slate-400'}`} title="Vim"><Keyboard size={12} /></button>
+                            <button onClick={() => setShowLineNumbers(!showLineNumbers)} className={`p-1 rounded ${showLineNumbers ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`} title="Line Numbers"><ListOrdered size={12} /></button>
                             <button onClick={() => setShowMinimap(!showMinimap)} className={`p-1 rounded ${showMinimap ? 'bg-slate-200 text-slate-800' : 'text-slate-400'}`} title="Minimap"><MapIcon size={12} /></button>
                         </div>
                     </div>

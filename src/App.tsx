@@ -4,7 +4,7 @@ import { Menu, Minus, Square, X, Copy } from "lucide-react";
 
 import { EditorGroup } from "./components/EditorGroup";
 import { Sidebar } from "./components/Sidebar";
-import { Tab } from "./types";
+import { Tab, LayoutNode, GroupState } from "./types";
 import "./styles.css";
 
 import { useDocuments } from "./hooks/useDocuments";
@@ -13,7 +13,7 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useSidebar } from "./hooks/useSidebar";
 import { useOutline } from "./hooks/useOutline";
 import { useSearch } from "./hooks/useSearch";
-import { useLayoutResizing } from "./hooks/useLayoutResizing";
+// import { useLayoutResizing } from "./hooks/useLayoutResizing"; // Deprecated
 
 const appWindow = getCurrentWebviewWindow()
 
@@ -27,18 +27,21 @@ function App() {
     } = useDocuments();
 
     const {
-        groups,
-        setGroups,
+        layout,
+        groups, // Flat list for checking active path etc
+        // setGroups, // Deprecated
         activeGroupId,
         setActiveGroupId,
-        resizingGroupIndex,
-        setResizingGroupIndex,
+        // resizingGroupIndex,
+        // setResizingGroupIndex,
         openTab,
         closeTab,
         switchTab,
         splitGroup,
+        resizeSplit,
         closeGroup,
-        toggleLock
+        toggleLock,
+        updateLayout
     } = useEditorGroups();
 
     const [isMaximized, setIsMaximized] = useState(false);
@@ -90,7 +93,7 @@ function App() {
         openFolder,
         shouldShowSidebar,
         setShouldShowSidebar
-    } = useWorkspace(groups, activeGroupId, setGroups, setActiveGroupId, loadFile);
+    } = useWorkspace(layout, activeGroupId, updateLayout, setActiveGroupId, loadFile);
 
     const {
         isOpen: sidebarOpen,
@@ -115,14 +118,148 @@ function App() {
 
     const groupsContainerRef = useRef<HTMLDivElement>(null);
 
-    // Handle Split Resizing
-    useLayoutResizing(resizingGroupIndex, setResizingGroupIndex, groups, setGroups, groupsContainerRef);
+    // Handle Split Resizing - Deprecated in favor of recursive internal resizing
+    // useLayoutResizing(resizingGroupIndex, setResizingGroupIndex, groups, setGroups, groupsContainerRef);
 
     // --- Helper ---
     function getOpenFilePath() {
         const group = groups.find(g => g.id === activeGroupId);
         return group?.activePath || null;
     }
+
+    // --- Recursive Layout Renderer ---
+    const renderLayout = (node: LayoutNode, index: number, path: number[] = []) => {
+        if (node.type === 'group') {
+            const group = node;
+            const doc = group.activePath && documents[group.activePath];
+            const groupTabs: Tab[] = group.tabs.map(p => {
+                const d = documents[p];
+                if (d) return { path: d.path, name: d.name, content: d.content, originalContent: d.originalContent, isDirty: d.isDirty };
+                return { path: p, name: p.split(/[\\/]/).pop() || "Loading", content: "", originalContent: "", isDirty: false };
+            });
+
+            return (
+                <div
+                    key={group.id}
+                    className="flex flex-col min-w-0 min-h-0 h-full w-full"
+                    onClick={() => setActiveGroupId(group.id)}
+                >
+                    <EditorGroup
+                        groupId={group.id}
+                        groupIndex={index} // Just used for color cycling
+                        isActiveGroup={group.id === activeGroupId}
+                        tabs={groupTabs}
+                        activePath={group.activePath}
+                        content={doc ? doc.content : ""}
+                        isReadOnly={group.isReadOnly}
+                        onSwitchTab={(path) => switchTab(group.id, path)}
+                        onCloseTab={(e, path) => {
+                            e.stopPropagation();
+                            closeTab(path, group.id);
+                        }}
+                        onContentChange={(val) => {
+                            if (group.activePath) updateDoc(group.activePath, { content: val, isDirty: true });
+                        }}
+                        onSave={() => group.activePath && saveDocument(group.activePath)}
+                        onSplit={(dir) => splitGroup(group.id, dir)}
+                        onToggleLock={() => toggleLock(group.id)}
+                        onCloseGroup={groups.length > 1 ? () => closeGroup(group.id) : undefined}
+                        rootDir={rootDir}
+                    />
+                </div>
+            );
+        } else {
+            // Split Container
+            return (
+                <div
+                    key={node.id}
+                    className={`flex flex-1 min-w-0 min-h-0 h-full w-full ${node.direction === 'horizontal' ? 'flex-row' : 'flex-col'}`}
+                >
+                    {node.children.map((child, i) => {
+                        const size = node.sizes[i]; // Flex grow value
+                        return (
+                            <React.Fragment key={child.type === 'group' ? child.id : child.id}>
+                                {i > 0 && (
+                                    <div
+                                        className={`${node.direction === 'horizontal' ? 'w-1 cursor-col-resize h-full -ml-[0.5px] -mr-[0.5px]' : 'h-1 cursor-row-resize w-full -mt-[0.5px] -mb-[0.5px]'} z-50 shrink-0 flex justify-center items-center group/resizer bg-transparent hover:bg-blue-400 transition-colors`}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+
+                                            // Split Resizing Logic
+                                            const startX = e.clientX;
+                                            const startY = e.clientY;
+                                            const startSizes = [...node.sizes];
+                                            const parentEl = (e.currentTarget as HTMLElement).parentElement;
+                                            if (!parentEl) return;
+
+                                            // The parent flex container size
+                                            const rect = parentEl.getBoundingClientRect();
+                                            const totalSizePx = node.direction === 'horizontal' ? rect.width : rect.height;
+                                            const totalFlex = startSizes.reduce((a, b) => a + b, 0);
+
+                                            const handleMove = (ev: MouseEvent) => {
+                                                const currentX = ev.clientX;
+                                                const currentY = ev.clientY;
+                                                const deltaPx = node.direction === 'horizontal' ? currentX - startX : currentY - startY;
+
+                                                // Convert pixel delta to flex delta
+                                                if (totalSizePx === 0) return;
+                                                const deltaFlex = deltaPx * (totalFlex / totalSizePx);
+
+                                                const newSizes = [...startSizes];
+
+                                                // We are resizing the specific gap between children[i-1] and children[i]
+                                                const prevIndex = i - 1;
+                                                const nextIndex = i;
+
+                                                // Check constraints (e.g., minimum size)
+                                                const minSizePx = 50;
+                                                const minFlex = minSizePx * (totalFlex / totalSizePx);
+
+                                                let verifiedDelta = deltaFlex;
+
+                                                // Limit shrinking of left/top item
+                                                if (newSizes[prevIndex] + verifiedDelta < minFlex) {
+                                                    verifiedDelta = minFlex - newSizes[prevIndex];
+                                                }
+                                                // Limit shrinking of right/bottom item
+                                                if (newSizes[nextIndex] - verifiedDelta < minFlex) {
+                                                    verifiedDelta = newSizes[nextIndex] - minFlex;
+                                                }
+
+                                                newSizes[prevIndex] += verifiedDelta;
+                                                newSizes[nextIndex] -= verifiedDelta;
+
+                                                resizeSplit(node.id, newSizes);
+                                            };
+
+                                            const handleUp = () => {
+                                                window.removeEventListener('mousemove', handleMove);
+                                                window.removeEventListener('mouseup', handleUp);
+                                                document.body.style.cursor = '';
+                                                document.body.style.userSelect = '';
+                                            };
+
+                                            window.addEventListener('mousemove', handleMove);
+                                            window.addEventListener('mouseup', handleUp);
+                                            document.body.style.cursor = node.direction === 'horizontal' ? 'col-resize' : 'row-resize';
+                                            document.body.style.userSelect = 'none';
+                                        }}
+                                    >
+                                        <div className={`${node.direction === 'horizontal' ? 'w-[1px] h-full' : 'h-[1px] w-full'} bg-slate-200 group-hover/resizer:bg-blue-600`} />
+                                    </div>
+                                )}
+                                <div style={{ flex: `${size} 1 0px`, overflow: 'hidden' }}>
+                                    {renderLayout(child, index + i, [...path, i])}
+                                </div>
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
+            );
+        }
+    };
 
     return (
         <div className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
@@ -197,60 +334,7 @@ function App() {
 
                 {/* Editors Container */}
                 <div className="flex-1 flex overflow-hidden" ref={groupsContainerRef}>
-                    {groups.map((group, index) => {
-                        const doc = group.activePath && documents[group.activePath];
-                        // Construct Tab objects for the group
-                        const groupTabs: Tab[] = group.tabs.map(p => {
-                            const d = documents[p];
-                            if (d) return { path: d.path, name: d.name, content: d.content, originalContent: d.originalContent, isDirty: d.isDirty };
-                            return { path: p, name: p.split(/[\\/]/).pop() || "Loading", content: "", originalContent: "", isDirty: false };
-                        });
-
-                        return (
-                            <React.Fragment key={group.id}>
-                                {index > 0 && (
-                                    <div
-                                        className="w-1 cursor-col-resize z-50 h-full shrink-0 -ml-[0.5px] -mr-[0.5px] flex justify-center group/resizer"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setResizingGroupIndex(index - 1);
-                                        }}
-                                    >
-                                        <div className={`w-[1px] h-full transition-colors ${resizingGroupIndex === index - 1 ? 'bg-blue-600' : 'bg-slate-200 group-hover/resizer:bg-blue-400'}`} />
-                                    </div>
-                                )}
-                                <div
-                                    className="flex flex-col min-w-[50px] h-full"
-                                    style={{ flex: `${group.flex} 1 0%` }}
-                                    onClick={() => setActiveGroupId(group.id)}
-                                >
-                                    <EditorGroup
-                                        groupId={group.id}
-                                        groupIndex={index}
-                                        isActiveGroup={group.id === activeGroupId}
-                                        tabs={groupTabs}
-                                        activePath={group.activePath}
-                                        content={doc ? doc.content : ""}
-                                        isReadOnly={group.isReadOnly}
-                                        onSwitchTab={(path) => switchTab(group.id, path)}
-                                        onCloseTab={(e, path) => {
-                                            e.stopPropagation();
-                                            closeTab(path, group.id);
-                                        }}
-                                        onContentChange={(val) => {
-                                            if (group.activePath) updateDoc(group.activePath, { content: val, isDirty: true });
-                                        }}
-                                        onSave={() => group.activePath && saveDocument(group.activePath)}
-                                        onSplit={() => splitGroup(group.id)}
-                                        onToggleLock={() => toggleLock(group.id)}
-                                        onCloseGroup={groups.length > 1 ? () => closeGroup(group.id) : undefined}
-                                        rootDir={rootDir}
-                                    />
-                                </div>
-                            </React.Fragment>
-                        );
-                    })}
+                    {renderLayout(layout, 0)}
                 </div>
             </div>
         </div>

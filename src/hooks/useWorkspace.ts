@@ -1,12 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from 'react';
-import { FileEntry, GroupState, Workspace } from '../types';
+import { FileEntry, LayoutNode, Workspace } from '../types';
 
 export function useWorkspace(
-    groups: GroupState[],
+    layout: LayoutNode,
     activeGroupId: string,
-    setGroups: (g: GroupState[]) => void,
+    updateLayout: (l: LayoutNode) => void,
     setActiveGroupId: (id: string) => void,
     onLoadFile: (path: string, addToGroup: boolean) => Promise<boolean>
 ) {
@@ -39,7 +39,7 @@ export function useWorkspace(
     const loadWorkspace = useCallback(async (path: string) => {
         // Save current state if we have an open workspace
         if (rootDir) {
-            const state = { groups, activeGroupId };
+            const state = { layout, activeGroupId };
             localStorage.setItem(`workspace_state:${rootDir}`, JSON.stringify(state));
         }
 
@@ -54,20 +54,42 @@ export function useWorkspace(
             if (savedState) {
                 try {
                     const parsed = JSON.parse(savedState);
-                    setGroups(parsed.groups);
-                    setActiveGroupId(parsed.activeGroupId);
+                    // Check if it's new layout format
+                    if (parsed.layout) {
+                        updateLayout(parsed.layout);
+                        setActiveGroupId(parsed.activeGroupId);
 
-                    // Restore files to memory
-                    parsed.groups.forEach((g: GroupState) => {
-                        if (g.activePath) onLoadFile(g.activePath, false);
-                    });
+                        // Need to verify this recursion helper or simple walker
+                        const restoreTabs = (node: LayoutNode) => {
+                            if (node.type === 'group') {
+                                if (node.activePath) onLoadFile(node.activePath, false);
+                            } else {
+                                node.children.forEach(restoreTabs);
+                            }
+                        }
+                        restoreTabs(parsed.layout);
+                    } else if (parsed.groups) {
+                        // Migration from old flattened groups to new layout
+                        // Put first group in root, ignore others or try to split?
+                        // Simplest: take the first group as root.
+                        const oldGroup = parsed.groups[0];
+                         updateLayout({
+                             id: oldGroup.id || '1',
+                             type: 'group',
+                             tabs: oldGroup.tabs || [],
+                             activePath: oldGroup.activePath || null,
+                             isReadOnly: !!oldGroup.isReadOnly
+                         });
+                         setActiveGroupId(oldGroup.id || '1');
+                         if (oldGroup.activePath) onLoadFile(oldGroup.activePath, false);
+                    }
                 } catch (e) {
                     console.error("Failed to restore workspace state", e);
-                    setGroups([{ id: '1', tabs: [], activePath: null, isReadOnly: false, flex: 1 }]);
+                    updateLayout({ id: '1', type: 'group', tabs: [], activePath: null, isReadOnly: false });
                     setActiveGroupId('1');
                 }
             } else {
-                setGroups([{ id: '1', tabs: [], activePath: null, isReadOnly: false, flex: 1 }]);
+                updateLayout({ id: '1', type: 'group', tabs: [], activePath: null, isReadOnly: false });
                 setActiveGroupId('1');
             }
 
@@ -88,7 +110,7 @@ export function useWorkspace(
         } catch (err) {
             console.error("Failed to load workspace", err);
         }
-    }, [rootDir, groups, activeGroupId, setGroups, setActiveGroupId, onLoadFile]);
+    }, [rootDir, layout, activeGroupId, updateLayout, setActiveGroupId, onLoadFile]);
 
     const openFolder = useCallback(async () => {
          try {
