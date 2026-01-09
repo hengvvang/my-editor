@@ -272,16 +272,10 @@ function App() {
                             title={isMaximized ? "Restore" : "Maximize"}
                         >
                             {isMaximized ? (
-                                <div className="relative w-[12px] h-[12px]">
-                                    <Square size={9} className="absolute top-0 right-0 fill-none" />
-                                    <Square size={9} className="absolute bottom-0 left-0 fill-white bg-slate-900/0" style={{ fill: 'none' }} />
-                                    {/* Lucide Square doesn't fill by default. Simulating restore icon with two squares */}
-                                    {/* Let's try a better approach: SVG inline for 'restore' which mimics Windows native restore */}
-                                    <svg viewBox="0 0 10 10" width="12" height="12" style={{ position: 'absolute', top: 0, left: 0 }}>
-                                        <path d="M2.5,2.5 L2.5,9.5 L9.5,9.5 L9.5,2.5 L2.5,2.5 Z M3.5,3.5 L8.5,3.5 L8.5,8.5 L3.5,8.5 L3.5,3.5 Z" fill="currentColor" fillRule="evenodd" />
-                                        <path d="M0.5,7.5 L0.5,0.5 L7.5,0.5 L7.5,1.5 L1.5,1.5 L1.5,7.5 L0.5,7.5 Z" fill="currentColor" fillRule="evenodd" />
-                                    </svg>
-                                </div>
+                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1">
+                                    <path d="M3.5 3.5V1.5H10.5V8.5H8.5" />
+                                    <rect x="1.5" y="3.5" width="7" height="7" />
+                                </svg>
                             ) : (
                                 <Square size={12} />
                             )}
