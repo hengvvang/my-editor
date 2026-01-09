@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FileText, Folder, Save, ChevronRight, X, Lock, SplitSquareHorizontal, Columns, Code, Eye, Keyboard, Map as MapIcon } from "lucide-react";
+import { FileText, Folder, Save, ChevronRight, X, Lock, SplitSquareHorizontal, Columns, Code, Eye, Keyboard, Map as MapIcon, Type } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
@@ -10,6 +10,9 @@ import mermaid from "mermaid";
 import renderMathInElement from "katex/dist/contrib/auto-render";
 import { latexLivePreview } from "../codemirror-latex";
 import { invoke } from "@tauri-apps/api/core";
+// 引入字体
+import "lxgw-wenkai-screen-webfont/style.css";
+
 import DOMPurify from "dompurify";
 import { Tab, FileEntry } from "../types";
 import { markdownExtensions, hybridHighlightStyle } from "../editorConfig";
@@ -61,6 +64,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const [isSourceMode, setIsSourceMode] = useState(true);
     const [showSplitPreview, setShowSplitPreview] = useState(false);
     const [isVimMode, setIsVimMode] = useState(false);
+    const [useMonospace, setUseMonospace] = useState(false);
     const [showLineNumbers] = useState(true);
     const [showMinimap, setShowMinimap] = useState(false);
     const [splitRatio, setSplitRatio] = useState(0.5);
@@ -122,7 +126,9 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // Markdown Rendering for Preview
     useEffect(() => {
-        if (isSourceMode && showSplitPreview && docType === 'markdown') {
+        // Fix: Render markdown even if showSplitPreview is true, regardless of docType check here (safety)
+        // ideally checking docType === 'markdown' is correct, but let's ensure it runs.
+        if (showSplitPreview && docType === 'markdown') {
             const timer = setTimeout(() => {
                 invoke('render_markdown', { text: content }).then((html) => {
                     setHtmlContent(DOMPurify.sanitize(html as string));
@@ -130,7 +136,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             }, 200);
             return () => clearTimeout(timer);
         }
-    }, [content, isSourceMode, showSplitPreview, docType]);
+    }, [content, showSplitPreview, docType]);
 
     // Latex Rendering
     useEffect(() => {
@@ -195,6 +201,29 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     }, [resizingTarget]);
 
 
+    // --- Font Styles Injection ---
+    const fontStyles = `
+        /* 1. 基础 UI 和 Markdown 预览正文 -> 始终主要使用 "LXGW WenKai Screen" */
+        :root, body, button, input, select, .breadcrumbs, .prose {
+            font-family: "LXGW WenKai Screen", "Microsoft YaHei", sans-serif !important;
+        }
+
+        /* 2. 代码编辑器核心 (CodeMirror) -> 动态切换 */
+        .cm-editor, .cm-scroller, .cm-content, .cm-line {
+            font-family: ${useMonospace ? 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace' : '"LXGW WenKai Screen", sans-serif'} !important;
+        }
+
+        /* 3. 预览区域内的代码块 (pre, code) -> 始终建议用 Mono */
+        .prose pre, .prose code {
+             font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace !important;
+        }
+
+        /* 优化行高 */
+        .cm-line {
+            line-height: 1.6 !important;
+        }
+    `;
+
     // --- Breadcrumb Logic ---
     const breadcrumbs = React.useMemo(() => {
         if (!activePath) return [];
@@ -249,6 +278,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     if (!activePath) {
         return (
             <div className="flex-1 flex flex-col h-full bg-slate-50 items-center justify-center text-slate-400 relative">
+                <style>{fontStyles}</style>
                 {onCloseGroup && (
                     <button
                         onClick={onCloseGroup}
@@ -268,6 +298,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     return (
         <div className="flex-1 flex flex-col h-full min-w-0 bg-white border-r border-slate-200 last:border-r-0">
+            <style>{fontStyles}</style>
             {/* Tab Bar */}
             <div className="flex bg-slate-100/50 border-b border-slate-200 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 backdrop-blur-sm relative pt-1 h-[35px]">
                 {tabs.map(tab => (
@@ -395,13 +426,19 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 title="Code Mode"
                             ><Code size={12} /></button>
                             <div className="w-[1px] h-3 bg-slate-200 mx-0.5"></div>
+                            <button
+                                onClick={() => setUseMonospace(!useMonospace)}
+                                className={`p-1 rounded ${useMonospace ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                title={useMonospace ? "Switch to Variable Width Font" : "Switch to Monospace Font"}
+                            ><Type size={12} /></button>
                             <button onClick={() => setIsVimMode(!isVimMode)} className={`p-1 rounded ${isVimMode ? 'bg-green-100 text-green-700' : 'text-slate-400'}`} title="Vim"><Keyboard size={12} /></button>
                             <button onClick={() => setShowMinimap(!showMinimap)} className={`p-1 rounded ${showMinimap ? 'bg-slate-200 text-slate-800' : 'text-slate-400'}`} title="Minimap"><MapIcon size={12} /></button>
                         </div>
                     </div>
 
                     <div className="flex-1 min-w-0 flex min-h-0 relative" ref={mainContentRef}>
-                        <div className={`transition-all duration-300 h-full ${showSplitPreview ? 'flex w-full' : 'w-full'}`}>
+                        {/* Wrapper for Editor + Preview. Used flex-1 to take available space next to Minimap */}
+                        <div className={`transition-all duration-300 h-full flex-1 min-w-0 ${showSplitPreview ? 'flex' : ''}`}>
                             {/* Primary Editor */}
                             <div
                                 className={`h-full relative overflow-hidden ${!isSourceMode && (docType === 'markdown' || docType === 'latex') ? 'preview-mode-cm' : ""}`}

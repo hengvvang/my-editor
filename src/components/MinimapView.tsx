@@ -122,13 +122,20 @@ export const MinimapView: React.FC<{ content: string; scrollContainerId: string 
 
     // Update viewport box on scroll
     React.useEffect(() => {
-        // Important: Use the passed ID to find the scroll container
-        const scrollContainer = document.getElementById(scrollContainerId);
-        if (!scrollContainer || !containerRef.current) return;
+        // Find the wrapper first
+        const wrapper = document.getElementById(scrollContainerId);
+        if (!wrapper || !containerRef.current) return;
+
+        // CRITICAL FIX: Target CodeMirror's internal scroller (.cm-scroller)
+        // CodeMirror handles its own scrolling, the wrapper div usually doesn't scroll.
+        const scrollContainer = wrapper.querySelector('.cm-scroller') as HTMLElement || wrapper;
 
         const updateViewport = () => {
+            // Safety check if element is still there
+            if (!scrollContainer) return;
+
             const containerHeight = containerRef.current?.clientHeight || 600;
-            const scrollHeight = scrollContainer.scrollHeight;
+            const scrollHeight = scrollContainer.scrollHeight || 1; // avoid divide by zero
             const scrollTop = scrollContainer.scrollTop;
             const clientHeight = scrollContainer.clientHeight;
 
@@ -139,13 +146,20 @@ export const MinimapView: React.FC<{ content: string; scrollContainerId: string 
             setViewportBox({ top, height: Math.max(height, 20) });
         };
 
-        updateViewport();
+        // Initial update
+        // We might need a small delay for CodeMirror to initialize and layout
+        setTimeout(updateViewport, 100);
+
         scrollContainer.addEventListener('scroll', updateViewport);
         window.addEventListener('resize', updateViewport);
+
+        // Also listen to the wrapper just in case
+        wrapper.addEventListener('scroll', updateViewport);
 
         return () => {
             scrollContainer.removeEventListener('scroll', updateViewport);
             window.removeEventListener('resize', updateViewport);
+            wrapper.removeEventListener('scroll', updateViewport);
         };
     }, [scrollContainerId]);
 
@@ -154,7 +168,9 @@ export const MinimapView: React.FC<{ content: string; scrollContainerId: string 
         e.preventDefault();
         setIsDragging(true);
 
-        const scrollContainer = document.getElementById(scrollContainerId);
+        const wrapper = document.getElementById(scrollContainerId);
+        const scrollContainer = wrapper?.querySelector('.cm-scroller') as HTMLElement || wrapper;
+
         if (!scrollContainer) return;
 
         dragStartRef.current = {
@@ -167,8 +183,10 @@ export const MinimapView: React.FC<{ content: string; scrollContainerId: string 
         if (!isDragging) return;
 
         const handleMouseMove = (e: MouseEvent) => {
-            const scrollContainer = document.getElementById(scrollContainerId);
+            const wrapper = document.getElementById(scrollContainerId);
+            const scrollContainer = wrapper?.querySelector('.cm-scroller') as HTMLElement || wrapper;
             const container = containerRef.current;
+
             if (!scrollContainer || !container) return;
 
             const deltaY = e.clientY - dragStartRef.current.y;
