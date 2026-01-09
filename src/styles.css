@@ -53,29 +53,34 @@
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: #f1f5f9; /* Slate-100/200 like Chrome PDF viewer */
+    background-color: #e2e8f0; /* Darker slate for better contrast */
     display: flex;
     flex-direction: column; /* Stack pages */
     align-items: center; /* Center pages */
-    padding: 3rem 1rem;
+    padding: 2rem;
 }
 
+/* Handle direct SVG children (typical output from simple compile) */
+.typst-preview-container svg,
 .typst-page {
     background-color: white;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     margin-bottom: 2rem;
-    /* Ensure the SVG scales well but respects bounds */
-    max-width: 100%;
-    width: fit-content; /* Hug the SVG size */
-    display: flex;
+
+    /* "Suitable size" - Full width */
+    width: 100%;
+    max-width: none;
+    height: auto;
+    display: block;
 }
 
 .typst-page svg {
-    /* Make SVG responsive but crisp */
+    /* If wrapped in .typst-page */
     width: 100%;
     height: auto;
     display: block;
 }
+
 
 /* --- Live Preview Logic for CodeMirror --- */
 

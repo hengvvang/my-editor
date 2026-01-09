@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FileText, Folder, Save, ChevronRight, X, Lock, SplitSquareHorizontal, SplitSquareVertical, Columns, Code, Eye, Keyboard, Map as MapIcon, Type, ListOrdered } from "lucide-react";
+import { FileText, Folder, Save, ChevronRight, X, Lock, SplitSquareHorizontal, SplitSquareVertical, Columns, Code, Eye, Keyboard, Map as MapIcon, Type, ListOrdered, Camera } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
@@ -16,6 +16,7 @@ import { Tab, FileEntry } from "../types";
 import { markdownExtensions, hybridHighlightStyle } from "../editorConfig";
 import { MinimapView } from "./MinimapView";
 import { StatusBar, colorSchemes } from "./StatusBar";
+import { CodeSnap } from "./CodeSnap";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
@@ -66,7 +67,9 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const [showLineNumbers, setShowLineNumbers] = useState(true);
     const [showMinimap, setShowMinimap] = useState(false);
     const [splitRatio, setSplitRatio] = useState(0.5);
-    const [resizingTarget, setResizingTarget] = useState<'editorSplit' | null>(null);
+    const [rightPanelSplitRatio, setRightPanelSplitRatio] = useState(0.5); // New variable for right panel internal split
+    const [minimapWidth, setMinimapWidth] = useState(100);
+    const [resizingTarget, setResizingTarget] = useState<'editorSplit' | 'rightPanelSplit' | 'minimap' | null>(null);
 
     // --- Content Rendering State ---
     const [htmlContent, setHtmlContent] = useState('');
@@ -74,6 +77,11 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const [mermaidSvg, setMermaidSvg] = useState<string>('');
     const editorViewRef = useRef<EditorView | null>(null);
     const mainContentRef = useRef<HTMLDivElement>(null);
+    const [showCodeSnap, setShowCodeSnap] = useState(false); // Independent toggle
+    const [snapCode, setSnapCode] = useState('');
+    const lockedCodeSnapWidthRef = useRef<number | null>(null); // To store pixel width of CodeSnap during editor resize
+    const lockedPreviewWidthRef = useRef<number | null>(null); // To store pixel width of Preview during simple drag
+    const lockedRightPanelWidthRef = useRef<number | null>(null); // To store pixel width of RightPanel during minimap resize
 
     // --- Breadcrumbs State ---
     const [breadcrumbDropdown, setBreadcrumbDropdown] = useState<{ path: string; type: 'file' | 'outline'; items: any[] } | null>(null);
@@ -169,22 +177,260 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         return () => window.removeEventListener('click', h);
     }, []);
 
+    // --- Helper Functions for State Transitions ---
+    const getWrapperWidth = () => {
+        if (!mainContentRef.current) return 0;
+        const totalW = mainContentRef.current.getBoundingClientRect().width;
+        // If minimap is currently shown, the wrapper is already totalW - 100.
+        // Wait, mainContentRef wraps both Wrapper and Minimap.
+        // So internal wrapper width is (Total - MinimapWidth).
+        const minimapW = showMinimap ? minimapWidth : 0;
+        return totalW - minimapW;
+    };
+
+    const handleToggleMinimap = () => {
+        const currentWrapperW = getWrapperWidth();
+        if (currentWrapperW <= 0) {
+            setShowMinimap(!showMinimap);
+            if (!showMinimap && minimapWidth === 0) setMinimapWidth(100);
+            return;
+        }
+
+        const isOpening = !showMinimap;
+        const nextWrapperW = isOpening ? currentWrapperW - minimapWidth : currentWrapperW + minimapWidth;
+
+        // We want to preserve RightPanel Width (pixels)
+        if (showSplitPreview || showCodeSnap) {
+            const currentRightPanelW = currentWrapperW * (1 - splitRatio);
+            // newRightPanelW should be same pixels.
+            // Ratio = 1 - (Right / Total)
+            const rw = Math.max(1, nextWrapperW);
+            let newSplit = 1 - (currentRightPanelW / rw);
+
+            // Allow bounds check
+            newSplit = Math.max(0.1, Math.min(0.95, newSplit));
+            setSplitRatio(newSplit);
+        }
+
+        setShowMinimap(!showMinimap);
+    };
+
+    const handleTogglePreview = () => {
+        const wrapperW = getWrapperWidth();
+        if (wrapperW <= 0) {
+            setShowSplitPreview(!showSplitPreview);
+            return;
+        }
+
+        if (showSplitPreview) {
+            // Closing Preview
+            if (showCodeSnap) {
+                // Must preserve CodeSnap width
+                // Current Right Panel = Preview + Snap
+                // Target Right Panel = Snap
+                const currentRightW = wrapperW * (1 - splitRatio);
+                const currentSnapW = currentRightW * (1 - rightPanelSplitRatio);
+
+                // Calculate new split ratio for Editor vs Snap(only)
+                let newSplit = 1 - (currentSnapW / wrapperW);
+                newSplit = Math.max(0.1, Math.min(0.95, newSplit));
+                setSplitRatio(newSplit);
+                // rightPanelSplitRatio becomes irrelevant for single panel but reset/ignore
+            } else {
+                // Just closing right panel completely
+                // splitRatio stays or resets? Usually keeps memory or resets to 0.5
+                // Let's keep it, logic doesn't require change if panel is gone.
+            }
+            setShowSplitPreview(false);
+        } else {
+            // Opening Preview
+            if (showCodeSnap) {
+                // Snap exists. Insert Preview to Left of Snap.
+                // Snap Width Fixed. Preview takes from Editor.
+
+                const currentRightW = wrapperW * (1 - splitRatio); // This is just Snap width currently
+                const snapW = currentRightW;
+
+                let previewW = Math.min(400, (wrapperW - snapW) * 0.4);
+                if (previewW < 100) previewW = 100;
+
+                const newRightW = previewW + snapW;
+
+                let newSplit = 1 - (newRightW / wrapperW);
+                newSplit = Math.max(0.1, Math.min(0.9, newSplit));
+
+                // New Right Panel Split: Preview / (Preview + Snap)
+                let newRightSplit = previewW / newRightW;
+
+                setSplitRatio(newSplit);
+                setRightPanelSplitRatio(newRightSplit);
+            } else {
+                // Only Editor exists.
+                // If previous split was extreme, reset.
+                if (splitRatio > 0.9) setSplitRatio(0.5);
+            }
+            setShowSplitPreview(true);
+        }
+    };
+
+    const handleToggleCodeSnap = () => {
+        const wrapperW = getWrapperWidth();
+        if (wrapperW <= 0) {
+            // fallback
+            if (!showCodeSnap) {
+                const sel = editorViewRef.current?.state.selection.main;
+                const textRaw = sel && !sel.empty ? editorViewRef.current?.state.sliceDoc(sel.from, sel.to) : content;
+                setSnapCode(textRaw || '');
+            }
+            setShowCodeSnap(!showCodeSnap);
+            return;
+        }
+
+        if (showCodeSnap) {
+            // Closing Snap
+            if (showSplitPreview) {
+                // Editor + Preview + Snap -> Editor + Preview
+                // Preserve Preview Width.
+                const currentRightW = wrapperW * (1 - splitRatio);
+                // currentRightW = Preview + Snap
+                // internal split: Preview is (Right * split), Snap is (Right * (1-split))
+                const currentPreviewW = currentRightW * rightPanelSplitRatio;
+
+                // New logic: Right Panel is ONLY Preview
+                // Target Right Width = currentPreviewW
+
+                let newSplit = 1 - (currentPreviewW / wrapperW);
+                newSplit = Math.max(0.1, Math.min(0.95, newSplit));
+
+                setSplitRatio(newSplit);
+                setShowCodeSnap(false);
+            } else {
+                setShowCodeSnap(false);
+            }
+        } else {
+            // Opening Snap
+            const sel = editorViewRef.current?.state.selection.main;
+            const textRaw = sel && !sel.empty ? editorViewRef.current?.state.sliceDoc(sel.from, sel.to) : content;
+            setSnapCode(textRaw || '');
+
+            if (showSplitPreview) {
+                // Editor + Preview -> Editor + Preview + Snap
+                // Preserve Preview Width. Snap takes from Editor.
+                const currentRightW = wrapperW * (1 - splitRatio); // This is just Preview
+                const previewW = currentRightW;
+
+                let snapW = 340;
+                // Constraints
+                if (wrapperW - previewW - snapW < 100) {
+                    snapW = Math.max(200, wrapperW - previewW - 100);
+                }
+
+                const newRightW = previewW + snapW;
+                let newSplit = 1 - (newRightW / wrapperW);
+                newSplit = Math.max(0.1, Math.min(0.9, newSplit));
+
+                // New Right Internal Split: Preview / (Preview + Snap)
+                let newRightSplit = previewW / newRightW;
+
+                setSplitRatio(newSplit);
+                setRightPanelSplitRatio(newRightSplit);
+            } else {
+                if (splitRatio > 0.9) setSplitRatio(0.5);
+            }
+            setShowCodeSnap(true);
+        }
+    };
+
     // Resize Handler
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
-            if (resizingTarget === 'editorSplit' && mainContentRef.current) {
-                const rect = mainContentRef.current.getBoundingClientRect();
+            if (!mainContentRef.current) return;
+            const currentMinimapW = showMinimap ? minimapWidth : 0;
+            const rect = mainContentRef.current.getBoundingClientRect();
+            // The "Wrapper" starts at rect.left (since flex container row, wrapper is first)
+            // Wrapper width is rect.width - currentMinimapW.
+            // Note: If dragging minimap, currentMinimapW is dynamic.
+
+            // NOTE: We need careful access to current minimap width during drag if we want smooth updates.
+            // Since this is react state, 'minimapWidth' is from closure.
+            // But we update it.
+
+            if (resizingTarget === 'editorSplit') {
+                const wrapperW = rect.width - currentMinimapW;
                 const relativeX = e.clientX - rect.left;
-                let newRatio = relativeX / rect.width;
-                if (newRatio < 0.1) newRatio = 0.1;
-                if (newRatio > 0.9) newRatio = 0.9;
-                setSplitRatio(newRatio);
+                let newEditorRatio = relativeX / wrapperW;
+                newEditorRatio = Math.max(0.1, Math.min(0.9, newEditorRatio));
+
+                setSplitRatio(newEditorRatio);
+
+                // Preserve CodeSnap width if 3-pane
+                if (showSplitPreview && showCodeSnap && lockedCodeSnapWidthRef.current) {
+                    const newRightPanelPx = wrapperW * (1 - newEditorRatio);
+                    const snapPx = lockedCodeSnapWidthRef.current;
+                    let newRightRatio = (newRightPanelPx - snapPx) / newRightPanelPx;
+                    newRightRatio = Math.max(0.05, Math.min(0.95, newRightRatio));
+                    setRightPanelSplitRatio(newRightRatio);
+                }
+
+            } else if (resizingTarget === 'rightPanelSplit') {
+                const wrapperW = rect.width - currentMinimapW;
+                if (showSplitPreview && showCodeSnap && lockedPreviewWidthRef.current) {
+                    const mouseRelative = e.clientX - rect.left;
+                    const previewPx = lockedPreviewWidthRef.current;
+                    let div1Pos = mouseRelative - previewPx;
+
+                    if (div1Pos < wrapperW * 0.1) div1Pos = wrapperW * 0.1;
+                    if (div1Pos > wrapperW * 0.9) div1Pos = wrapperW * 0.9;
+
+                    const newEditorRatio = div1Pos / wrapperW;
+                    setSplitRatio(newEditorRatio);
+
+                    const actualRightPanelWidth = wrapperW - div1Pos;
+                    let newRightRatio = previewPx / actualRightPanelWidth;
+                    newRightRatio = Math.max(0.05, Math.min(0.95, newRightRatio));
+                    setRightPanelSplitRatio(newRightRatio);
+
+                } else {
+                    const rightPanelWidth = wrapperW * (1 - splitRatio);
+                    const rightPanelLeft = rect.left + (splitRatio * wrapperW);
+                    const relativeX = e.clientX - rightPanelLeft;
+                    let newRatio = relativeX / rightPanelWidth;
+                    if (newRatio < 0.1) newRatio = 0.1;
+                    if (newRatio > 0.9) newRatio = 0.9;
+                    setRightPanelSplitRatio(newRatio);
+                }
+            } else if (resizingTarget === 'minimap') {
+                // Dragging Minimap Resizer (Left of Minimap)
+                // New Minimap W = Rect Right - MouseX
+                // Rect Right should be close to window right usually, but trust Rect.
+                const relativeX = e.clientX - rect.left;
+
+                let newMinimapW = rect.width - relativeX;
+                if (newMinimapW < 50) newMinimapW = 50;
+                if (newMinimapW > 400) newMinimapW = 400;
+                if (newMinimapW > rect.width * 0.5) newMinimapW = rect.width * 0.5;
+
+                const newWrapperW = rect.width - newMinimapW;
+
+                // Preserve RightPanel Width (if exists)
+                if ((showSplitPreview || showCodeSnap) && lockedRightPanelWidthRef.current && newWrapperW > 0) {
+                    const targetRightW = lockedRightPanelWidthRef.current;
+                    // New Split = 1 - (Right / Wrapper)
+                    let newSplit = 1 - (targetRightW / newWrapperW);
+                    newSplit = Math.max(0.1, Math.min(0.95, newSplit));
+                    setSplitRatio(newSplit);
+                }
+
+                setMinimapWidth(newMinimapW);
             }
         };
         const handleMouseUp = () => {
             setResizingTarget(null);
             document.body.style.cursor = 'default';
             document.body.style.userSelect = 'auto';
+            lockedCodeSnapWidthRef.current = null;
+            lockedPreviewWidthRef.current = null;
+            lockedRightPanelWidthRef.current = null;
         };
         if (resizingTarget) {
             window.addEventListener('mousemove', handleMouseMove);
@@ -196,8 +442,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizingTarget]);
-
+    }, [resizingTarget, splitRatio, showSplitPreview, showCodeSnap, showMinimap, minimapWidth]);
 
     // --- Font Styles Injection ---
     const fontStyles = `
@@ -321,7 +566,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 {/* Toolbar */}
                 <div className={`ml-auto flex items-center pr-2 pl-1 gap-1 border-l border-slate-200/50 h-full sticky right-0 z-40 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] backdrop-blur-sm ${scheme.toolbar}`}>
                     <button
-                        onClick={() => setShowSplitPreview(!showSplitPreview)}
+                        onClick={handleTogglePreview}
                         className={`p-1 rounded-md transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-white/50 hover:text-slate-600'}`} // adjusted hover
                         title="Toggle Split View"
                     >
@@ -347,6 +592,14 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                         title={isReadOnly ? "Unlock Group" : "Lock Group (Read-Only)"}
                     >
                         <Lock size={14} />
+                    </button>
+
+                    <button
+                        onClick={handleToggleCodeSnap}
+                        className={`p-1 rounded-md transition-all ${showCodeSnap ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
+                        title="Code Snap"
+                    >
+                        <Camera size={14} />
                     </button>
 
                     <button onClick={onSave} className="p-1 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all" title="Save File (Ctrl+S)">
@@ -415,121 +668,195 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             </div>
 
             {/* Editor Area */}
-            <div className="flex-1 relative bg-white overflow-hidden" id={`scroll-${groupId}`}>
-                <div className="flex min-h-full w-full h-full flex-col">
-                    {/* View Controls Overlay (floating top right of editor) */}
-                    <div className="sticky top-0 z-20 flex justify-end px-2 py-1 pointer-events-none">
-                        <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur border border-slate-200 rounded-md p-0.5 shadow-sm">
-                            <button
-                                onClick={() => setIsSourceMode(false)}
-                                className={`p-1 rounded ${!isSourceMode ? 'bg-purple-100 text-purple-700' : 'text-slate-400 hover:text-slate-600'}`}
-                                title="Visual Mode"
-                            ><Eye size={12} /></button>
-                            <button
-                                onClick={() => setIsSourceMode(true)}
-                                className={`p-1 rounded ${isSourceMode ? 'bg-blue-100 text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}
-                                title="Code Mode"
-                            ><Code size={12} /></button>
-                            <div className="w-[1px] h-3 bg-slate-200 mx-0.5"></div>
-                            <button
-                                onClick={() => setUseMonospace(!useMonospace)}
-                                className={`p-1 rounded ${useMonospace ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:text-slate-600'}`}
-                                title={useMonospace ? "Switch to Variable Width Font" : "Switch to Monospace Font"}
-                            ><Type size={12} /></button>
-                            <button onClick={() => setIsVimMode(!isVimMode)} className={`p-1 rounded ${isVimMode ? 'bg-green-100 text-green-700' : 'text-slate-400'}`} title="Vim"><Keyboard size={12} /></button>
-                            <button onClick={() => setShowLineNumbers(!showLineNumbers)} className={`p-1 rounded ${showLineNumbers ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`} title="Line Numbers"><ListOrdered size={12} /></button>
-                            <button onClick={() => setShowMinimap(!showMinimap)} className={`p-1 rounded ${showMinimap ? 'bg-slate-200 text-slate-800' : 'text-slate-400'}`} title="Minimap"><MapIcon size={12} /></button>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 min-w-0 flex min-h-0 relative" ref={mainContentRef}>
-                        {/* Wrapper for Editor + Preview. Used flex-1 to take available space next to Minimap */}
-                        <div className={`transition-all duration-300 h-full flex-1 min-w-0 ${showSplitPreview ? 'flex' : ''}`}>
-                            {/* Primary Editor */}
-                            <div
-                                className={`h-full relative overflow-hidden ${!isSourceMode && (docType === 'markdown' || docType === 'latex') ? 'preview-mode-cm' : ""}`}
-                                style={{ width: showSplitPreview ? `${splitRatio * 100}%` : '100%', borderRight: showSplitPreview ? '1px solid #e2e8f0' : 'none' }}
-                            >
-                                <CodeMirror
-                                    value={content}
-                                    height="100%"
-                                    extensions={[
-                                        markdownLang({ extensions: [markdownExtensions] }),
-                                        ...(isVimMode ? [vim({ status: true })] : []),
-                                        ...(docType === 'latex' && !isSourceMode ? [latexLivePreview()] : []),
-                                        ...(!isSourceMode && (docType === 'markdown' || docType === 'latex') ? [hybridTheme, EditorView.lineWrapping] : [])
-                                    ]}
-                                    onChange={onContentChange}
-                                    theme="light"
-                                    readOnly={isReadOnly}
-                                    onCreateEditor={(view) => {
-                                        editorViewRef.current = view;
-                                    }}
-                                    basicSetup={{
-                                        lineNumbers: showLineNumbers,
-                                        foldGutter: showLineNumbers,
-                                        highlightActiveLine: true,
-                                    }}
-                                    className="h-full"
-                                />
+            {activePath?.startsWith('typoly://codesnap') ? (
+                <div className="flex-1 relative bg-white overflow-hidden">
+                    <CodeSnap code={content} language={getDocType(tabs.find(t => t.path === activePath)?.name || '') === 'text' ? 'javascript' : getDocType(tabs.find(t => t.path === activePath)?.name || '')} fileName={tabs.find(t => t.path === activePath)?.name} />
+                </div>
+            ) : (
+                <div className="flex-1 relative bg-white overflow-hidden" id={`scroll-${groupId}`}>
+                    <div className="flex min-h-full w-full h-full flex-col">
+                        {/* View Controls Overlay (floating top right of editor) */}
+                        <div className="sticky top-0 z-20 flex justify-end px-2 py-1 pointer-events-none">
+                            <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur border border-slate-200 rounded-md p-0.5 shadow-sm">
+                                <button
+                                    onClick={() => setIsSourceMode(false)}
+                                    className={`p-1 rounded ${!isSourceMode ? 'bg-purple-100 text-purple-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                    title="Visual Mode"
+                                ><Eye size={12} /></button>
+                                <button
+                                    onClick={() => setIsSourceMode(true)}
+                                    className={`p-1 rounded ${isSourceMode ? 'bg-blue-100 text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                    title="Code Mode"
+                                ><Code size={12} /></button>
+                                <div className="w-[1px] h-3 bg-slate-200 mx-0.5"></div>
+                                <button
+                                    onClick={() => setUseMonospace(!useMonospace)}
+                                    className={`p-1 rounded ${useMonospace ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                    title={useMonospace ? "Switch to Variable Width Font" : "Switch to Monospace Font"}
+                                ><Type size={12} /></button>
+                                <button onClick={() => setIsVimMode(!isVimMode)} className={`p-1 rounded ${isVimMode ? 'bg-green-100 text-green-700' : 'text-slate-400'}`} title="Vim"><Keyboard size={12} /></button>
+                                <button onClick={() => setShowLineNumbers(!showLineNumbers)} className={`p-1 rounded ${showLineNumbers ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`} title="Line Numbers"><ListOrdered size={12} /></button>
+                                <button onClick={handleToggleMinimap} className={`p-1 rounded ${showMinimap ? 'bg-slate-200 text-slate-800' : 'text-slate-400'}`} title="Minimap"><MapIcon size={12} /></button>
                             </div>
+                        </div>
 
-                            {/* Split Preview */}
-                            {showSplitPreview && (
+                        <div className="flex-1 min-w-0 flex min-h-0 relative" ref={mainContentRef}>
+
+                            {/* Wrapper for Editor + Panel Area */}
+                            {(() => {
+                                const isRightPanelOpen = showSplitPreview || showCodeSnap;
+                                return (
+                                    <div className={`transition-all duration-300 h-full flex-1 min-w-0 flex`}>
+                                        {/* Primary Editor */}
+                                        <div
+                                            className={`h-full relative overflow-hidden ${!isSourceMode && (docType === 'markdown' || docType === 'latex') ? 'preview-mode-cm' : ""}`}
+                                            style={{ width: isRightPanelOpen ? `${splitRatio * 100}%` : '100%', borderRight: isRightPanelOpen ? '1px solid #e2e8f0' : 'none' }}
+                                        >
+                                            <CodeMirror
+                                                value={content}
+                                                height="100%"
+                                                extensions={[
+                                                    markdownLang({ extensions: [markdownExtensions] }),
+                                                    ...(isVimMode ? [vim({ status: true })] : []),
+                                                    ...(docType === 'latex' && !isSourceMode ? [latexLivePreview()] : []),
+                                                    ...(!isSourceMode && (docType === 'markdown' || docType === 'latex') ? [hybridTheme, EditorView.lineWrapping] : [])
+                                                ]}
+                                                onChange={onContentChange}
+                                                theme="light"
+                                                readOnly={isReadOnly}
+                                                onCreateEditor={(view) => {
+                                                    editorViewRef.current = view;
+                                                }}
+                                                onUpdate={(viewUpdate) => {
+                                                    if (showCodeSnap) {
+                                                        if (viewUpdate.selectionSet || viewUpdate.docChanged) {
+                                                            const state = viewUpdate.view.state;
+                                                            const sel = state.selection.main;
+                                                            if (!sel.empty) {
+                                                                setSnapCode(state.sliceDoc(sel.from, sel.to));
+                                                            } else {
+                                                                setSnapCode(state.doc.toString());
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                                basicSetup={{
+                                                    lineNumbers: showLineNumbers,
+                                                    foldGutter: showLineNumbers,
+                                                    highlightActiveLine: true,
+                                                }}
+                                                className="h-full"
+                                            />
+                                        </div>
+
+                                        {/* Resizer */}
+                                        {isRightPanelOpen && (
+                                            <div
+                                                className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 -ml-[1px] ${resizingTarget === 'editorSplit' ? 'bg-blue-600' : 'bg-transparent'}`}
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setResizingTarget('editorSplit');
+
+                                                    // Capture CodeSnap pixel width if both panels are open (3-column mode)
+                                                    if (showSplitPreview && showCodeSnap && mainContentRef.current) {
+                                                        const rect = mainContentRef.current.getBoundingClientRect();
+                                                        const rightPanelWidth = rect.width * (1 - splitRatio);
+                                                        const codeSnapWidth = rightPanelWidth * (1 - rightPanelSplitRatio);
+                                                        lockedCodeSnapWidthRef.current = codeSnapWidth;
+                                                    }
+                                                }}
+                                            />
+                                        )}
+
+                                        {/* Right Panel Wrapper */}
+                                        {isRightPanelOpen && (
+                                            <div className="h-full flex overflow-hidden bg-slate-50/50" style={{ width: `${(1 - splitRatio) * 100}%` }}>
+
+                                                {/* Preview Pane */}
+                                                {showSplitPreview && (
+                                                    <div
+                                                        className={`h-full min-w-0 overflow-y-auto border-r border-slate-200 last:border-r-0 ${showCodeSnap ? '' : 'flex-1'}`}
+                                                        style={showCodeSnap ? { width: `${rightPanelSplitRatio * 100}%` } : {}}
+                                                    >
+                                                        {docType === 'typst' ? (
+                                                            <div className="typst-preview-container" dangerouslySetInnerHTML={{ __html: typstSvg }} />
+                                                        ) : (docType === 'mermaid' || activePath?.endsWith('.mmd')) ? (
+                                                            <div className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto" dangerouslySetInnerHTML={{ __html: mermaidSvg }} />
+                                                        ) : docType === 'latex' ? (
+                                                            <div id={`latex-preview-${groupId}`} className="latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed" />
+                                                        ) : docType === 'markdown' ? (
+                                                            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                                                        ) : (
+                                                            <div className="h-full relative bg-white flex items-center justify-center text-slate-400 text-sm">
+                                                                No preview available
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Internal Resizer */}
+                                                {showSplitPreview && showCodeSnap && (
+                                                    <div
+                                                        className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 -ml-[0.5px] -mr-[0.5px] ${resizingTarget === 'rightPanelSplit' ? 'bg-blue-600' : 'bg-transparent'}`}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setResizingTarget('rightPanelSplit');
+                                                            if (mainContentRef.current) {
+                                                                const rect = mainContentRef.current.getBoundingClientRect();
+                                                                const rightPanelW = rect.width * (1 - splitRatio);
+                                                                lockedPreviewWidthRef.current = rightPanelW * rightPanelSplitRatio;
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+
+                                                {/* CodeSnap Pane */}
+                                                {showCodeSnap && (
+                                                    <div
+                                                        className={`h-full min-w-0 overflow-hidden bg-[#1e1e1e] ${showSplitPreview ? '' : 'flex-1'}`}
+                                                        style={showSplitPreview ? { width: `${(1 - rightPanelSplitRatio) * 100}%` } : {}}
+                                                    >
+                                                        <CodeSnap code={snapCode || content} language={docType === 'text' ? 'javascript' : docType} fileName={tabs.find(t => t.path === activePath)?.name} />
+                                                    </div>
+                                                )}
+
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Minimap */}
+                            {showMinimap && (
                                 <>
                                     <div
-                                        className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 -ml-[1px] ${resizingTarget === 'editorSplit' ? 'bg-blue-600' : 'bg-transparent'}`}
+                                        className={`w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 h-full shrink-0 -ml-[0.5px] -mr-[0.5px] ${resizingTarget === 'minimap' ? 'bg-blue-600' : 'bg-transparent'}`}
                                         onMouseDown={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            setResizingTarget('editorSplit');
+                                            setResizingTarget('minimap');
+                                            if (mainContentRef.current) {
+                                                const rect = mainContentRef.current.getBoundingClientRect();
+                                                const currentMinimapW = showMinimap ? minimapWidth : 0;
+                                                const wrapperW = rect.width - currentMinimapW;
+                                                // Capture pixel width of RightPanel
+                                                if (showSplitPreview || showCodeSnap) {
+                                                    lockedRightPanelWidthRef.current = wrapperW * (1 - splitRatio);
+                                                }
+                                            }
                                         }}
                                     />
-                                    <div className="h-full overflow-y-auto bg-slate-50/50" style={{ width: `${(1 - splitRatio) * 100}%` }}>
-                                        {docType === 'typst' ? (
-                                            <div className="typst-preview-container h-full bg-white p-8 overflow-auto flex flex-col items-center" dangerouslySetInnerHTML={{ __html: typstSvg }} />
-                                        ) : docType === 'mermaid' ? (
-                                            <div className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto" dangerouslySetInnerHTML={{ __html: mermaidSvg }} />
-                                        ) : docType === 'latex' ? (
-                                            <div id={`latex-preview-${groupId}`} className="latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed" />
-                                        ) : docType === 'markdown' ? (
-                                            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8" dangerouslySetInnerHTML={{ __html: htmlContent }} />
-                                        ) : (
-                                            /* For other file types, render a read-only source view */
-                                            <div className="h-full relative bg-white">
-                                                <CodeMirror
-                                                    value={content}
-                                                    height="100%"
-                                                    extensions={[
-                                                        markdownLang({ extensions: [markdownExtensions] }),
-                                                        EditorView.lineWrapping,
-                                                        EditorView.editable.of(false)
-                                                    ]}
-                                                    readOnly={true}
-                                                    editable={false}
-                                                    basicSetup={{
-                                                        lineNumbers: showLineNumbers,
-                                                        foldGutter: showLineNumbers,
-                                                        highlightActiveLine: false,
-                                                    }}
-                                                    className="h-full"
-                                                />
-                                            </div>
-                                        )}
+                                    <div className="shrink-0 border-l border-slate-200 bg-slate-50/30 h-full" style={{ width: `${minimapWidth}px` }}>
+                                        <MinimapView content={content} scrollContainerId={`scroll-${groupId}`} />
                                     </div>
                                 </>
                             )}
                         </div>
-
-                        {/* Minimap */}
-                        {showMinimap && (
-                            <div className="w-[100px] shrink-0 border-l border-slate-200 bg-slate-50/30 h-full">
-                                <MinimapView content={content} scrollContainerId={`scroll-${groupId}`} />
-                            </div>
-                        )}
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Simple Status Bar for this group */}
             <StatusBar

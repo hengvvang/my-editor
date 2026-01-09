@@ -145,8 +145,9 @@ export function useEditorGroups() {
     // Legacy shim
     const [resizingGroupIndex, setResizingGroupIndex] = useState<number | null>(null);
 
-    const openTab = useCallback((path: string) => {
-        setLayout(prev => updateGroupInTree(prev, activeGroupId, g => {
+    const openTab = useCallback((path: string, targetGroupId?: string) => {
+        const idToUse = targetGroupId || activeGroupId;
+        setLayout(prev => updateGroupInTree(prev, idToUse, g => {
             const tabs = g.tabs.includes(path) ? g.tabs : [...g.tabs, path];
             return { ...g, tabs, activePath: path };
         }));
@@ -163,8 +164,8 @@ export function useEditorGroups() {
         }));
     }, []);
 
-    const splitGroup = useCallback((sourceGroupId: string, direction: 'horizontal' | 'vertical' = 'horizontal') => {
-        const newId = Date.now().toString();
+    const splitGroup = useCallback((sourceGroupId: string, direction: 'horizontal' | 'vertical' = 'horizontal', newGroupId?: string) => {
+        const newId = newGroupId || Date.now().toString();
         setLayout(prev => {
             const res = splitGroupInTree(prev, sourceGroupId, newId, direction);
             return res || prev;

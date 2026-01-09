@@ -47,7 +47,12 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   Real-time regex highlighting.
 
 ### ⚡ Power User Tools
+*   **CodeSnap**: Built-in tool to create beautiful, shareable code screenshots.
+    *   *New*: Supports clean **Light / Dark** theme toggling.
+    *   *Export*: Save as high-res PNG or copy directly to clipboard.
+    *   *Smart*: Automatically detects language and provides syntax highlighting.
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
+    *   *Enhanced Preview*: Real-time "Paper View" simulation with auto-scaling (Full Width) and shadow effects.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
 *   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
 *   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
