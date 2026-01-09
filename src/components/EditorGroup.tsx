@@ -486,8 +486,29 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                             <div className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto" dangerouslySetInnerHTML={{ __html: mermaidSvg }} />
                                         ) : docType === 'latex' ? (
                                             <div id={`latex-preview-${groupId}`} className="latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed" />
-                                        ) : (
+                                        ) : docType === 'markdown' ? (
                                             <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                                        ) : (
+                                            /* For other file types, render a read-only source view */
+                                            <div className="h-full relative bg-white">
+                                                <CodeMirror
+                                                    value={content}
+                                                    height="100%"
+                                                    extensions={[
+                                                        markdownLang({ extensions: [markdownExtensions] }),
+                                                        EditorView.lineWrapping,
+                                                        EditorView.editable.of(false)
+                                                    ]}
+                                                    readOnly={true}
+                                                    editable={false}
+                                                    basicSetup={{
+                                                        lineNumbers: showLineNumbers,
+                                                        foldGutter: showLineNumbers,
+                                                        highlightActiveLine: false,
+                                                    }}
+                                                    className="h-full"
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 </>

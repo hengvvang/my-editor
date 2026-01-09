@@ -14,6 +14,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Split View**: Resizable side-by-side editor and live preview.
     *   *New*: Ergonomic resize handle that works regardless of window size or layout complexity.
     *   *Independent*: Preview works independently of the editor mode (Code/Visual).
+    *   *Smart Preview*: For generic files (Rust, JS, JSON, etc.), the preview pane automatically acts as a **Read-Only Source Viewer**, ensuring utility across all file types.
 
 ### 🎨 Typography & Design
 *   **Built-in Fonts**: Integrated **LXGW WenKai (霞鹜文楷)** font family for a superior reading and writing experience.
