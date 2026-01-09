@@ -5,18 +5,19 @@ import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import mermaid from "mermaid";
-// @ts-ignore
-import renderMathInElement from "katex/dist/contrib/auto-render";
 import { latexLivePreview } from "../codemirror-latex";
 import { invoke } from "@tauri-apps/api/core";
 
-import DOMPurify from "dompurify";
 import { Tab, FileEntry } from "../types";
 import { markdownExtensions, hybridHighlightStyle } from "../editorConfig";
 import { MinimapView } from "./MinimapView";
 import { StatusBar, colorSchemes } from "./StatusBar";
 import { CodeSnap } from "./CodeSnap";
+
+import { TypstPreview } from "./previews/TypstPreview";
+import { MermaidPreview } from "./previews/MermaidPreview";
+import { MarkdownPreview } from "./previews/MarkdownPreview";
+import { LatexPreview } from "./previews/LatexPreview";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
@@ -72,9 +73,6 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const [resizingTarget, setResizingTarget] = useState<'editorSplit' | 'rightPanelSplit' | 'minimap' | null>(null);
 
     // --- Content Rendering State ---
-    const [htmlContent, setHtmlContent] = useState('');
-    const [typstSvg, setTypstSvg] = useState<string>('');
-    const [mermaidSvg, setMermaidSvg] = useState<string>('');
     const editorViewRef = useRef<EditorView | null>(null);
     const mainContentRef = useRef<HTMLDivElement>(null);
     const [showCodeSnap, setShowCodeSnap] = useState(false); // Independent toggle
@@ -98,77 +96,6 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const docType = getDocType(activePath);
 
     // --- Effects ---
-
-    // Mermaid Rendering
-    useEffect(() => {
-        if (docType === 'mermaid' && content) {
-            const timer = setTimeout(async () => {
-                try {
-                    const id = `mermaid-${groupId}-${Date.now()}`;
-                    const { svg } = await mermaid.render(id, content);
-                    setMermaidSvg(svg);
-                } catch (e) {
-                    setMermaidSvg(`<div class="text-red-500 p-4">Mermaid Syntax Error:<br/>${(e as Error).message}</div>`);
-                }
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [content, docType, groupId]);
-
-    // Typst Compilation
-    useEffect(() => {
-        if (docType === 'typst' && content) {
-            const timer = setTimeout(async () => {
-                try {
-                    const svg = await invoke<string>('compile_typst', { content });
-                    setTypstSvg(svg);
-                } catch (e) {
-                    console.error("Typst compilation failed:", e);
-                }
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [content, docType]);
-
-    // Markdown Rendering for Preview
-    useEffect(() => {
-        // Fix: Render markdown even if showSplitPreview is true, regardless of docType check here (safety)
-        // ideally checking docType === 'markdown' is correct, but let's ensure it runs.
-        if (showSplitPreview && docType === 'markdown') {
-            const timer = setTimeout(() => {
-                invoke('render_markdown', { text: content }).then((html) => {
-                    setHtmlContent(DOMPurify.sanitize(html as string));
-                });
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [content, showSplitPreview, docType]);
-
-    // Latex Rendering
-    useEffect(() => {
-        if (docType === 'latex' && content) {
-            const timer = setTimeout(() => {
-                const previewContainer = document.getElementById(`latex-preview-${groupId}`);
-                if (previewContainer) {
-                    previewContainer.textContent = content;
-                    try {
-                        renderMathInElement(previewContainer, {
-                            delimiters: [
-                                { left: "$$", right: "$$", display: true },
-                                { left: "$", right: "$", display: false },
-                                { left: "\\(", right: "\\)", display: false },
-                                { left: "\\[", right: "\\]", display: true }
-                            ],
-                            throwOnError: false
-                        });
-                    } catch (e) {
-                        console.error("KaTeX rendering error:", e);
-                    }
-                }
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [content, docType, groupId]);
 
     // Click outside breadcrumb
     useEffect(() => {
@@ -780,13 +707,13 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                         style={showCodeSnap ? { width: `${rightPanelSplitRatio * 100}%` } : {}}
                                                     >
                                                         {docType === 'typst' ? (
-                                                            <div className="typst-preview-container" dangerouslySetInnerHTML={{ __html: typstSvg }} />
+                                                            <TypstPreview content={content} />
                                                         ) : (docType === 'mermaid' || activePath?.endsWith('.mmd')) ? (
-                                                            <div className="mermaid-preview-container h-full flex items-center justify-center bg-white p-4 overflow-auto" dangerouslySetInnerHTML={{ __html: mermaidSvg }} />
+                                                            <MermaidPreview content={content} idPrefix={groupId} />
                                                         ) : docType === 'latex' ? (
-                                                            <div id={`latex-preview-${groupId}`} className="latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed" />
+                                                            <LatexPreview content={content} />
                                                         ) : docType === 'markdown' ? (
-                                                            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                                                            <MarkdownPreview content={content} />
                                                         ) : (
                                                             <div className="h-full relative bg-white flex items-center justify-center text-slate-400 text-sm">
                                                                 No preview available
