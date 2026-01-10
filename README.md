@@ -13,7 +13,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *HTML Enhancements*: Intelligent fading of HTML tags in visual mode to reduce noise while keeping structure visible.
     *   *Live Rendering*: Markdown supports generic features, plus Latex math auto-folding.
 *   **Code Mode**: Full-control source editing with syntax highlighting.
-*   **Smart Preview System**: 
+*   **Smart Preview System**:
     *   **Performance**: Backend-accelerated rendering using **Rust** (`ammonia` + `comrak`).
     *   **Large File Optimization**: Dynamic debouncing strategy automatically adjusts based on file size (10k/100k lines) to prevent UI freezing.
     *   **Independent**: Preview panes work independently of editor modes.

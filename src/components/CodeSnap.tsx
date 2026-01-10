@@ -92,8 +92,8 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
     `;
 
     return (
-        <div className="h-full flex flex-col bg-slate-50 overflow-hidden p-4 md:p-8 items-center justify-center relative">
-            <div className="mb-6 flex gap-3 z-10 sticky top-0 flex-wrap justify-center">
+        <div className="h-full flex flex-col bg-slate-50 overflow-hidden p-2 md:p-4 items-center justify-center relative">
+            <div className="mb-4 flex gap-2 z-10 sticky top-0 flex-wrap justify-center scale-90 origin-bottom">
                 {/* Mode Switcher */}
                 {renderPreview && (
                     <div className="flex bg-slate-200 p-1 rounded-lg mr-2">
@@ -137,15 +137,15 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
             </div>
 
             {/* The Capture Container */}
-            <div className="relative group max-w-full overflow-x-auto pb-8">
+            <div className="relative group w-full h-full overflow-auto pb-4 flex">
                 {/* Background: Transparent for clean capture */}
                 <div
                     ref={ref}
-                    className="snap-container relative p-12 rounded-xl min-w-[300px]"
+                    className="snap-container relative p-6 rounded-xl w-full max-w-[95%] m-auto flex items-center justify-center"
                 >
                     <style>{snapFontStyles}</style>
                     {/* The Editor Window */}
-                    <div className={`rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] overflow-hidden border ring-1 transition-colors duration-200 ${isDark
+                    <div className={`rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] overflow-hidden border ring-1 transition-colors duration-200 w-full ${isDark
                         ? 'bg-[#282a36] border-white/10 ring-white/5 shadow-black/40'
                         : 'bg-white border-slate-200/60 ring-slate-900/5'
                         }`}>
@@ -167,7 +167,7 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                         </div>
 
                         {/* Code Area */}
-                        <div className={`p-6 transition-colors duration-200 ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'
+                        <div className={`p-6 transition-colors duration-200 min-h-[120px] ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'
                             }`}>
                             {mode === 'code' ? (
                                 <CodeMirror
@@ -206,14 +206,14 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                     </div>
 
                     {/* Watermark (Optional) */}
-                    <div className={`absolute bottom-4 right-16 text-[10px] font-sans font-bold tracking-widest uppercase pointer-events-none transition-colors duration-200 ${isDark ? 'text-white/20' : 'text-slate-400/30'
+                    <div className={`absolute bottom-2 right-8 text-[10px] font-sans font-bold tracking-widest uppercase pointer-events-none transition-colors duration-200 ${isDark ? 'text-white/20' : 'text-slate-400/30'
                         }`}>
                         Typoly Code Snap
                     </div>
                 </div>
             </div>
 
-            <p className="mt-8 text-gray-500 text-xs">
+            <p className="mt-2 text-gray-500 text-xs text-center">
                 Snap from <span className="text-gray-400">{fileName || 'Untitled'}</span>
             </p>
         </div>

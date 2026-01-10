@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useCallback, useEffect } from "react";
+import React, { useRef, useMemo, useCallback, useEffect, useState } from "react";
 import { Eye, Keyboard, Type, ListOrdered, Map as MapIcon, Code } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { vim } from "@replit/codemirror-vim";
@@ -111,7 +111,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- Content Rendering State ---
     const editorViewRef = useRef<EditorView | null>(null);
-    const snapCodeRef = useRef<string>('');
+    const [snapCode, setSnapCode] = useState<string>('');
 
     // --- Derived State ---
     const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'text' => {
@@ -167,8 +167,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             const sel = editorViewRef.current?.state.selection.main;
             const textRaw = sel && !sel.empty
                 ? editorViewRef.current?.state.sliceDoc(sel.from, sel.to)
-                : content;
-            snapCodeRef.current = textRaw || '';
+                : ''; // Default to empty if nothing selected
+            setSnapCode(textRaw || '');
 
             // Adjust sizes
             const newEditorSize = showSplitPreview ? 40 : 65;
@@ -398,7 +398,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                 if (showCodeSnap && (viewUpdate.selectionSet || viewUpdate.docChanged)) {
                                                     const state = viewUpdate.view.state;
                                                     const sel = state.selection.main;
-                                                    snapCodeRef.current = sel.empty ? state.doc.toString() : state.sliceDoc(sel.from, sel.to);
+                                                    const newSnap = sel.empty ? '' : state.sliceDoc(sel.from, sel.to);
+                                                    setSnapCode(newSnap);
                                                 }
                                             }}
                                             basicSetup={{
@@ -438,7 +439,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                         >
                                             <div className="h-full overflow-hidden border-l border-slate-200 bg-[#1e1e1e]">
                                                 <CodeSnap
-                                                    code={snapCodeRef.current || content}
+                                                    code={snapCode}
                                                     fileName={tabs.find(t => t.path === activePath)?.name}
                                                     renderPreview={(previewCode, isDark) => {
                                                         const baseClass = "h-auto overflow-visible p-4";
