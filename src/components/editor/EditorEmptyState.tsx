@@ -78,13 +78,13 @@ export const EditorEmptyState: React.FC<EditorEmptyStateProps> = ({ onCloseGroup
                                 for(let i=0; i<totalCols; i++) {
                                     const monthCounts = new Map<number, number>();
                                     let sampleDateForDominant: Date | null = null;
-                                    
+
                                     for(let r=0; r<7; r++) {
                                         const d = getCellDate(i, r);
                                         const m = d.getMonth();
                                         monthCounts.set(m, (monthCounts.get(m) || 0) + 1);
                                     }
-                                    
+
                                     // Determine dominant month (>= 4 days in this column)
                                     let dominantMonth = -1;
                                     for (const [m, count] of monthCounts.entries()) {
@@ -93,7 +93,7 @@ export const EditorEmptyState: React.FC<EditorEmptyStateProps> = ({ onCloseGroup
                                             break;
                                         }
                                     }
-                                    
+
                                     // If we found a new dominant month, add a label
                                     if (dominantMonth !== -1 && dominantMonth !== seenMonth) {
                                         // Find a sample date for this month to format the label
@@ -106,9 +106,9 @@ export const EditorEmptyState: React.FC<EditorEmptyStateProps> = ({ onCloseGroup
                                         }
 
                                         if (sampleDateForDominant) {
-                                            monthLabels.push({ 
-                                                x: i, 
-                                                label: sampleDateForDominant.toLocaleDateString('en-US', {month:'short'}) 
+                                            monthLabels.push({
+                                                x: i,
+                                                label: sampleDateForDominant.toLocaleDateString('en-US', {month:'short'})
                                             });
                                             seenMonth = dominantMonth;
                                         }

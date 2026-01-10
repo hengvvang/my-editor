@@ -13,8 +13,9 @@ pub fn render_markdown(text: String) -> String {
     options.extension.description_lists = true;
     options.extension.superscript = true;
 
-    // Allow raw HTML (sanitized by frontend DOMPurify)
+    // Allow raw HTML (sanitized by ammonia)
     options.render.unsafe_ = true;
 
-    markdown_to_html(&text, &options)
+    let html = markdown_to_html(&text, &options);
+    ammonia::clean(&html)
 }

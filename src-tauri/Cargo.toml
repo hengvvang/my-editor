@@ -24,6 +24,7 @@ grep-regex = "0.1"
 grep-searcher = "0.1"
 grep-matcher = "0.1"
 anyhow = "1.0"
+ammonia = "4.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

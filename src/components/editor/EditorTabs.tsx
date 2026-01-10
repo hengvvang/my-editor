@@ -57,55 +57,76 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
             ))}
 
             {/* Toolbar */}
-            <div className={`ml-auto flex items-center pr-2 pl-1 gap-1 border-l border-slate-200 bg-slate-50 h-full sticky right-0 z-40 ${scheme.toolbar}`}>
-                <button
-                    onClick={onTogglePreview}
-                    className={`p-1 rounded-md transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
-                    title="Toggle Split View"
-                >
-                    <Columns size={14} />
-                </button>
-                <button
-                    onClick={() => onSplit('horizontal')}
-                    className="p-1 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
-                    title="Split Editor Right"
-                >
-                    <SplitSquareHorizontal size={14} />
-                </button>
-                <button
-                    onClick={() => onSplit('vertical')}
-                    className="p-1 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
-                    title="Split Editor Down"
-                >
-                    <SplitSquareVertical size={14} />
-                </button>
-                <button
-                    onClick={onToggleLock}
-                    className={`p-1 rounded-md transition-all ${isReadOnly ? 'bg-amber-50 text-amber-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
-                    title={isReadOnly ? "Unlock Group" : "Lock Group (Read-Only)"}
-                >
-                    <Lock size={14} />
-                </button>
-
-                <button
-                    onClick={onToggleCodeSnap}
-                    className={`p-1 rounded-md transition-all ${showCodeSnap ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
-                    title="Code Snap"
-                >
-                    <Camera size={14} />
-                </button>
-
-                <button onClick={onSave} className="p-1 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all" title="Save File (Ctrl+S)">
-                    <Save size={14} />
-                </button>
-                {onCloseGroup && (
+            <div className={`ml-auto flex items-center pr-2 pl-1 gap-0.5 border-l border-slate-200 bg-slate-50 h-full sticky right-0 z-40 ${scheme.toolbar}`}>
+                {/* View Panels Group */}
+                <div className="flex items-center gap-0.5 px-1">
                     <button
-                        onClick={onCloseGroup}
-                        className="p-1 hover:bg-red-500 hover:text-white rounded-md transition-all ml-1"
-                        title="Close Group"
+                        onClick={onTogglePreview}
+                        className={`p-1.5 rounded-md transition-all ${showSplitPreview ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
+                        title="Toggle Preview (Ctrl+\)"
                     >
-                        <X size={14} />
+                        <Columns size={14} />
                     </button>
+                    <button
+                        onClick={onToggleCodeSnap}
+                        className={`p-1.5 rounded-md transition-all ${showCodeSnap ? 'bg-violet-100 text-violet-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
+                        title="Code Snap (Ctrl+Shift+C)"
+                    >
+                        <Camera size={14} />
+                    </button>
+                </div>
+
+                <div className="w-[1px] h-4 bg-slate-300/50 mx-0.5" />
+
+                {/* Split Group */}
+                <div className="flex items-center gap-0.5 px-1">
+                    <button
+                        onClick={() => onSplit('horizontal')}
+                        className="p-1.5 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
+                        title="Split Editor Right"
+                    >
+                        <SplitSquareHorizontal size={14} />
+                    </button>
+                    <button
+                        onClick={() => onSplit('vertical')}
+                        className="p-1.5 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
+                        title="Split Editor Down"
+                    >
+                        <SplitSquareVertical size={14} />
+                    </button>
+                </div>
+
+                <div className="w-[1px] h-4 bg-slate-300/50 mx-0.5" />
+
+                {/* Actions Group */}
+                <div className="flex items-center gap-0.5 px-1">
+                    <button
+                        onClick={onToggleLock}
+                        className={`p-1.5 rounded-md transition-all ${isReadOnly ? 'bg-amber-100 text-amber-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
+                        title={isReadOnly ? "Unlock Editor" : "Lock Editor (Read-Only)"}
+                    >
+                        <Lock size={14} />
+                    </button>
+                    <button
+                        onClick={onSave}
+                        className="p-1.5 hover:bg-white/50 hover:text-slate-600 rounded-md transition-all"
+                        title="Save (Ctrl+S)"
+                    >
+                        <Save size={14} />
+                    </button>
+                </div>
+
+                {onCloseGroup && (
+                    <>
+                        <div className="w-[1px] h-4 bg-slate-300/50 mx-0.5" />
+                        <button
+                            onClick={onCloseGroup}
+                            className="p-1.5 hover:bg-red-100 hover:text-red-600 rounded-md transition-all"
+                            title="Close Editor Group"
+                        >
+                            <X size={14} />
+                        </button>
+                    </>
                 )}
             </div>
         </div>

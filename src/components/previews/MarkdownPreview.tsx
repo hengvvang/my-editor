@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { invoke } from "@tauri-apps/api/core";
-import DOMPurify from "dompurify";
 import { PreviewActions } from './PreviewActions';
 
 interface Props {
@@ -14,11 +13,16 @@ export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName 
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        // Dynamic debounce based on content length to prevent freezing on large files
+        const length = content.length;
+        const delay = length > 100000 ? 800 : (length > 20000 ? 300 : 100);
+
         const timer = setTimeout(() => {
             invoke('render_markdown', { text: content }).then((res) => {
-                setHtml(DOMPurify.sanitize(res as string));
+                // Backend sanitization via ammonia is used now, no need for DOMPurify here
+                setHtml(res as string);
             });
-        }, 200);
+        }, delay);
         return () => clearTimeout(timer);
     }, [content]);
 

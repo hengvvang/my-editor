@@ -7,15 +7,18 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 ## 🚀 Key Features
 
 ### ✍️ Hybrid Editing Experience
-*   **Visual Mode**: A distraction-free, WYSIWYG-like writing environment (Markdown & LaTeX only).
-    *   *Now supports*: **Live LaTeX Math** rendering inside the editor (Auto-fold `$code$` to $\LaTeX$ symbol).
-    *   *Smart Mode*: Visual rendering is automatically disabled for raw code files (Code, Text, etc.) to ensure precision.
+*   **Visual Mode (Zen Style)**: A focused, distraction-free writing environment now available for **ALL** file types (Markdown, Code, Text).
+    *   *Card-Style Highlighting**: Active lines are highlighted with a modern "Card" effect (Sky Blue theme) featuring a clear left indicator bar and subtle shadows, aiding focus.
+    *   *Universal Zen*: Whether you are writing a novel in Markdown or coding in Rust, switch to Visual Mode for a cleaner, reading-optimized layout.
+    *   *HTML Enhancements*: Intelligent fading of HTML tags in visual mode to reduce noise while keeping structure visible.
+    *   *Live Rendering*: Markdown supports generic features, plus Latex math auto-folding.
 *   **Code Mode**: Full-control source editing with syntax highlighting.
-*   **Split View**: Resizable side-by-side editor and live preview.
-    *   *New*: Ergonomic resize handle that works regardless of window size or layout complexity.
-    *   *Independent*: Preview works independently of the editor mode (Code/Visual).
-    *   *Smart Preview*: For generic files (Python, Rust, JS, JSON, etc.), the preview pane automatically acts as a **High-Fidelity Read-Only Source Viewer** with full syntax highlighting, ensuring utility across all file types.
-*   **Extensive Language Support**:
+*   **Smart Preview System**: 
+    *   **Performance**: Backend-accelerated rendering using **Rust** (`ammonia` + `comrak`).
+    *   **Large File Optimization**: Dynamic debouncing strategy automatically adjusts based on file size (10k/100k lines) to prevent UI freezing.
+    *   **Independent**: Preview panes work independently of editor modes.
+
+### 🎨 Typography & Design
     *   **Tier 1 (High Performance)**: Powered by CodeMirror 6 Lezer parsers for JS/TS, Rust, Python, C++, Go, Java, SQL, PHP, Vue, XML, YAML, HTML/CSS.
     *   **Legacy Support**: Fallback support for generic text formats.
     *   **Ergonomic Status Bar**: Dynamic language detection and display (e.g., displaying "React (TSX)" instead of just "TSX").

@@ -42,6 +42,10 @@ export const hybridHighlightStyle = HighlightStyle.define([
     { tag: t.separator, class: 'cm-md-table-border' }, // Table |
     { tag: t.contentSeparator, class: 'cm-md-hr' }, // Horizontal Rule ---
     { tag: t.strikethrough, class: 'cm-md-strike' }, // ~~Strike~~
+
+    // HTML Support
+    { tag: t.tagName, class: 'cm-md-html-tag' },
+    { tag: t.comment, class: 'cm-md-html-comment' },
 ]);
 
 // --- Extended Markdown Configuration ---
@@ -78,6 +82,10 @@ export const markdownExtensions = {
             "HeaderMark": t.processingInstruction,
             "EmphasisMark": t.processingInstruction,
             "LinkMark": t.processingInstruction,
+
+            // HTML Tags (Map to known tags, or custom ones)
+            "HTMLTag": t.tagName,
+            "Comment": t.comment,
         })
     ]
 };

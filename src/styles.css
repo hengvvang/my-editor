@@ -263,8 +263,11 @@
 .preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-hr {
     color: transparent;
     border-bottom: 2px solid #e2e8f0;
-    display: block;
-    margin: 1em 0;
+    display: inline-block; /* Changed from block to inline-block for better hit-testing */
+    width: 100%;
+    margin-top: 0.5em; /* Reduced margin */
+    margin-bottom: 0.5em;
+    vertical-align: middle;
 }
 
 /* STRIKETHROUGH: Rendered style */
@@ -273,12 +276,40 @@
     color: #94a3b8;
 }
 
+/* HTML Tag Styling in Preview Mode */
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-html-tag {
+    color: #94a3b8; /* Dim tags */
+    font-family: monospace;
+    font-size: 0.9em;
+}
+.preview-mode-cm .cm-line:not(.cm-activeLine) .cm-md-html-comment {
+    color: #cbd5e1;
+    font-style: italic;
+}
+
 .preview-mode-cm .cm-activeLine {
-    background-color: transparent !important; /* Remove default active line bg if desired, or keep generic one */
-    font-family: 'Menlo', 'Consolas', monospace; /* Switch to monospace for editing */
+    background-color: #f0f9ff !important; /* Sky-50: Clearer highlight */
+    border-left: 4px solid #0ea5e9; /* Sky-500: Thicker, more visible indicator */
+    border-radius: 0 6px 6px 0; /* Soft rounded corners on the right */
+
+    /* Visual Depth */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+    /* Font settings */
+    font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
     color: #0f172a;
+
+    /* Smooth transition for movement */
+    transition: background-color 0.1s ease, border-left-color 0.1s ease;
+}
+
+/* Enhancing the Gutter for the Active Line */
+.preview-mode-cm .cm-activeLineGutter {
+    background-color: #f0f9ff !important;
+    color: #0ea5e9 !important; /* Highlight line number */
+    font-weight: bold;
 }
 
 /* Explicitly make markers visible and gray in active line */
@@ -297,21 +328,57 @@
     width: auto;
 }
 
-/* --- Editor Layout & Sizing --- */
-/* Ensure the editor feels like a full page text area */
-.cm-editor {
-    outline: none !important;
-}
+/* --- Ergonomic Layout Configuration --- */
 
-/* Allow clicking anywhere in the bottom of the editor to focus */
-.cm-scroller {
-    min-height: calc(100vh - 150px) !important;
-    padding-bottom: 30vh !important; /* Overscroll area */
-    cursor: text;
-}
+/* Base Padding for Editor Content */
 .cm-content {
     min-height: 100%;
+
+    /* Default comfortable padding */
+    padding-top: 16px;
+    padding-bottom: 30vh !important; /* Overscroll */
 }
+
+/* 1. Standard Mode (Source Mode or Regular Code) */
+/* When line numbers are present, CodeMirror handles left spacing via gutter margin.
+   We just ensure it's not too cramped against the gutter if we want. */
+.cm-line {
+    padding-left: 8px; /* Slight gap from line numbers */
+}
+
+/* 2. Unified Standard Layout (No Zen/Centered Mode) */
+/* User requested consistent compact layout across all modes */
+.cm-no-numbers .cm-content,
+.preview-mode-cm .cm-content {
+    max-width: none;
+    margin: 0;
+
+    /* Standard padding matching standard editor feel */
+    padding-top: 16px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+/* Ensure scroller doesn't clip */
+.cm-no-numbers .cm-scroller,
+.preview-mode-cm .cm-scroller {
+    background-color: transparent;
+}
+
+/* Active Line: Clean, Standard Box without large offsets */
+.cm-no-numbers .cm-activeLine,
+.preview-mode-cm .cm-activeLine {
+    /* Reset Zen offsets */
+    margin-left: 0;
+    padding-left: 6px; /* Text distance from the blue border */
+    width: auto;
+    padding-right: 0;
+
+    /* Maintain the visual highlighting style */
+    border-left-width: 4px;
+    border-radius: 0 4px 4px 0;
+}
+
 
 /* --- Beautiful Line Numbers --- */
 .cm-gutters {

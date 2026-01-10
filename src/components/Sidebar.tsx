@@ -9,7 +9,6 @@ import appLogo from "../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
-    width: number;
     activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces';
     onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces') => void;
     rootDir: string | null;
@@ -19,7 +18,6 @@ export interface SidebarProps {
     onOpenFileAtLine?: (path: string, line: number) => void;
     onOpenFolder: () => void;
     outline: { level: number; text: string; line: number }[];
-    onResizeStart: () => void;
     workspaces?: { path: string; name: string; pinned?: boolean; active?: boolean }[];
     onSwitchWorkspace?: (path: string) => void;
     onRemoveWorkspace?: (path: string, e: React.MouseEvent) => void;
@@ -42,7 +40,6 @@ export interface SidebarProps {
 
 const SidebarBase: React.FC<SidebarProps> = ({
     isOpen,
-    width,
     activeSideTab,
     onActiveSideTabChange,
     rootDir,
@@ -51,7 +48,6 @@ const SidebarBase: React.FC<SidebarProps> = ({
     onOpenFile,
     onOpenFolder,
     outline,
-    onResizeStart,
     workspaces = [],
     onSwitchWorkspace,
     onRemoveWorkspace,
@@ -68,7 +64,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="flex flex-col shrink-0 h-full border-r border-slate-200 bg-slate-50/50 relative" style={{ width: width }}>
+        <div className="flex flex-col h-full w-full border-r border-slate-200 bg-slate-50/50">
             {/* 1. Header ("EXPLORER" / "SEARCH" / "OUTLINE") */}
             <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0" data-tauri-drag-region>
                 {activeSideTab === 'explorer' && "EXPLORER"}
@@ -172,13 +168,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            {/* Resizer */}
-            <div
-                className="absolute top-0 bottom-0 right-[-2px] w-1 cursor-col-resize z-50 hover:bg-blue-400"
-                onMouseDown={(e) => { e.preventDefault(); onResizeStart(); }}
-            />
-
-        </div >
+        </div>
     );
 };
 

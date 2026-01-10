@@ -40,7 +40,7 @@ const BreadcrumbNode: React.FC<BreadcrumbNodeProps> = ({ file, activePath, depth
         if (!file.is_dir) return;
 
         if (!expanded) {
-             if (!children) {
+            if (!children) {
                 setLoading(true);
                 try {
                     const res = await invoke<FileEntry[]>("read_dir", { path: file.path });
@@ -55,8 +55,8 @@ const BreadcrumbNode: React.FC<BreadcrumbNodeProps> = ({ file, activePath, depth
                 } finally {
                     setLoading(false);
                 }
-             }
-             setExpanded(true);
+            }
+            setExpanded(true);
         } else {
             setExpanded(false);
         }
@@ -80,7 +80,7 @@ const BreadcrumbNode: React.FC<BreadcrumbNodeProps> = ({ file, activePath, depth
 
     return (
         <div>
-           <div
+            <div
                 className={`flex items-center gap-1.5 px-2 py-1.5 cursor-pointer text-xs select-none transition-colors duration-100 ${isActive ? 'bg-blue-100/50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 onClick={handleClick}
@@ -88,9 +88,9 @@ const BreadcrumbNode: React.FC<BreadcrumbNodeProps> = ({ file, activePath, depth
                 <div className="shrink-0 flex items-center justify-center w-4 h-4 text-slate-400 hover:text-slate-600" onClick={file.is_dir ? handleExpand : undefined}>
                     {file.is_dir && (
                         loading ? (
-                             <div className="w-2.5 h-2.5 rounded-full border border-blue-400 border-t-transparent animate-spin" />
+                            <div className="w-2.5 h-2.5 rounded-full border border-blue-400 border-t-transparent animate-spin" />
                         ) : (
-                             expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />
+                            expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />
                         )
                     )}
                 </div>
@@ -195,7 +195,7 @@ export const EditorBreadcrumbs: React.FC<EditorBreadcrumbsProps> = ({
         // VS Code behavior: Clicking the file name reveals siblings. Clicking a folder reveals contents.
         let targetPath = item.path;
         if (!item.isDir) {
-           // It is a file, show parent dir contents
+            // It is a file, show parent dir contents
             const parent = item.path.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
             targetPath = parent;
         }
