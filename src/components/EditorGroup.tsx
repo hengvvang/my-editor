@@ -30,10 +30,10 @@ const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 // --- Resizer Component ---
 const ResizeHandle: React.FC<{ className?: string }> = ({ className = '' }) => (
     <PanelResizeHandle
-        className={`group relative w-1 hover:w-1.5 transition-all duration-150 ${className}`}
+        className={`group relative w-2 bg-transparent flex justify-center items-center transition-colors focus:outline-none outline-none ${className}`}
     >
-        <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-blue-400/20 group-active:bg-blue-500/30 transition-colors" />
-        <div className="absolute inset-y-0 left-0 right-0 group-hover:bg-blue-400 group-active:bg-blue-600 transition-colors" />
+        {/* Visual Line */}
+        <div className="w-[1px] h-full bg-slate-200 group-hover:bg-blue-400 group-active:bg-blue-600 transition-colors" />
     </PanelResizeHandle>
 );
 
@@ -86,13 +86,11 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- Setters for View State ---
     const setIsSourceMode = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { isSourceMode: val }), [viewStateManager, groupId]);
-    const setShowSplitPreview = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showSplitPreview: val }), [viewStateManager, groupId]);
     const setIsVimMode = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { isVimMode: val }), [viewStateManager, groupId]);
     const setUseMonospace = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { useMonospace: val }), [viewStateManager, groupId]);
     const setShowLineNumbers = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showLineNumbers: val }), [viewStateManager, groupId]);
     const setShowMinimap = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showMinimap: val }), [viewStateManager, groupId]);
     const setMinimapWidth = useCallback((val: number) => viewStateManager.setViewState(groupId, { minimapWidth: val }), [viewStateManager, groupId]);
-    const setShowCodeSnap = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showCodeSnap: val }), [viewStateManager, groupId]);
 
     // --- Panel Size Handlers ---
     const handlePanelResize = useCallback((sizes: number[]) => {
@@ -446,8 +444,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                         const themeClass = isDark ? "bg-[#282a36] text-gray-300" : "bg-white text-slate-900";
 
                                                         if (docType === 'markdown') return <MarkdownPreview content={previewCode} className={`${baseClass} ${isDark ? 'bg-[#282a36] prose-invert' : 'bg-white'}`} />;
-                                                        if (docType === 'typst') return <TypstPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
-                                                        if (docType === 'mermaid') return <MermaidPreview content={previewCode} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} />;
+                                                        if (docType === 'typst') return <TypstPreview content={previewCode} isDark={isDark} className={`${baseClass} ${themeClass}`} />;
+                                                        if (docType === 'mermaid') return <MermaidPreview content={previewCode} isDark={isDark} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} />;
                                                         if (docType === 'latex') return <LatexPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
 
                                                         // Generic Code Preview

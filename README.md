@@ -68,14 +68,17 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 
 ### ⚡ Power User Tools
 *   **CodeSnap**: Built-in tool to create beautiful, shareable screenshots.
-    *   *Integrated*: Toggle seamlessly between **Code** mode and **rendered Preview** mode to capture exactly what you need.
-    *   *Theme Support*: One-click **Light / Dark** theme toggling with correct background and syntax highlighting inversion.
-    *   *Export*: Save as high-res PNG or copy directly to clipboard with optimized font rendering.
+    *   *Selection-Aware*: Automatically captures only your **selected text** for precise control, or defaults to the whole file if nothing is selected.
+    *   *Smart Layout*: Dynamic container sizing ensures screenshots look great whether you're capturing 3 lines or 300.
+    *   *Theme Support*: One-click **Light / Dark** theme toggling with true background and syntax highlighting inversion (perfect integration for Mermaid/Typst previews).
+    *   *Export*: Save as high-res PNG or copy directly to clipboard with optimized font rendering and pixel-perfect padding.
     *   *Clean*: Auto-hides UI controls during capture for professional-grade images.
 *   **Preview Actions**: Floating toolbar on all preview panes (Markdown / Typst / Mermaid) for instant "Copy Image" or "Save Image" without opening CodeSnap.
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
+    *   *Dark Mode Ready*: Preview automatically adapts to dark backgrounds with smart color inversion for perfect readability.
     *   *Enhanced Preview*: Real-time "Paper View" simulation with auto-scaling (Full Width) and shadow effects.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
+    *   *Native Dark Mode*: Forces native dark theme rendering in dark mode for crisp, high-contrast diagrams (no white-background artifacts).
 *   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
 *   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
 *   **Minimap**: Visual overview of your document with active line and selection indicators.
