@@ -40,6 +40,7 @@ interface EditorGroupProps {
     rootDir: string | null;
     onToggleLock: () => void;
     onCloseGroup?: () => void;
+    onOpenFile?: (path: string) => void;
 }
 
 export const EditorGroup: React.FC<EditorGroupProps> = ({
@@ -57,7 +58,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     onSplit,
     rootDir,
     onToggleLock,
-    onCloseGroup
+    onCloseGroup,
+    onOpenFile
 }) => {
     // --- Theme ---
     const scheme = colorSchemes[groupIndex % colorSchemes.length];
@@ -380,6 +382,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 activePath={activePath}
                 rootDir={rootDir}
                 onSwitchTab={onSwitchTab}
+                onOpenFile={onOpenFile}
             />
 
             {/* Editor Area */}

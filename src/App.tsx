@@ -167,6 +167,7 @@ function App() {
                     onToggleLock={() => toggleLock(group.id)}
                     onCloseGroup={groups.length > 1 ? () => closeGroup(group.id) : undefined}
                     rootDir={rootDir}
+                    onOpenFile={(path) => loadFile(path)}
                 />
             </div>
         );

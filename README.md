@@ -33,7 +33,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Optimized Title Bar**: Layout reorganized for better ergonomics, with file info on the left and actions on the right.
     *   **Immersive Toolbars**: Controls blend seamlessly with the content area.
 *   **Inline File Explorer**: Enhanced sidebar with VS Code-style inline input for creating files and folders.
-*   **Interactive Breadcrumbs**: VS Code-style file path navigation bar.
+*   **Interactive Breadcrumbs**: Full-featured navigation bar with recursive directory dropdowns and intelligent "click-to-open" file loading.
 *   **Smart Layout**:
     *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes.
     *   **Responsive**: Layout automatically adjusts to viewport changes.
