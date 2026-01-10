@@ -14,7 +14,6 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useSidebar } from "./hooks/useSidebar";
 import { useOutline } from "./hooks/useOutline";
 import { useSearch } from "./hooks/useSearch";
-import appLogo from "./assets/logo.png";
 
 
 const appWindow = getCurrentWebviewWindow()

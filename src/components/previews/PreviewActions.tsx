@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { Copy, Download, Check } from 'lucide-react';
 

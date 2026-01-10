@@ -16,7 +16,7 @@ import { php } from "@codemirror/lang-php";
 import { sass } from "@codemirror/lang-sass";
 import { vue } from "@codemirror/lang-vue";
 
-import { markdownExtensions } from "../editorConfig";
+import { markdownExtensions } from "../config/editor";
 
 // 1. Define supported language mappings
 // Only using Modern Lezer parsers for maximum performance

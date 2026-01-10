@@ -5,7 +5,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
 import { getLanguageExtension } from '../utils/languageManager';
-import { hybridHighlightStyle } from '../editorConfig';
+import { hybridHighlightStyle } from '../config/editor';
 
 interface CodeSnapProps {
     code: string;
@@ -16,7 +16,7 @@ interface CodeSnapProps {
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
-export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName, renderPreview }) => {
+export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPreview }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState(false);
     const [isDark, setIsDark] = useState(false);
