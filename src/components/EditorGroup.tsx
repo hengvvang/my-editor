@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Eye, Keyboard, Type, ListOrdered, Map as MapIcon, Code, SplitSquareHorizontal, X } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
-import { markdown as markdownLang } from '@codemirror/lang-markdown';
 import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
@@ -9,6 +8,7 @@ import { latexLivePreview } from "../codemirror-latex";
 
 import { Tab } from "../types";
 import { markdownExtensions, hybridHighlightStyle } from "../editorConfig";
+import { getLanguageExtension, getLanguageInfo } from "../utils/languageManager";
 import { MinimapView } from "./MinimapView";
 import { StatusBar, colorSchemes } from "./StatusBar";
 import { CodeSnap } from "./CodeSnap";
@@ -93,6 +93,9 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         return 'text';
     };
     const docType = getDocType(activePath);
+
+    // Get display name for status bar
+    const languageName = getLanguageInfo(activePath).name;
 
     // --- Helper Functions for State Transitions ---
     const getWrapperWidth = () => {
@@ -428,7 +431,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                 value={content}
                                                 height="100%"
                                                 extensions={[
-                                                    markdownLang({ extensions: [markdownExtensions] }),
+                                                    ...getLanguageExtension(activePath),
                                                     ...(isVimMode ? [vim({ status: true })] : []),
                                                     ...(docType === 'latex' && !isSourceMode ? [latexLivePreview()] : []),
                                                     ...(!isSourceMode && (docType === 'markdown' || docType === 'latex') ? [hybridTheme, EditorView.lineWrapping] : [])
@@ -490,19 +493,36 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                         className={`h-full min-w-0 overflow-y-auto border-r border-slate-200 last:border-r-0 ${showCodeSnap ? '' : 'flex-1'}`}
                                                         style={showCodeSnap ? { width: `${rightPanelSplitRatio * 100}%` } : {}}
                                                     >
-                                                        {docType === 'typst' ? (
-                                                            <TypstPreview content={content} />
-                                                        ) : (docType === 'mermaid' || activePath?.endsWith('.mmd')) ? (
-                                                            <MermaidPreview content={content} idPrefix={groupId} />
-                                                        ) : docType === 'latex' ? (
-                                                            <LatexPreview content={content} />
-                                                        ) : docType === 'markdown' ? (
-                                                            <MarkdownPreview content={content} />
-                                                        ) : (
-                                                            <div className="h-full relative bg-white flex items-center justify-center text-slate-400 text-sm">
-                                                                No preview available
-                                                            </div>
-                                                        )}
+                                                        {(() => {
+                                                            // Recognized specialized preview types
+                                                            if (docType === 'typst') return <TypstPreview content={content} />;
+                                                            if (docType === 'mermaid' || activePath?.endsWith('.mmd')) return <MermaidPreview content={content} idPrefix={groupId} />;
+                                                            if (docType === 'latex') return <LatexPreview content={content} />;
+                                                            if (docType === 'markdown') return <MarkdownPreview content={content} />;
+
+                                                            // Generic Source Preview (Smart Preview for code files)
+                                                            // Uses the exact same CodeMirror instance but Read-Only to act as a "Preview"
+                                                            return (
+                                                                <div className="h-full relative bg-slate-50">
+                                                                    <CodeMirror
+                                                                        value={content}
+                                                                        height="100%"
+                                                                        extensions={[
+                                                                            ...getLanguageExtension(activePath),
+                                                                            EditorView.editable.of(false), // Read Only
+                                                                            EditorView.lineWrapping
+                                                                        ]}
+                                                                        theme="light"
+                                                                        basicSetup={{
+                                                                            lineNumbers: true,
+                                                                            foldGutter: true,
+                                                                            highlightActiveLine: false,
+                                                                        }}
+                                                                        className="h-full text-sm"
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
 
@@ -541,7 +561,29 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                                 if (docType === 'typst') return <TypstPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
                                                                 if (docType === 'mermaid') return <MermaidPreview content={previewCode} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} />;
                                                                 if (docType === 'latex') return <LatexPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
-                                                                return <div className={`p-4 text-center ${isDark ? 'text-gray-400' : 'text-slate-400'}`}>Preview not supported for this type</div>;
+
+                                                                // Generic Code Preview inside CodeSnap
+                                                                // User expects highlighed code even in "Preview" tab for generic files
+                                                                return (
+                                                                    <div className={`h-full ${isDark ? 'bg-[#282a36]' : 'bg-white'}`}>
+                                                                        <CodeMirror
+                                                                            value={previewCode}
+                                                                            extensions={[
+                                                                                ...getLanguageExtension(activePath),
+                                                                                EditorView.editable.of(false),
+                                                                                EditorView.lineWrapping,
+                                                                                ...(isDark ? [hybridTheme] : [])
+                                                                            ]}
+                                                                            theme={isDark ? 'dark' : 'light'}
+                                                                            basicSetup={{
+                                                                                lineNumbers: false,
+                                                                                foldGutter: false,
+                                                                                highlightActiveLine: false,
+                                                                            }}
+                                                                            className="h-full text-sm font-mono"
+                                                                        />
+                                                                    </div>
+                                                                );
                                                             }}
                                                         />
                                                     </div>
@@ -578,7 +620,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                             )}
 
                         </div>
-                        <StatusBar language={docType} groupId={groupId} groupIndex={groupIndex} isActive={isActiveGroup} />
+                        <StatusBar language={languageName} groupId={groupId} groupIndex={groupIndex} isActive={isActiveGroup} />
                     </div>
                 </div>
             )}

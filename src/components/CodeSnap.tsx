@@ -4,23 +4,8 @@ import { Copy, Download, Check, Moon, Sun } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
-import { markdown } from '@codemirror/lang-markdown';
-import { javascript } from '@codemirror/lang-javascript';
-import { rust } from '@codemirror/lang-rust';
-import { html } from '@codemirror/lang-html';
-import { css } from '@codemirror/lang-css';
+import { getLanguageExtension } from '../utils/languageManager';
 import { hybridHighlightStyle } from '../editorConfig';
-
-// Basic language detection helper
-const getExtensions = (lang?: string) => {
-    // Improve mapping based on file extension or detected language
-    const l = lang?.toLowerCase() || '';
-    if (l.includes('rust') || l.endsWith('.rs')) return [rust()];
-    if (l.includes('html') || l.endsWith('.html')) return [html()];
-    if (l.includes('css') || l.endsWith('.css')) return [css()];
-    if (l.includes('javascript') || l.includes('typescript') || l.endsWith('.js') || l.endsWith('.ts') || l.endsWith('.tsx') || l.endsWith('.jsx')) return [javascript({ jsx: true, typescript: true })];
-    return [markdown()];
-}
 
 interface CodeSnapProps {
     code: string;
@@ -189,7 +174,7 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName, re
                                     value={code}
                                     theme={isDark ? hybridTheme : "light"}
                                     extensions={[
-                                        ...getExtensions(language),
+                                        ...getLanguageExtension(fileName || "code.txt"),
                                         EditorView.editable.of(false),
                                         EditorView.lineWrapping
                                     ]}

@@ -14,7 +14,11 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Split View**: Resizable side-by-side editor and live preview.
     *   *New*: Ergonomic resize handle that works regardless of window size or layout complexity.
     *   *Independent*: Preview works independently of the editor mode (Code/Visual).
-    *   *Smart Preview*: For generic files (Rust, JS, JSON, etc.), the preview pane automatically acts as a **Read-Only Source Viewer**, ensuring utility across all file types.
+    *   *Smart Preview*: For generic files (Python, Rust, JS, JSON, etc.), the preview pane automatically acts as a **High-Fidelity Read-Only Source Viewer** with full syntax highlighting, ensuring utility across all file types.
+*   **Extensive Language Support**:
+    *   **Tier 1 (High Performance)**: Powered by CodeMirror 6 Lezer parsers for JS/TS, Rust, Python, C++, Go, Java, SQL, PHP, Vue, XML, YAML, HTML/CSS.
+    *   **Legacy Support**: Fallback support for generic text formats.
+    *   **Ergonomic Status Bar**: Dynamic language detection and display (e.g., displaying "React (TSX)" instead of just "TSX").
 
 ### 🎨 Typography & Design
 *   **System Fonts**: Uses system native fonts for a consistent and optimized reading and writing experience.
