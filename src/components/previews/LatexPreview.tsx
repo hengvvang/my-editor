@@ -35,7 +35,10 @@ export const LatexPreview: React.FC<Props> = ({ content, className }) => {
     return (
         <div
             ref={containerRef}
-            className={`latex-preview-container h-full bg-white p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed ${className || ''}`}
+            className={`latex-preview-container h-full p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed ${className?.includes('bg-[#282a36]') ? 'bg-[#282a36] text-gray-300' : 'bg-white'} ${className || ''}`}
+            style={{
+                color: className?.includes('text-gray-300') ? '#e2e8f0' : undefined
+            }}
         />
     );
 };

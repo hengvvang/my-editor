@@ -26,14 +26,16 @@ interface CodeSnapProps {
     code: string;
     language?: string;
     fileName?: string;
+    renderPreview?: (content: string, isDark: boolean) => React.ReactNode;
 }
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
-export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName }) => {
+export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName, renderPreview }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState(false);
     const [isDark, setIsDark] = useState(false);
+    const [mode, setMode] = useState<'code' | 'preview'>('code');
 
     const toggleTheme = () => setIsDark(!isDark);
 
@@ -46,8 +48,12 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName }) 
                 cacheBust: true,
                 pixelRatio: 3, // Higher pixel ratio for better quality
                 style: { margin: '0' },
-                filter: (_node) => {
-                    // Exclude invisible elements if needed
+                backgroundColor: isDark ? '#282a36' : '#ffffff', // Explicit background
+                filter: (node) => {
+                    // Exclude the preview actions toolbar from the snapshot
+                    if (node.classList && node.classList.contains('preview-actions')) {
+                        return false;
+                    }
                     return true;
                 }
             });
@@ -63,23 +69,34 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName }) 
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error("Failed to copy image:", err);
-            // Fallback for older browsers or if ClipboardItem fails
             alert("Failed to copy image. Please try downloading instead.");
         }
-    }, [ref]);
+    }, [ref, isDark]);
 
     const onDownload = useCallback(async () => {
         if (ref.current === null) return;
         try {
-            const dataUrl = await toPng(ref.current, { cacheBust: true, pixelRatio: 3 });
+            const dataUrl = await toPng(ref.current, {
+                cacheBust: true,
+                pixelRatio: 3,
+                style: { margin: '0' },
+                backgroundColor: isDark ? '#282a36' : '#ffffff',
+                filter: (node) => {
+                    if (node.classList && node.classList.contains('preview-actions')) {
+                        return false;
+                    }
+                    return true;
+                }
+            });
             const link = document.createElement('a');
             link.download = `code-snap-${fileName || 'capture'}-${Date.now()}.png`;
             link.href = dataUrl;
             link.click();
         } catch (err) {
             console.error("Failed to download image:", err);
+            alert("Failed to generate image.");
         }
-    }, [ref, fileName]);
+    }, [ref, fileName, isDark]);
 
     // Force monospace font within the snapshot
     const snapFontStyles = `
@@ -90,8 +107,26 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName }) 
     `;
 
     return (
-        <div className="h-full flex flex-col bg-slate-50 overflow-auto p-4 md:p-8 items-center justify-center relative">
-            <div className="mb-6 flex gap-3 z-10 sticky top-0">
+        <div className="h-full flex flex-col bg-slate-50 overflow-hidden p-4 md:p-8 items-center justify-center relative">
+            <div className="mb-6 flex gap-3 z-10 sticky top-0 flex-wrap justify-center">
+                {/* Mode Switcher */}
+                {renderPreview && (
+                    <div className="flex bg-slate-200 p-1 rounded-lg mr-2">
+                        <button
+                            onClick={() => setMode('code')}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${mode === 'code' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Code
+                        </button>
+                        <button
+                            onClick={() => setMode('preview')}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${mode === 'preview' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Preview
+                        </button>
+                    </div>
+                )}
+
                 <button
                     onClick={toggleTheme}
                     className="flex items-center gap-2 px-3 py-2.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg font-semibold text-sm shadow-sm border border-slate-200 transition-all"
@@ -126,8 +161,8 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName }) 
                     <style>{snapFontStyles}</style>
                     {/* The Editor Window */}
                     <div className={`rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] overflow-hidden border ring-1 transition-colors duration-200 ${isDark
-                            ? 'bg-[#282a36] border-white/10 ring-white/5 shadow-black/40'
-                            : 'bg-white border-slate-200/60 ring-slate-900/5'
+                        ? 'bg-[#282a36] border-white/10 ring-white/5 shadow-black/40'
+                        : 'bg-white border-slate-200/60 ring-slate-900/5'
                         }`}>
                         {/* Status Bar / Window Controls */}
                         <div className={`flex items-center justify-between px-4 py-3 border-b transition-colors duration-200 ${isDark ? 'bg-[#282a36] border-white/5' : 'bg-white border-slate-100'
@@ -149,33 +184,39 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, language, fileName }) 
                         {/* Code Area */}
                         <div className={`p-6 transition-colors duration-200 ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'
                             }`}>
-                            <CodeMirror
-                                value={code}
-                                theme={isDark ? hybridTheme : "light"}
-                                extensions={[
-                                    ...getExtensions(language),
-                                    EditorView.editable.of(false),
-                                    EditorView.lineWrapping
-                                ]}
-                                basicSetup={{
-                                    lineNumbers: false,
-                                    foldGutter: false,
-                                    highlightActiveLine: false,
-                                    indentOnInput: false,
-                                    bracketMatching: false,
-                                    closeBrackets: false,
-                                    autocompletion: false,
-                                    rectangularSelection: false,
-                                    crosshairCursor: false,
-                                    highlightActiveLineGutter: false,
-                                    highlightSelectionMatches: false,
-                                    highlightSpecialChars: false,
-                                    history: false,
-                                    drawSelection: false,
-                                    dropCursor: false,
-                                    allowMultipleSelections: false,
-                                }}
-                            />
+                            {mode === 'code' ? (
+                                <CodeMirror
+                                    value={code}
+                                    theme={isDark ? hybridTheme : "light"}
+                                    extensions={[
+                                        ...getExtensions(language),
+                                        EditorView.editable.of(false),
+                                        EditorView.lineWrapping
+                                    ]}
+                                    basicSetup={{
+                                        lineNumbers: false,
+                                        foldGutter: false,
+                                        highlightActiveLine: false,
+                                        indentOnInput: false,
+                                        bracketMatching: false,
+                                        closeBrackets: false,
+                                        autocompletion: false,
+                                        rectangularSelection: false,
+                                        crosshairCursor: false,
+                                        highlightActiveLineGutter: false,
+                                        highlightSelectionMatches: false,
+                                        highlightSpecialChars: false,
+                                        history: false,
+                                        drawSelection: false,
+                                        dropCursor: false,
+                                        allowMultipleSelections: false,
+                                    }}
+                                />
+                            ) : (
+                                <div className={`min-h-[100px] min-w-[200px] rounded ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}>
+                                    {renderPreview ? renderPreview(code, isDark) : <div className="p-4 text-center text-slate-400">Preview not available</div>}
+                                </div>
+                            )}
                         </div>
                     </div>
 

@@ -529,7 +529,21 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                         className={`h-full min-w-0 overflow-hidden bg-[#1e1e1e] ${showSplitPreview ? '' : 'flex-1'}`}
                                                         style={showSplitPreview ? { width: `${(1 - rightPanelSplitRatio) * 100}%` } : {}}
                                                     >
-                                                        <CodeSnap code={snapCode || content} language={docType === 'text' ? 'javascript' : docType} fileName={tabs.find(t => t.path === activePath)?.name} />
+                                                        <CodeSnap
+                                                            code={snapCode || content}
+                                                            language={docType === 'text' ? 'javascript' : docType}
+                                                            fileName={tabs.find(t => t.path === activePath)?.name}
+                                                            renderPreview={(previewCode, isDark) => {
+                                                                const baseClass = "h-auto overflow-visible p-4";
+                                                                const themeClass = isDark ? "bg-[#282a36] text-gray-300" : "bg-white text-slate-900";
+
+                                                                if (docType === 'markdown') return <MarkdownPreview content={previewCode} className={`${baseClass} ${isDark ? 'bg-[#282a36] prose-invert' : 'bg-white'}`} />;
+                                                                if (docType === 'typst') return <TypstPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
+                                                                if (docType === 'mermaid') return <MermaidPreview content={previewCode} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} />;
+                                                                if (docType === 'latex') return <LatexPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
+                                                                return <div className={`p-4 text-center ${isDark ? 'text-gray-400' : 'text-slate-400'}`}>Preview not supported for this type</div>;
+                                                            }}
+                                                        />
                                                     </div>
                                                 )}
                                             </div>

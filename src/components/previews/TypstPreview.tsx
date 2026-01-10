@@ -25,6 +25,10 @@ export const TypstPreview: React.FC<Props> = ({ content, className }) => {
         <div
             className={`typst-preview-container ${className || ''}`}
             dangerouslySetInnerHTML={{ __html: svg }}
+            style={{
+                color: className?.includes('text-gray-300') ? '#e2e8f0' : 'inherit',
+                fill: className?.includes('text-gray-300') ? '#e2e8f0' : 'inherit'
+            }}
         />
     );
 };
