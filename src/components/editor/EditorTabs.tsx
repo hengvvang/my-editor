@@ -36,28 +36,28 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
     onCloseGroup
 }) => {
     return (
-        <div className="flex bg-slate-100/50 border-b border-slate-200 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 backdrop-blur-sm relative pt-1 h-[35px]">
+        <div className="flex bg-slate-50 border-b border-slate-200 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 relative h-[35px]">
             {tabs.map(tab => (
                 <div
                     key={tab.path}
                     onClick={() => onSwitchTab(tab.path)}
-                    className={`group relative flex items-center gap-2 px-4 min-w-[120px] max-w-[200px] border-r border-slate-200/50 text-xs select-none cursor-pointer transition-all ${tab.path === activePath ? 'bg-white text-blue-600 shadow-sm rounded-t-lg mb-[-1px] border-t-2 border-t-blue-500 border-x border-slate-200' : 'bg-transparent text-slate-500 hover:bg-slate-200/50 hover:text-slate-700 border-t-2 border-t-transparent'}`}
-                    style={{ height: 'calc(100% - 1px)' }}
+                    className={`group relative flex items-center gap-2 px-3 min-w-[120px] max-w-[200px] border-r border-slate-200 text-xs select-none cursor-pointer ${tab.path === activePath ? 'bg-white text-slate-800 border-t-2 border-t-blue-500' : 'bg-slate-100/50 text-slate-500 hover:bg-slate-200/50 border-t-2 border-t-transparent'}`}
+                    style={{ height: '100%' }}
                 >
-                    <FileText size={14} className={tab.path === activePath ? 'text-blue-500' : 'text-slate-400'} />
+                    <FileText size={14} className={tab.path === activePath ? 'text-blue-600' : 'text-slate-400'} />
                     <span className="truncate flex-1 font-medium">{tab.name}</span>
-                    {tab.isDirty && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 group-hover:hidden" />}
+                    {tab.isDirty && <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 group-hover:hidden" />}
                     <button
                         onClick={(e) => onCloseTab(e, tab.path)}
-                        className={`p-0.5 rounded hover:bg-slate-200 hover:text-red-500 transition-all ${tab.isDirty ? 'hidden group-hover:block' : (tab.path === activePath ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}`}
+                        className={`p-1 hover:bg-slate-300 hover:text-red-600 transition-colors ${tab.isDirty ? 'hidden group-hover:block' : (tab.path === activePath ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}`}
                     >
-                        <X size={12} />
+                        <X size={14} strokeWidth={2} />
                     </button>
                 </div>
             ))}
 
             {/* Toolbar */}
-            <div className={`ml-auto flex items-center pr-2 pl-1 gap-1 border-l border-slate-200/50 h-full sticky right-0 z-40 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] backdrop-blur-sm ${scheme.toolbar}`}>
+            <div className={`ml-auto flex items-center pr-2 pl-1 gap-1 border-l border-slate-200 bg-slate-50 h-full sticky right-0 z-40 ${scheme.toolbar}`}>
                 <button
                     onClick={onTogglePreview}
                     className={`p-1 rounded-md transition-all ${showSplitPreview ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-white/50 hover:text-slate-600'}`}
