@@ -23,12 +23,15 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Font Switching**: Dedicated toggle button in the toolbar to switch the editor between **Variable Width** (Reading mode) and **Monospace** (Coding mode) on the fly.
 
 ### 🧩 Modern & Flexible UI
-*   **Smart Split Groups**: Create complex layouts with recursive **Vertical** and **Horizontal** splitting. Supports intuitive drag-and-drop resizing for all split directions.
-*   **Immersive Toolbars**: Editor controls (Lock, Split, Preview, Font Toggle) feature a glass-morphism effect that blends seamlessly.
-*   **Inline File Explorer**: Enhanced sidebar with VS Code-style inline input for creating files and folders, supporting keyboard navigation and intuitive management.
+*   **Smart Split Groups**: Create complex layouts with recursive **Vertical** and **Horizontal** splitting. Supports intuitive drag-and-drop resizing.
+*   **Refined Design**:
+    *   **Square Tabs**: Clean, space-efficient tab design inspired by modern IDEs.
+    *   **Optimized Title Bar**: Layout reorganized for better ergonomics, with file info on the left and actions on the right.
+    *   **Immersive Toolbars**: Controls blend seamlessly with the content area.
+*   **Inline File Explorer**: Enhanced sidebar with VS Code-style inline input for creating files and folders.
 *   **Interactive Breadcrumbs**: VS Code-style file path navigation bar.
 *   **Smart Layout**:
-    *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes (including split view).
+    *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes.
     *   **Responsive**: Layout automatically adjusts to viewport changes.
 
 ### �️ Intelligent Workspace Management
@@ -57,10 +60,12 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   Real-time regex highlighting.
 
 ### ⚡ Power User Tools
-*   **CodeSnap**: Built-in tool to create beautiful, shareable code screenshots.
-    *   *New*: Supports clean **Light / Dark** theme toggling.
-    *   *Export*: Save as high-res PNG or copy directly to clipboard.
-    *   *Smart*: Automatically detects language and provides syntax highlighting.
+*   **CodeSnap**: Built-in tool to create beautiful, shareable screenshots.
+    *   *Integrated*: Toggle seamlessly between **Code** mode and **rendered Preview** mode to capture exactly what you need.
+    *   *Theme Support*: One-click **Light / Dark** theme toggling with correct background and syntax highlighting inversion.
+    *   *Export*: Save as high-res PNG or copy directly to clipboard with optimized font rendering.
+    *   *Clean*: Auto-hides UI controls during capture for professional-grade images.
+*   **Preview Actions**: Floating toolbar on all preview panes (Markdown / Typst / Mermaid) for instant "Copy Image" or "Save Image" without opening CodeSnap.
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
     *   *Enhanced Preview*: Real-time "Paper View" simulation with auto-scaling (Full Width) and shadow effects.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
