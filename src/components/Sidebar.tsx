@@ -5,6 +5,7 @@ import { SearchPane } from "./sidebar/SearchPane";
 import { ExplorerPane } from "./sidebar/ExplorerPane";
 import { OutlinePane } from "./sidebar/OutlinePane";
 import { WorkspacesPane } from "./sidebar/WorkspacesPane";
+import appLogo from "../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
@@ -158,6 +159,16 @@ const SidebarBase: React.FC<SidebarProps> = ({
                             onOpenFolder={onOpenFolder}
                         />
                     )}
+                </div>
+            </div>
+
+            {/* App Info Footer */}
+            <div className="h-[36px] border-t border-slate-200 bg-white/50 flex items-center px-3 gap-2.5 shrink-0 select-none cursor-default hover:bg-white transition-colors">
+                <img src={appLogo} alt="Logo" className="w-5 h-5 rounded shadow-sm object-cover" />
+                <div className="flex items-center flex-1 min-w-0 gap-2">
+                    <span className="text-[11px] font-bold text-slate-700 tracking-tight truncate">Typoly</span>
+                    <div className="flex-1" />
+                    <span className="text-[9px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full whitespace-nowrap">v0.1.0</span>
                 </div>
             </div>
 
