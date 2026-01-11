@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import mermaid from "mermaid";
+import { PreviewActions } from './PreviewActions';
 
 interface Props {
     content: string;
@@ -10,6 +11,12 @@ interface Props {
 
 export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, isDark = false }) => {
     const [svg, setSvg] = useState<string>('');
+    const [scale, setScale] = useState(1);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
+    const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
+    const handleReset = () => setScale(1);
 
     useEffect(() => {
         mermaid.initialize({
@@ -63,9 +70,20 @@ export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, 
     }, [content, idPrefix, isDark]);
 
     return (
-        <div
-            className={`mermaid-preview-container h-full flex items-center justify-center p-4 overflow-auto ${className || ''}`}
-            dangerouslySetInnerHTML={{ __html: svg }}
-        />
+        <div className={`mermaid-preview-wrapper relative group h-full overflow-hidden ${className || ''}`}>
+            <PreviewActions
+                targetRef={containerRef}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onResetZoom={handleReset}
+                scale={scale}
+            />
+            <div
+                ref={containerRef}
+                className="mermaid-preview-container h-full flex items-center justify-center p-4 overflow-auto origin-center transition-transform duration-200"
+                style={{ transform: `scale(${scale})` }}
+                dangerouslySetInnerHTML={{ __html: svg }}
+            />
+        </div>
     );
 };

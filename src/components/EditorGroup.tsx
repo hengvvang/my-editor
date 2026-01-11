@@ -95,15 +95,30 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     // --- Panel Size Handlers ---
     const handlePanelResize = useCallback((sizes: number[]) => {
         // sizes array order: [editor, preview?, codesnap?]
-        const updates: Partial<typeof viewState> = { editorSize: sizes[0] };
-        let idx = 1;
-        if (showSplitPreview && sizes[idx] !== undefined) {
-            updates.previewSize = sizes[idx];
-            idx++;
+        // Note: react-resizable-panels calls onLayout with the NEW sizes after resize.
+        // We just need to persist them to our state.
+
+        const updates: Partial<typeof viewState> = {};
+
+        // The first panel is ALWAYS the editor
+        if (sizes.length > 0) {
+            updates.editorSize = sizes[0];
         }
-        if (showCodeSnap && sizes[idx] !== undefined) {
-            updates.codeSnapSize = sizes[idx];
+
+        let currentIdx = 1;
+
+        // If preview is open, it takes the next slot
+        if (showSplitPreview && currentIdx < sizes.length) {
+            updates.previewSize = sizes[currentIdx];
+            currentIdx++;
         }
+
+        // If codesnap is open, it takes the next slot
+        if (showCodeSnap && currentIdx < sizes.length) {
+            updates.codeSnapSize = sizes[currentIdx];
+            currentIdx++;
+        }
+
         viewStateManager.setViewState(groupId, updates);
     }, [viewStateManager, groupId, showSplitPreview, showCodeSnap]);
 
@@ -241,7 +256,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- Render Preview Content ---
     const renderPreviewContent = useCallback(() => {
-        if (docType === 'typst') return <TypstPreview content={content} className="h-full overflow-auto" />;
+        if (docType === 'typst') return <TypstPreview content={content} filePath={activePath} className="h-full overflow-auto" />;
         if (docType === 'mermaid' || activePath?.endsWith('.mmd')) return <MermaidPreview content={content} idPrefix={groupId} />;
         if (docType === 'latex') return <LatexPreview content={content} />;
         if (docType === 'markdown') return <MarkdownPreview content={content} className="h-full" />;
@@ -371,12 +386,14 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 direction="horizontal"
                                 onLayout={handlePanelResize}
                                 className="flex-1"
+                                autoSaveId={`group-${groupId}-layout`}
                             >
                                 {/* Editor Panel */}
                                 <Panel
                                     defaultSize={hasRightPanels ? editorSize : 100}
                                     minSize={20}
                                     id="editor"
+                                    order={1}
                                 >
                                     <div className={`h-full relative overflow-hidden
                                         ${!isSourceMode ? 'preview-mode-cm' : ''}
@@ -418,6 +435,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                             defaultSize={previewSize}
                                             minSize={15}
                                             id="preview"
+                                            order={2}
                                         >
                                             <div className="h-full overflow-hidden border-l border-slate-200 bg-white">
                                                 {renderPreviewContent()}
@@ -434,6 +452,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                             defaultSize={codeSnapSize}
                                             minSize={15}
                                             id="codesnap"
+                                            order={showSplitPreview ? 3 : 2}
                                         >
                                             <div className="h-full overflow-hidden border-l border-slate-200 bg-[#1e1e1e]">
                                                 <CodeSnap
@@ -444,7 +463,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                         const themeClass = isDark ? "bg-[#282a36] text-gray-300" : "bg-white text-slate-900";
 
                                                         if (docType === 'markdown') return <MarkdownPreview content={previewCode} className={`${baseClass} ${isDark ? 'bg-[#282a36] prose-invert' : 'bg-white'}`} />;
-                                                        if (docType === 'typst') return <TypstPreview content={previewCode} isDark={isDark} className={`${baseClass} ${themeClass}`} />;
+                                                        if (docType === 'typst') return <TypstPreview content={previewCode} isDark={isDark} filePath={activePath} className={`${baseClass} ${themeClass}`} />;
                                                         if (docType === 'mermaid') return <MermaidPreview content={previewCode} isDark={isDark} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} />;
                                                         if (docType === 'latex') return <LatexPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
 

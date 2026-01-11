@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore
 import renderMathInElement from "katex/dist/contrib/auto-render";
+import { PreviewActions } from './PreviewActions';
 
 interface Props {
     content: string;
@@ -9,6 +10,11 @@ interface Props {
 
 export const LatexPreview: React.FC<Props> = ({ content, className }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1);
+
+    const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
+    const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
+    const handleReset = () => setScale(1);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -33,12 +39,22 @@ export const LatexPreview: React.FC<Props> = ({ content, className }) => {
     }, [content]);
 
     return (
-        <div
-            ref={containerRef}
-            className={`latex-preview-container h-full p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed ${className?.includes('bg-[#282a36]') ? 'bg-[#282a36] text-gray-300' : 'bg-white'} ${className || ''}`}
-            style={{
-                color: className?.includes('text-gray-300') ? '#e2e8f0' : undefined
-            }}
-        />
+        <div className={`latex-preview-wrapper relative group h-full overflow-hidden ${className || ''}`}>
+            <PreviewActions
+                targetRef={containerRef}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onResetZoom={handleReset}
+                scale={scale}
+            />
+            <div
+                ref={containerRef}
+                className={`latex-preview-container h-full p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed ${className?.includes('bg-[#282a36]') ? 'bg-[#282a36] text-gray-300' : 'bg-white'}`}
+                style={{
+                    color: className?.includes('text-gray-300') ? '#e2e8f0' : undefined,
+                    zoom: scale
+                }}
+            />
+        </div>
     );
 };

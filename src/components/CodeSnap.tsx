@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
-import { Copy, Download, Check, Moon, Sun } from 'lucide-react';
+import { Copy, Download, Check, Moon, Sun, Code2, Eye } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
@@ -92,52 +92,48 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
     `;
 
     return (
-        <div className="h-full flex flex-col bg-slate-50 overflow-hidden p-2 md:p-4 items-center justify-center relative">
-            <div className="mb-4 flex gap-2 z-10 sticky top-0 flex-wrap justify-center scale-90 origin-bottom">
+        <div className="h-full flex flex-col bg-slate-50 overflow-hidden items-center justify-center relative group">
+            <div className="preview-actions absolute top-4 right-6 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 bg-white/80 backdrop-blur-sm p-1 rounded-md shadow-sm border border-slate-200">
                 {/* Mode Switcher */}
                 {renderPreview && (
-                    <div className="flex bg-slate-200 p-1 rounded-lg mr-2">
-                        <button
-                            onClick={() => setMode('code')}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${mode === 'code' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            Code
-                        </button>
-                        <button
-                            onClick={() => setMode('preview')}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${mode === 'preview' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            Preview
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => setMode(m => m === 'code' ? 'preview' : 'code')}
+                        className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                        title={mode === 'code' ? "Switch to Preview" : "Switch to Code"}
+                    >
+                        {mode === 'code' ? <Eye size={14} /> : <Code2 size={14} />}
+                    </button>
                 )}
 
                 <button
                     onClick={toggleTheme}
-                    className="flex items-center gap-2 px-3 py-2.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg font-semibold text-sm shadow-sm border border-slate-200 transition-all"
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
                     title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                 >
-                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    {isDark ? <Sun size={14} /> : <Moon size={14} />}
                 </button>
+
+                <div className="w-[1px] h-4 bg-slate-200 my-auto mx-0.5" />
+
                 <button
                     onClick={onCopy}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 border border-slate-200 ${copied ? 'bg-green-500 text-white ring-2 ring-green-600/50' : 'bg-white hover:bg-slate-100 text-slate-700'}`}
-                    title="Copy to Clipboard"
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title={copied ? "Copied!" : "Copy Image"}
                 >
-                    {copied ? <Check size={18} /> : <Copy size={18} />}
-                    {copied ? 'Copied!' : 'Copy Image'}
+                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                 </button>
+
                 <button
                     onClick={onDownload}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg font-semibold text-sm shadow-sm border border-slate-200 transition-all"
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title="Save as PNG"
                 >
-                    <Download size={18} />
-                    Save PNG
+                    <Download size={14} />
                 </button>
             </div>
 
             {/* The Capture Container */}
-            <div className="relative group w-full h-full overflow-auto pb-4 flex">
+            <div className="relative w-full h-full overflow-auto p-4 flex">
                 {/* Background: Transparent for clean capture */}
                 <div
                     ref={ref}

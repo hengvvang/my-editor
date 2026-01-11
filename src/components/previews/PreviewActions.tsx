@@ -1,13 +1,24 @@
 import React, { useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
-import { Copy, Download, Check } from 'lucide-react';
+import { Copy, Download, Check, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 interface PreviewActionsProps {
     targetRef: React.RefObject<HTMLDivElement>;
     fileName?: string;
+    onZoomIn?: () => void;
+    onZoomOut?: () => void;
+    onResetZoom?: () => void;
+    scale?: number;
 }
 
-export const PreviewActions: React.FC<PreviewActionsProps> = ({ targetRef, fileName }) => {
+export const PreviewActions: React.FC<PreviewActionsProps> = ({
+    targetRef,
+    fileName,
+    onZoomIn,
+    onZoomOut,
+    onResetZoom,
+    scale = 1
+}) => {
     const [copied, setCopied] = useState(false);
 
     const handleCapture = useCallback(async (action: 'copy' | 'download') => {
@@ -66,6 +77,40 @@ export const PreviewActions: React.FC<PreviewActionsProps> = ({ targetRef, fileN
             >
                 <Download size={14} />
             </button>
+
+            {(onZoomIn || onZoomOut) && (
+                <>
+                    <div className="w-[1px] h-4 bg-slate-200 my-auto mx-0.5" />
+
+                    <button
+                        onClick={onZoomOut}
+                        className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                        title="Zoom Out"
+                    >
+                        <ZoomOut size={14} />
+                    </button>
+
+                    <span className="text-[10px] text-slate-400 font-mono flex items-center min-w-[32px] justify-center select-none">
+                        {Math.round(scale * 100)}%
+                    </span>
+
+                    <button
+                        onClick={onZoomIn}
+                        className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                        title="Zoom In"
+                    >
+                        <ZoomIn size={14} />
+                    </button>
+
+                    <button
+                        onClick={onResetZoom}
+                        className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                        title="Reset Zoom"
+                    >
+                        <RefreshCw size={12} />
+                    </button>
+                </>
+            )}
         </div>
     );
 };
