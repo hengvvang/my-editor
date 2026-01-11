@@ -8,7 +8,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 
 ### ✍️ Hybrid Editing Experience
 *   **Visual Mode (Zen Style)**: A focused, distraction-free writing environment now available for **ALL** file types (Markdown, Code, Text).
-    *   *Card-Style Highlighting**: Active lines are highlighted with a modern "Card" effect (Sky Blue theme) featuring a clear left indicator bar and subtle shadows, aiding focus.
+    *   *Card-Style Highlighting*: Active lines are highlighted with a modern "Card" effect (Sky Blue theme) features a clear left indicator bar and subtle shadows, aiding focus.
     *   *Universal Zen*: Whether you are writing a novel in Markdown or coding in Rust, switch to Visual Mode for a cleaner, reading-optimized layout.
     *   *HTML Enhancements*: Intelligent fading of HTML tags in visual mode to reduce noise while keeping structure visible.
     *   *Live Rendering*: Markdown supports generic features, plus Latex math auto-folding.
@@ -17,17 +17,14 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Performance**: Backend-accelerated rendering using **Rust** (`ammonia` + `comrak`).
     *   **Large File Optimization**: Dynamic debouncing strategy automatically adjusts based on file size (10k/100k lines) to prevent UI freezing.
     *   **Independent**: Preview panes work independently of editor modes.
-
-### 🎨 Typography & Design
-    *   **Tier 1 (High Performance)**: Powered by CodeMirror 6 Lezer parsers for JS/TS, Rust, Python, C++, Go, Java, SQL, PHP, Vue, XML, YAML, HTML/CSS.
-    *   **Legacy Support**: Fallback support for generic text formats.
-    *   **Ergonomic Status Bar**: Dynamic language detection and display (e.g., displaying "React (TSX)" instead of just "TSX").
+    *   **Universal Zoom**: All preview windows (Markdown, Typst, Mermaid, LaTeX) now support **smooth scaling**. Float over the preview area to access Zoom In/Out controls.
 
 ### 🎨 Typography & Design
 *   **System Fonts**: Uses system native fonts for a consistent and optimized reading and writing experience.
     *   *Screen Version*: Optimized non-monospace font used for UI and reading.
     *   *Mono Version*: Native fallback to system monospaced fonts (Consolas/Monaco) for code alignment.
 *   **Font Switching**: Dedicated toggle button in the toolbar to switch the editor between **Variable Width** (Reading mode) and **Monospace** (Coding mode) on the fly.
+*   **Language Support**: Powered by CodeMirror 6 with support for JS/TS, Rust, Python, C++, Go, Java, SQL, PHP, Vue, and more.
 
 ### 🧩 Modern & Flexible UI
 *   **Smart Split Groups**: Create complex layouts with recursive **Vertical** and **Horizontal** splitting. Supports intuitive drag-and-drop resizing.
@@ -41,7 +38,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes.
     *   **Responsive**: Layout automatically adjusts to viewport changes.
 
-### �️ Intelligent Workspace Management
+### 📂 Intelligent Workspace Management
 *   **Active Workspaces**: Mark frequent workspaces as "Active" for instant top-bar access (Green theme).
     *   *Shortcuts*: Persistent, quick-switch buttons in the window title bar.
     *   *Quick Actions*: Right-click or hover to easily deactivate.
@@ -51,7 +48,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **🕒 Recent**: Automatic history of previously opened folders.
 *   **Visual Organization**: Clear color-coded sections (Green/Blue/Amber) and intuitive icons (Zap/Star) in the sidebar.
 
-### �🔍 Advanced Search & Replace
+### 🔍 Advanced Search & Replace
 *   **High Performance**: Multi-threaded parallel search backend powered by Rust, capable of handling large workspaces instantly.
 *   **Smart Scopes**: 5-level search scope control for precise targeting:
     *   📄 Current File
@@ -69,16 +66,18 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 ### ⚡ Power User Tools
 *   **CodeSnap**: Built-in tool to create beautiful, shareable screenshots.
     *   *Selection-Aware*: Automatically captures only your **selected text** for precise control, or defaults to the whole file if nothing is selected.
-    *   *Smart Layout*: Dynamic container sizing ensures screenshots look great whether you're capturing 3 lines or 300.
+    *   *Smart Layout*: Dynamic container sizing ensures screenshots look great whether youre capturing 3 lines or 300.
     *   *Theme Support*: One-click **Light / Dark** theme toggling with true background and syntax highlighting inversion (perfect integration for Mermaid/Typst previews).
+    *   *Floating Canvas*: Updated UI with floating, auto-hiding controls that stay out of your way.
     *   *Export*: Save as high-res PNG or copy directly to clipboard with optimized font rendering and pixel-perfect padding.
-    *   *Clean*: Auto-hides UI controls during capture for professional-grade images.
-*   **Preview Actions**: Floating toolbar on all preview panes (Markdown / Typst / Mermaid) for instant "Copy Image" or "Save Image" without opening CodeSnap.
+*   **Preview Actions**: Uniform floating toolbar on all preview panes for consistent Zoom, Copy, and Save operations.
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
+    *   *Full Windows Font Support*: Backend automatically injects configuration to use native fonts (Arial, Cambria Math) for perfect rendering of text and equations.
+    *   *Image Path Resolution*: Intelligent handling of relative image paths in project structures.
     *   *Dark Mode Ready*: Preview automatically adapts to dark backgrounds with smart color inversion for perfect readability.
-    *   *Enhanced Preview*: Real-time "Paper View" simulation with auto-scaling (Full Width) and shadow effects.
+    *   *Enhanced Preview*: Real-time "Paper View" simulation with auto-scaling to full width.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
-    *   *Native Dark Mode*: Forces native dark theme rendering in dark mode for crisp, high-contrast diagrams (no white-background artifacts).
+    *   *Native Dark Mode*: Forces native dark theme rendering in dark mode for crisp, high-contrast diagrams.
 *   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
 *   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
 *   **Minimap**: Visual overview of your document with active line and selection indicators.
