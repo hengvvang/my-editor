@@ -19,6 +19,7 @@ import { TypstPreview } from "./previews/TypstPreview";
 import { MermaidPreview } from "./previews/MermaidPreview";
 import { MarkdownPreview } from "./previews/MarkdownPreview";
 import { LatexPreview } from "./previews/LatexPreview";
+import { GenericPreview } from "./previews/GenericPreview";
 
 import { EditorTabs } from "./editor/EditorTabs";
 import { EditorBreadcrumbs } from "./editor/EditorBreadcrumbs";
@@ -82,7 +83,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- View State from Manager (persistent across layout changes) ---
     const viewState = viewStateManager.getViewState(groupId);
-    const { isSourceMode, showSplitPreview, isVimMode, useMonospace, showLineNumbers, showMinimap, minimapWidth, showCodeSnap, editorSize, previewSize, codeSnapSize } = viewState;
+    const { isSourceMode, showSplitPreview, isVimMode, useMonospace, showLineNumbers, showMinimap, minimapWidth, showCodeSnap, editorSize, previewSize, codeSnapSize, isSyncScrollEnabled } = viewState;
 
     // --- Setters for View State ---
     const setIsSourceMode = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { isSourceMode: val }), [viewStateManager, groupId]);
@@ -91,6 +92,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const setShowLineNumbers = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showLineNumbers: val }), [viewStateManager, groupId]);
     const setShowMinimap = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showMinimap: val }), [viewStateManager, groupId]);
     const setMinimapWidth = useCallback((val: number) => viewStateManager.setViewState(groupId, { minimapWidth: val }), [viewStateManager, groupId]);
+    const toggleSyncScroll = useCallback(() => viewStateManager.setViewState(groupId, { isSyncScrollEnabled: !isSyncScrollEnabled }), [viewStateManager, groupId, isSyncScrollEnabled]);
 
     // --- Panel Size Handlers ---
     const handlePanelResize = useCallback((sizes: number[]) => {
@@ -124,7 +126,66 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- Content Rendering State ---
     const editorViewRef = useRef<EditorView | null>(null);
+    const previewScrollRef = useRef<HTMLDivElement | null>(null);
+    const isScrollingRef = useRef<'editor' | 'preview' | null>(null);
     const [snapCode, setSnapCode] = useState<string>('');
+
+    // --- Sync Scroll Logic ---
+    useEffect(() => {
+        if (!isSyncScrollEnabled) return;
+
+        const editorScroller = editorViewRef.current?.scrollDOM;
+        const previewScroller = previewScrollRef.current; // This is set by the active preview component
+
+        if (!editorScroller || !previewScroller) return;
+
+        const syncPreview = () => {
+            if (isScrollingRef.current === 'preview') return;
+            isScrollingRef.current = 'editor';
+
+            const percentage = editorScroller.scrollTop / (editorScroller.scrollHeight - editorScroller.clientHeight);
+
+            // Allow small margin of error near bottom
+            if (percentage > 0.99) {
+                previewScroller.scrollTop = previewScroller.scrollHeight;
+            } else {
+                previewScroller.scrollTop = percentage * (previewScroller.scrollHeight - previewScroller.clientHeight);
+            }
+
+            // Simple debounce to unlock
+            setTimeout(() => {
+                if (isScrollingRef.current === 'editor') isScrollingRef.current = null;
+            }, 50);
+        };
+
+        const syncEditor = () => {
+            if (isScrollingRef.current === 'editor') return;
+            isScrollingRef.current = 'preview';
+
+            const percentage = previewScroller.scrollTop / (previewScroller.scrollHeight - previewScroller.clientHeight);
+
+            if (percentage > 0.99) {
+                editorScroller.scrollTop = editorScroller.scrollHeight;
+            } else {
+                editorScroller.scrollTop = percentage * (editorScroller.scrollHeight - editorScroller.clientHeight);
+            }
+
+            setTimeout(() => {
+                if (isScrollingRef.current === 'preview') isScrollingRef.current = null;
+            }, 50);
+        };
+
+        editorScroller.addEventListener('scroll', syncPreview);
+        previewScroller.addEventListener('scroll', syncEditor);
+
+        // Immediate sync when enabled or layout changes
+        syncPreview();
+
+        return () => {
+            editorScroller.removeEventListener('scroll', syncPreview);
+            previewScroller.removeEventListener('scroll', syncEditor);
+        };
+    }, [isSyncScrollEnabled, activePath, showSplitPreview]); // Re-attach when file changes or preview opens
 
     // --- Derived State ---
     const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'text' => {
@@ -256,33 +317,21 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- Render Preview Content ---
     const renderPreviewContent = useCallback(() => {
-        if (docType === 'typst') return <TypstPreview content={content} filePath={activePath} className="h-full overflow-auto" />;
-        if (docType === 'mermaid' || activePath?.endsWith('.mmd')) return <MermaidPreview content={content} idPrefix={groupId} />;
-        if (docType === 'latex') return <LatexPreview content={content} />;
-        if (docType === 'markdown') return <MarkdownPreview content={content} className="h-full" />;
+        const commonProps = {
+            content,
+            onRef: (el: HTMLDivElement | null) => { previewScrollRef.current = el; },
+            isSyncScroll: isSyncScrollEnabled,
+            onToggleSyncScroll: toggleSyncScroll
+        };
+
+        if (docType === 'typst') return <TypstPreview filePath={activePath} className="h-full overflow-auto" {...commonProps} />;
+        if (docType === 'mermaid' || activePath?.endsWith('.mmd')) return <MermaidPreview idPrefix={groupId} {...commonProps} />;
+        if (docType === 'latex') return <LatexPreview {...commonProps} />;
+        if (docType === 'markdown') return <MarkdownPreview className="h-full" fileName={activePath?.split(/[/\\]/).pop()} {...commonProps} />;
 
         // Generic Source Preview
-        return (
-            <div className="h-full relative bg-slate-50">
-                <CodeMirror
-                    value={content}
-                    height="100%"
-                    extensions={[
-                        ...getLanguageExtension(activePath),
-                        EditorView.editable.of(false),
-                        EditorView.lineWrapping
-                    ]}
-                    theme="light"
-                    basicSetup={{
-                        lineNumbers: true,
-                        foldGutter: true,
-                        highlightActiveLine: false,
-                    }}
-                    className="h-full text-sm"
-                />
-            </div>
-        );
-    }, [docType, content, activePath, groupId]);
+        return <GenericPreview filePath={activePath} {...commonProps} />;
+    }, [docType, content, activePath, groupId, isSyncScrollEnabled, toggleSyncScroll]);
 
     // --- Empty State ---
     if (!activePath) {

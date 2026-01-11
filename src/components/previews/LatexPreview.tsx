@@ -6,11 +6,21 @@ import { PreviewActions } from './PreviewActions';
 interface Props {
     content: string;
     className?: string;
+    onRef?: (el: HTMLDivElement | null) => void;
+    isSyncScroll?: boolean;
+    onToggleSyncScroll?: () => void;
 }
 
-export const LatexPreview: React.FC<Props> = ({ content, className }) => {
+export const LatexPreview: React.FC<Props> = ({ content, className, onRef, isSyncScroll, onToggleSyncScroll }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
+
+    // Expose ref
+    useEffect(() => {
+        if (onRef) {
+            onRef(containerRef.current);
+        }
+    }, [onRef]);
 
     const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
     const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
@@ -45,8 +55,8 @@ export const LatexPreview: React.FC<Props> = ({ content, className }) => {
                 onZoomIn={handleZoomIn}
                 onZoomOut={handleZoomOut}
                 onResetZoom={handleReset}
-                scale={scale}
-            />
+                scale={scale} isSyncScroll={isSyncScroll}
+                onToggleSyncScroll={onToggleSyncScroll} />
             <div
                 ref={containerRef}
                 className={`latex-preview-container h-full p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed ${className?.includes('bg-[#282a36]') ? 'bg-[#282a36] text-gray-300' : 'bg-white'}`}

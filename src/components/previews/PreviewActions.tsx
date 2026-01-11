@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
-import { Copy, Download, Check, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Copy, Download, Check, ZoomIn, ZoomOut, RefreshCw, Link, Link2Off } from 'lucide-react';
 
 interface PreviewActionsProps {
     targetRef: React.RefObject<HTMLDivElement>;
@@ -9,6 +9,8 @@ interface PreviewActionsProps {
     onZoomOut?: () => void;
     onResetZoom?: () => void;
     scale?: number;
+    isSyncScroll?: boolean;
+    onToggleSyncScroll?: () => void;
 }
 
 export const PreviewActions: React.FC<PreviewActionsProps> = ({
@@ -17,7 +19,9 @@ export const PreviewActions: React.FC<PreviewActionsProps> = ({
     onZoomIn,
     onZoomOut,
     onResetZoom,
-    scale = 1
+    scale = 1,
+    isSyncScroll,
+    onToggleSyncScroll
 }) => {
     const [copied, setCopied] = useState(false);
 
@@ -77,6 +81,16 @@ export const PreviewActions: React.FC<PreviewActionsProps> = ({
             >
                 <Download size={14} />
             </button>
+
+            {onToggleSyncScroll && (
+                <button
+                    onClick={onToggleSyncScroll}
+                    className={`p-1.5 hover:bg-slate-100 rounded transition-colors ${isSyncScroll ? 'text-blue-500 bg-blue-50 hover:bg-blue-100' : 'text-slate-400'}`}
+                    title={isSyncScroll ? "Sync Scroll On" : "Sync Scroll Off"}
+                >
+                    {isSyncScroll ? <Link size={14} /> : <Link2Off size={14} />}
+                </button>
+            )}
 
             {(onZoomIn || onZoomOut) && (
                 <>

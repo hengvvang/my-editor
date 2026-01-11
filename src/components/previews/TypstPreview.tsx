@@ -7,12 +7,22 @@ interface Props {
     className?: string;
     isDark?: boolean;
     filePath?: string | null;
+    onRef?: (el: HTMLDivElement | null) => void;
+    isSyncScroll?: boolean;
+    onToggleSyncScroll?: () => void;
 }
 
-export const TypstPreview: React.FC<Props> = ({ content, className, isDark, filePath }) => {
+export const TypstPreview: React.FC<Props> = ({ content, className, isDark, filePath, onRef, isSyncScroll, onToggleSyncScroll }) => {
     const [svg, setSvg] = useState<string>('');
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // Expose ref
+    useEffect(() => {
+        if (onRef) {
+            onRef(containerRef.current);
+        }
+    }, [onRef]);
 
     const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
     const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
@@ -48,6 +58,8 @@ export const TypstPreview: React.FC<Props> = ({ content, className, isDark, file
                 onZoomOut={handleZoomOut}
                 onResetZoom={handleReset}
                 scale={scale}
+                isSyncScroll={isSyncScroll}
+                onToggleSyncScroll={onToggleSyncScroll}
             />
             <style>
                 {`

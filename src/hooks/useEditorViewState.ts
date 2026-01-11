@@ -14,6 +14,8 @@ export interface EditorViewState {
     editorSize: number;
     previewSize: number;
     codeSnapSize: number;
+    // Sync Scroll
+    isSyncScrollEnabled: boolean;
 }
 
 const defaultViewState: EditorViewState = {
@@ -29,6 +31,7 @@ const defaultViewState: EditorViewState = {
     editorSize: 50,
     previewSize: 25,
     codeSnapSize: 25,
+    isSyncScrollEnabled: true, // Enabled by default
 };
 
 type ViewStateMap = Record<string, EditorViewState>;
