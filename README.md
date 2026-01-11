@@ -13,6 +13,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *HTML Enhancements*: Intelligent fading of HTML tags in visual mode to reduce noise while keeping structure visible.
     *   *Live Rendering*: Markdown supports generic features, plus Latex math auto-folding.
 *   **Code Mode**: Full-control source editing with syntax highlighting.
+*   **Movable Toolbar**: Toggle the editor toolbar between **Top** and **Bottom** positions to suit your workflow. Features a compact design to maximize vertical screen real estate.
 *   **Smart Preview System**:
     *   **Performance**: Backend-accelerated rendering using **Rust** (`ammonia` + `comrak`).
     *   **Large File Optimization**: Dynamic debouncing strategy automatically adjusts based on file size (10k/100k lines) to prevent UI freezing.
@@ -33,6 +34,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Optimized Title Bar**: Layout reorganized for better ergonomics, with file info on the left and actions on the right.
     *   **Immersive Toolbars**: Controls blend seamlessly with the content area.
 *   **Inline File Explorer**: Enhanced sidebar with VS Code-style inline input for creating files and folders.
+*   **Tree Controls**: Added **Collapse All** button to instantly tidy up complex directory structures.
 *   **Interactive Breadcrumbs**: Full-featured navigation bar with recursive directory dropdowns and intelligent "click-to-open" file loading.
 *   **Smart Layout**:
     *   **Minimap**: Visual overview that works seamlessly across all file types and layout modes.
@@ -45,7 +47,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Access Tiers**:
     *   **⚡ Active**: For high-priority, daily projects.
     *   **⭐ Archive**: For important pinned references (formerly Starred).
-    *   **🕒 Recent**: Automatic history of previously opened folders.
+    *   **🕒 Recent**: Automatic history of previously opened folders (denoted by **Amber** color).
 *   **Visual Organization**: Clear color-coded sections (Green/Blue/Amber) and intuitive icons (Zap/Star) in the sidebar.
 
 ### 🔍 Advanced Search & Replace
@@ -70,6 +72,9 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *Theme Support*: One-click **Light / Dark** theme toggling with true background and syntax highlighting inversion (perfect integration for Mermaid/Typst previews).
     *   *Floating Canvas*: Updated UI with floating, auto-hiding controls that stay out of your way.
     *   *Export*: Save as high-res PNG or copy directly to clipboard with optimized font rendering and pixel-perfect padding.
+*   **Universal PDF Export**:
+    *   **Direct Print**: One-click PDF export for **ALL** file types using browser-native printing technology.
+    *   **Print Optimization**: Custom print stylesheets ensure clean layouts, hiding UI elements and optimizing margins for A4 paper.
 *   **Preview Actions**: Uniform floating toolbar on all preview panes for consistent Zoom, Copy, and Save operations.
 *   **Typst Support**: First-class support for `.typ` files with auto-compilation and instant SVG preview.
     *   *Full Windows Font Support*: Backend automatically injects configuration to use native fonts (Arial, Cambria Math) for perfect rendering of text and equations.
