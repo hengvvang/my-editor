@@ -14,6 +14,8 @@ import { MinimapView } from "./MinimapView";
 import { StatusBar, colorSchemes } from "./StatusBar";
 import { CodeSnap } from "./CodeSnap";
 import { EditorViewStateManager } from "../hooks/useEditorViewState";
+import { save } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 import { TypstPreview } from "./previews/TypstPreview";
 import { MermaidPreview } from "./previews/MermaidPreview";
@@ -235,6 +237,63 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         }
     }, [showSplitPreview, showCodeSnap, viewStateManager, groupId]);
 
+    const handleExportPdf = useCallback(async () => {
+        try {
+            if (docType === 'typst') {
+                const filePath = await save({
+                    filters: [{
+                        name: 'PDF Document',
+                        extensions: ['pdf'],
+                    }],
+                    defaultPath: activePath ? activePath.replace(/\.[^/.]+$/, "") + ".pdf" : "document.pdf"
+                });
+
+                if (!filePath) return;
+
+                await invoke('export_typst_pdf', {
+                    content: content,
+                    filePath: activePath || null,
+                    savePath: filePath
+                });
+            } else {
+                const previewContainer = document.getElementById(`group-${groupId}-preview-container`);
+
+                if (previewContainer) {
+                    // Create a dedicated print host outside the app root
+                    const printHost = document.createElement('div');
+                    printHost.className = 'print-host';
+
+                    // Clone the content to ensure we don't mess with the live React/Editor DOM
+                    const content = previewContainer.cloneNode(true) as HTMLElement;
+
+                    // Reset layout constraints on the cloned content
+                    content.style.height = 'auto';
+                    content.style.overflow = 'visible';
+                    content.style.position = 'relative';
+                    content.style.transform = 'none';
+
+                    printHost.appendChild(content);
+                    document.body.appendChild(printHost);
+                    document.body.classList.add('printing-mode');
+
+                    // Allow a brief moment for styles to apply before printing
+                    setTimeout(() => {
+                        window.print();
+
+                        // Cleanup after print dialog closes
+                        document.body.classList.remove('printing-mode');
+                        if (document.body.contains(printHost)) {
+                            document.body.removeChild(printHost);
+                        }
+                    }, 50);
+                }
+            }
+        } catch (error) {
+            console.error("Export failed:", error);
+            alert("Failed to export PDF: " + error);
+        }
+    }, [activePath, content, docType, groupId]);
+
     const handleToggleCodeSnap = useCallback(() => {
         if (!showCodeSnap) {
             // Opening CodeSnap - capture selection and adjust sizes
@@ -321,7 +380,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             content,
             onRef: (el: HTMLDivElement | null) => { previewScrollRef.current = el; },
             isSyncScroll: isSyncScrollEnabled,
-            onToggleSyncScroll: toggleSyncScroll
+            onToggleSyncScroll: toggleSyncScroll,
+            onExportPdf: handleExportPdf
         };
 
         if (docType === 'typst') return <TypstPreview filePath={activePath} className="h-full overflow-auto" {...commonProps} />;
@@ -331,7 +391,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
         // Generic Source Preview
         return <GenericPreview filePath={activePath} {...commonProps} />;
-    }, [docType, content, activePath, groupId, isSyncScrollEnabled, toggleSyncScroll]);
+    }, [docType, content, activePath, groupId, isSyncScrollEnabled, toggleSyncScroll, handleExportPdf]);
 
     // --- Empty State ---
     if (!activePath) {
@@ -486,7 +546,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                             id="preview"
                                             order={2}
                                         >
-                                            <div className="h-full overflow-hidden border-l border-slate-200 bg-white">
+                                            <div id={`group-${groupId}-preview-container`} className="h-full overflow-hidden border-l border-slate-200 bg-white">
                                                 {renderPreviewContent()}
                                             </div>
                                         </Panel>

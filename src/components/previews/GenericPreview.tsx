@@ -5,14 +5,15 @@ import { getLanguageExtension } from '../../utils/languageManager';
 import { PreviewActions } from './PreviewActions';
 
 interface Props {
-    content: string;
+    content?: string;
     filePath: string | null;
     onRef?: (el: HTMLDivElement | null) => void;
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
+    onExportPdf?: () => void;
 }
 
-export const GenericPreview: React.FC<Props> = ({ content, filePath, onRef, isSyncScroll, onToggleSyncScroll }) => {
+export const GenericPreview: React.FC<Props> = ({ content = '', filePath, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
 
@@ -40,8 +41,7 @@ export const GenericPreview: React.FC<Props> = ({ content, filePath, onRef, isSy
                 onResetZoom={handleReset}
                 scale={scale}
                 isSyncScroll={isSyncScroll}
-                onToggleSyncScroll={onToggleSyncScroll}
-            />
+                onToggleSyncScroll={onToggleSyncScroll} onExportPdf={onExportPdf} />
             <div style={{ zoom: scale, height: '100%' }}>
                 <CodeMirror
                     value={content}

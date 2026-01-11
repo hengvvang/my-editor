@@ -10,9 +10,10 @@ interface Props {
     onRef?: (el: HTMLDivElement | null) => void;
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
+    onExportPdf?: () => void;
 }
 
-export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, isDark = false, onRef, isSyncScroll, onToggleSyncScroll }) => {
+export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, isDark = false, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
     const [svg, setSvg] = useState<string>('');
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,7 @@ export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, 
                 scale={scale}
                 isSyncScroll={isSyncScroll}
                 onToggleSyncScroll={onToggleSyncScroll}
+                onExportPdf={onExportPdf}
             />
             <div
                 ref={containerRef}

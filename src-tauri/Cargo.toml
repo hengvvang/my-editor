@@ -12,6 +12,7 @@ tauri-build = { version = "2", features = [] }
 num_cpus = "1.0"
 comrak = "0.33.0"
 typst = "0.12.0"
+typst-pdf = "0.12.0"
 typst-svg = "0.12.0"
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }

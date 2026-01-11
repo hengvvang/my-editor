@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
-import { Copy, Download, Check, ZoomIn, ZoomOut, RefreshCw, Link, Link2Off } from 'lucide-react';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
+import { Copy, Download, Check, ZoomIn, ZoomOut, RefreshCw, Link, Link2Off, FileDown } from 'lucide-react';
 
 interface PreviewActionsProps {
     targetRef: React.RefObject<HTMLDivElement>;
@@ -11,6 +13,7 @@ interface PreviewActionsProps {
     scale?: number;
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
+    onExportPdf?: () => void;
 }
 
 export const PreviewActions: React.FC<PreviewActionsProps> = ({
@@ -21,7 +24,8 @@ export const PreviewActions: React.FC<PreviewActionsProps> = ({
     onResetZoom,
     scale = 1,
     isSyncScroll,
-    onToggleSyncScroll
+    onToggleSyncScroll,
+    onExportPdf
 }) => {
     const [copied, setCopied] = useState(false);
 
@@ -54,10 +58,20 @@ export const PreviewActions: React.FC<PreviewActionsProps> = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             } else {
-                const link = document.createElement('a');
-                link.download = `preview-${fileName || 'export'}-${Date.now()}.png`;
-                link.href = dataUrl;
-                link.click();
+                const suggestedName = `preview-${fileName ? fileName.replace(/\.[^/.]+$/, "") : 'export'}-${Date.now()}.png`;
+                const filePath = await save({
+                    filters: [{
+                        name: 'PNG Image',
+                        extensions: ['png'],
+                    }],
+                    defaultPath: suggestedName
+                });
+
+                if (filePath) {
+                    const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+                    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                    await writeFile(filePath, binaryData);
+                }
             }
         } catch (err) {
             console.error(`Failed to ${action} preview:`, err);
@@ -81,6 +95,16 @@ export const PreviewActions: React.FC<PreviewActionsProps> = ({
             >
                 <Download size={14} />
             </button>
+
+            {onExportPdf && (
+                <button
+                    onClick={onExportPdf}
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title="Export to PDF"
+                >
+                    <FileDown size={14} />
+                </button>
+            )}
 
             {onToggleSyncScroll && (
                 <button

@@ -1,0 +1,42 @@
+@page {
+    size: auto;
+    margin: 0mm;
+}
+
+@media print {
+    /* When in printing mode, hide the main app root */
+    body.printing-mode #root {
+        display: none !important;
+    }
+
+    /* The print host (direct child of body) is the only thing visible */
+    body.printing-mode .print-host {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20mm; /* Standard page padding */
+        box-sizing: border-box;
+        background: white;
+        z-index: 9999;
+    }
+
+    /* Ensure content expands */
+    .print-host * {
+        visibility: visible !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    .preview-actions {
+        display: none !important;
+    }
+
+    /* Ensure backgrounds work for syntax highlighting */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}

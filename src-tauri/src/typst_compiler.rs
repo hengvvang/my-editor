@@ -177,3 +177,41 @@ pub fn compile(content: String, file_path: Option<String>) -> Result<String, Str
         }
     }
 }
+
+pub fn export_pdf(
+    content: String,
+    file_path: Option<String>,
+    save_path: String,
+) -> Result<(), String> {
+    // Same font injection as compile
+    let content_with_font = format!(
+        "#set text(font: (\"Cambria\", \"Arial\"))\n#show math.equation: set text(font: \"Cambria Math\")\n{}",
+        content
+    );
+
+    let world = SimpleWorld::new(content_with_font, file_path);
+
+    let document = match typst::compile(&world).output {
+        Ok(doc) => doc,
+        Err(diags) => {
+            let msg = diags
+                .iter()
+                .map(|d| d.message.to_string())
+                .collect::<Vec<_>>()
+                .join("\n");
+            return Err(msg);
+        }
+    };
+
+    let pdf_options = typst_pdf::PdfOptions::default();
+    let buffer = typst_pdf::pdf(&document, &pdf_options).map_err(|diags| {
+        diags
+            .iter()
+            .map(|d| d.message.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    })?;
+
+    std::fs::write(save_path, buffer).map_err(|e| e.to_string())?;
+    Ok(())
+}

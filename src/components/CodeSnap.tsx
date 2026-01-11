@@ -1,5 +1,7 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
 import { Copy, Download, Check, Moon, Sun, Code2, Eye } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
@@ -73,13 +75,25 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                     return true;
                 }
             });
-            const link = document.createElement('a');
-            link.download = `code-snap-${fileName || 'capture'}-${Date.now()}.png`;
-            link.href = dataUrl;
-            link.click();
+
+            const suggestedName = `code-snap-${fileName ? fileName.replace(/\.[^/.]+$/, "") : 'capture'}-${Date.now()}.png`;
+            const filePath = await save({
+                filters: [{
+                    name: 'PNG Image',
+                    extensions: ['png'],
+                }],
+                defaultPath: suggestedName
+            });
+
+            if (!filePath) return;
+
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+            const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+            await writeFile(filePath, binaryData);
         } catch (err) {
             console.error("Failed to download image:", err);
-            alert("Failed to generate image.");
+            alert("Failed to generate or save image.");
         }
     }, [ref, fileName, isDark]);
 

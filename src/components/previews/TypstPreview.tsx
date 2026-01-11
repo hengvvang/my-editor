@@ -10,9 +10,10 @@ interface Props {
     onRef?: (el: HTMLDivElement | null) => void;
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
+    onExportPdf?: () => void;
 }
 
-export const TypstPreview: React.FC<Props> = ({ content, className, isDark, filePath, onRef, isSyncScroll, onToggleSyncScroll }) => {
+export const TypstPreview: React.FC<Props> = ({ content, className, isDark, filePath, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
     const [svg, setSvg] = useState<string>('');
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -60,6 +61,7 @@ export const TypstPreview: React.FC<Props> = ({ content, className, isDark, file
                 scale={scale}
                 isSyncScroll={isSyncScroll}
                 onToggleSyncScroll={onToggleSyncScroll}
+                onExportPdf={onExportPdf}
             />
             <style>
                 {`
@@ -72,6 +74,7 @@ export const TypstPreview: React.FC<Props> = ({ content, className, isDark, file
             <div
                 className="typst-content-host w-full transition-transform duration-200 origin-top"
                 style={{ transform: `scale(${scale})` }}
+                dangerouslySetInnerHTML={{ __html: svg }}
             />
         </div>
     );

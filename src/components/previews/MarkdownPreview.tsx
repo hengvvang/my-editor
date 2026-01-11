@@ -9,9 +9,10 @@ interface Props {
     onRef?: (el: HTMLDivElement | null) => void;
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
+    onExportPdf?: () => void;
 }
 
-export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName, onRef, isSyncScroll, onToggleSyncScroll }) => {
+export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
     const [html, setHtml] = useState<string>('');
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +53,7 @@ export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName,
                 scale={scale}
                 isSyncScroll={isSyncScroll}
                 onToggleSyncScroll={onToggleSyncScroll}
+                onExportPdf={onExportPdf}
             />
             <div
                 ref={containerRef}

@@ -18,6 +18,7 @@ fn main() {
             commands::io::copy_item,
             commands::markdown::render_markdown,
             commands::typst::compile_typst,
+            commands::typst::export_typst_pdf,
             commands::search::search_in_files
         ])
         .run(tauri::generate_context!())

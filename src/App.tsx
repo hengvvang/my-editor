@@ -8,6 +8,7 @@ import { EditorGroup } from "./components/EditorGroup";
 import { Sidebar } from "./components/Sidebar";
 import { Tab, GroupState } from "./types";
 import "./styles.css";
+import "./print.css";
 
 import { useDocuments } from "./hooks/useDocuments";
 import { useEditorGroups } from "./hooks/useEditorGroups";
