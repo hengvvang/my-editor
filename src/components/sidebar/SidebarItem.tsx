@@ -18,6 +18,7 @@ export interface SidebarItemProps {
     onCancelCreate: () => void;
     pathsToRefresh: string[];
     onRefreshComplete: (path: string) => void;
+    collapseSignal: number;
 }
 
 export const SidebarItem = ({
@@ -31,10 +32,19 @@ export const SidebarItem = ({
     onConfirmCreate,
     onCancelCreate,
     pathsToRefresh,
-    onRefreshComplete
+    onRefreshComplete,
+    collapseSignal
 }: SidebarItemProps) => {
     const [expanded, setExpanded] = useState(false);
     const [children, setChildren] = useState<FileEntry[]>([]);
+
+    // Collapse All Effect
+    useEffect(() => {
+        if (collapseSignal > 0) {
+            setExpanded(false);
+        }
+    }, [collapseSignal]);
+
 
     const fetchChildren = async () => {
         try {
@@ -145,6 +155,7 @@ export const SidebarItem = ({
                             onCancelCreate={onCancelCreate}
                             pathsToRefresh={pathsToRefresh}
                             onRefreshComplete={onRefreshComplete}
+                            collapseSignal={collapseSignal}
                         />
                     ))}
                 </>

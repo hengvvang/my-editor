@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
-import { Copy, Download, Check, Moon, Sun, Code2, Eye } from 'lucide-react';
+import { Copy, Download, Check, Moon, Sun, Code2, Eye, ZoomIn, ZoomOut, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
@@ -13,7 +13,7 @@ interface CodeSnapProps {
     code: string;
     language?: string;
     fileName?: string;
-    renderPreview?: (content: string, isDark: boolean) => React.ReactNode;
+    renderPreview?: (content: string, isDark: boolean, scale: number) => React.ReactNode;
 }
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
@@ -23,8 +23,17 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
     const [copied, setCopied] = useState(false);
     const [isDark, setIsDark] = useState(false);
     const [mode, setMode] = useState<'code' | 'preview'>('code');
+    const [scale, setScale] = useState(1);
+    const [padding, setPadding] = useState(3); // 1-6 scale
 
     const toggleTheme = () => setIsDark(!isDark);
+
+    const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
+    const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
+    const handleResetZoom = () => setScale(1);
+
+    const handlePaddingInc = () => setPadding(p => Math.min(p + 1, 8));
+    const handlePaddingDec = () => setPadding(p => Math.max(p - 1, 0));
 
     const onCopy = useCallback(async () => {
         if (ref.current === null) return;
@@ -107,7 +116,23 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
 
     return (
         <div className="h-full flex flex-col bg-slate-50 overflow-hidden items-center justify-center relative group">
-            <div className="preview-actions absolute top-4 right-6 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 bg-white/80 backdrop-blur-sm p-1 rounded-md shadow-sm border border-slate-200">
+            <div className="preview-actions absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 bg-white/80 backdrop-blur-sm p-1 rounded-md shadow-sm border border-slate-200">
+                <button
+                    onClick={onCopy}
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title={copied ? "Copied!" : "Copy Image"}
+                >
+                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                </button>
+
+                <button
+                    onClick={onDownload}
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title="Save as PNG"
+                >
+                    <Download size={14} />
+                </button>
+
                 {/* Mode Switcher */}
                 {renderPreview && (
                     <button
@@ -130,19 +155,49 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                 <div className="w-[1px] h-4 bg-slate-200 my-auto mx-0.5" />
 
                 <button
-                    onClick={onCopy}
+                    onClick={handleZoomOut}
                     className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
-                    title={copied ? "Copied!" : "Copy Image"}
+                    title="Zoom Out"
                 >
-                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                    <ZoomOut size={14} />
+                </button>
+
+                <span className="text-[10px] text-slate-400 font-mono flex items-center min-w-[32px] justify-center select-none">
+                    {Math.round(scale * 100)}%
+                </span>
+
+                <button
+                    onClick={handleZoomIn}
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title="Zoom In"
+                >
+                    <ZoomIn size={14} />
                 </button>
 
                 <button
-                    onClick={onDownload}
+                    onClick={handleResetZoom}
                     className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
-                    title="Save as PNG"
+                    title="Reset Zoom"
                 >
-                    <Download size={14} />
+                    <RefreshCw size={12} />
+                </button>
+
+                <div className="w-[1px] h-4 bg-slate-200 my-auto mx-0.5" />
+
+                <button
+                    onClick={handlePaddingDec}
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title="Decrease Padding"
+                >
+                    <Minimize2 size={14} />
+                </button>
+
+                <button
+                    onClick={handlePaddingInc}
+                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                    title="Increase Padding"
+                >
+                    <Maximize2 size={14} />
                 </button>
             </div>
 
@@ -151,7 +206,8 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                 {/* Background: Transparent for clean capture */}
                 <div
                     ref={ref}
-                    className="snap-container relative p-6 rounded-xl w-full max-w-[95%] m-auto flex items-center justify-center"
+                    className="snap-container relative rounded-xl w-full max-w-[95%] m-auto flex items-center justify-center transition-transform duration-200 origin-center"
+                    style={{ padding: `${padding * 8}px` }}
                 >
                     <style>{snapFontStyles}</style>
                     {/* The Editor Window */}
@@ -178,7 +234,9 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
 
                         {/* Code Area */}
                         <div className={`p-6 transition-colors duration-200 min-h-[120px] ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'
-                            }`}>
+                            }`}
+                            style={{ fontSize: `${scale * 14}px` }}
+                        >
                             {mode === 'code' ? (
                                 <CodeMirror
                                     value={code}
@@ -209,7 +267,7 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                                 />
                             ) : (
                                 <div className={`min-h-[100px] min-w-[200px] rounded ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}>
-                                    {renderPreview ? renderPreview(code, isDark) : <div className="p-4 text-center text-slate-400">Preview not available</div>}
+                                    {renderPreview ? renderPreview(code, isDark, scale) : <div className="p-4 text-center text-slate-400">Preview not available</div>}
                                 </div>
                             )}
                         </div>

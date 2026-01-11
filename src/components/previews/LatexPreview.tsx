@@ -10,11 +10,16 @@ interface Props {
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
     onExportPdf?: () => void;
+    showActions?: boolean;
+    scale?: number;
 }
 
-export const LatexPreview: React.FC<Props> = ({ content, className, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
+export const LatexPreview: React.FC<Props> = ({ content, className, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf, showActions = true, scale: externalScale }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [scale, setScale] = useState(1);
+    const [internalScale, setInternalScale] = useState(1);
+
+    const scale = externalScale !== undefined ? externalScale : internalScale;
+    const setScale = setInternalScale;
 
     // Expose ref
     useEffect(() => {
@@ -51,16 +56,18 @@ export const LatexPreview: React.FC<Props> = ({ content, className, onRef, isSyn
 
     return (
         <div className={`latex-preview-wrapper relative group h-full overflow-hidden ${className || ''}`}>
-            <PreviewActions
-                targetRef={containerRef}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onResetZoom={handleReset}
-                scale={scale}
-                isSyncScroll={isSyncScroll}
-                onToggleSyncScroll={onToggleSyncScroll}
-                onExportPdf={onExportPdf}
-            />
+            {showActions && (
+                <PreviewActions
+                    targetRef={containerRef}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onResetZoom={handleReset}
+                    scale={scale}
+                    isSyncScroll={isSyncScroll}
+                    onToggleSyncScroll={onToggleSyncScroll}
+                    onExportPdf={onExportPdf}
+                />
+            )}
             <div
                 ref={containerRef}
                 className={`latex-preview-container h-full p-8 overflow-auto prose max-w-none whitespace-pre-wrap font-mono text-sm leading-relaxed ${className?.includes('bg-[#282a36]') ? 'bg-[#282a36] text-gray-300' : 'bg-white'}`}

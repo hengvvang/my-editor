@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useCallback, useEffect, useState } from "react";
-import { Eye, Keyboard, Type, ListOrdered, Map as MapIcon, Code } from "lucide-react";
+import { Eye, Keyboard, Type, ListOrdered, Map as MapIcon, Code, ArrowDownToLine, ArrowUpToLine } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
@@ -131,6 +131,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const previewScrollRef = useRef<HTMLDivElement | null>(null);
     const isScrollingRef = useRef<'editor' | 'preview' | null>(null);
     const [snapCode, setSnapCode] = useState<string>('');
+    const [toolbarPosition, setToolbarPosition] = useState<'top' | 'bottom'>('top');
 
     // --- Sync Scroll Logic ---
     useEffect(() => {
@@ -398,6 +399,65 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         return <EditorEmptyState onCloseGroup={onCloseGroup} useMonospace={useMonospace} />;
     }
 
+
+    // --- Render Toolbar Content ---
+    const renderEditorToolbar = () => (
+        <div className={`flex justify-end px-2 py-0.5 bg-white border-slate-200 z-10 w-full ${toolbarPosition === 'top' ? 'border-b' : 'border-t'}`}>
+            <div className="flex items-center gap-0.5 bg-slate-50/50 border border-slate-200 rounded-lg p-0.5 shadow-sm">
+                {/* Edit Mode Toggle */}
+                <div className="flex items-center bg-slate-100 rounded-md p-0.5">
+                    <button
+                        onClick={() => setIsSourceMode(true)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${isSourceMode ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        title="Source Mode - Edit raw code"
+                    >
+                        <Code size={12} className="inline mr-1" />Source
+                    </button>
+                    <button
+                        onClick={() => setIsSourceMode(false)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${!isSourceMode ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        title="Visual Mode - Styled editing"
+                    >
+                        <Eye size={12} className="inline mr-1" />Visual
+                    </button>
+                </div>
+
+                <div className="w-[1px] h-3 bg-slate-200 mx-1" />
+
+                {/* Editor Options */}
+                <div className="flex items-center gap-0.5">
+                    <button
+                        onClick={() => setUseMonospace(!useMonospace)}
+                        className={`p-1 rounded-md transition-all ${useMonospace ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        title={`Font: ${useMonospace ? 'Monospace' : 'Sans-serif'}`}
+                    ><Type size={13} /></button>
+                    <button
+                        onClick={() => setIsVimMode(!isVimMode)}
+                        className={`p-1 rounded-md transition-all ${isVimMode ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        title={`Vim Mode: ${isVimMode ? 'ON' : 'OFF'} (Ctrl+Shift+V)`}
+                    ><Keyboard size={13} /></button>
+                    <button
+                        onClick={() => setShowLineNumbers(!showLineNumbers)}
+                        className={`p-1 rounded-md transition-all ${showLineNumbers ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        title={`Line Numbers: ${showLineNumbers ? 'ON' : 'OFF'}`}
+                    ><ListOrdered size={13} /></button>
+                    <button
+                        onClick={handleToggleMinimap}
+                        className={`p-1 rounded-md transition-all ${showMinimap ? 'bg-slate-200 text-slate-700' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        title={`Minimap: ${showMinimap ? 'ON' : 'OFF'} (Ctrl+Shift+M)`}
+                    ><MapIcon size={13} /></button>
+                    <button
+                        onClick={() => setToolbarPosition(pos => pos === 'top' ? 'bottom' : 'top')}
+                        className="p-1 rounded-md transition-all text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        title={`Move toolbar to ${toolbarPosition === 'top' ? 'bottom' : 'top'}`}
+                    >
+                        {toolbarPosition === 'top' ? <ArrowDownToLine size={13} /> : <ArrowUpToLine size={13} />}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     // --- Determine Panel Visibility ---
     const hasRightPanels = showSplitPreview || showCodeSnap;
 
@@ -440,54 +500,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             ) : (
                 <div className="flex-1 relative bg-white overflow-hidden" id={`scroll-${groupId}`}>
                     <div className="flex min-h-full w-full h-full flex-col">
-                        {/* View Controls Overlay */}
-                        <div className="sticky top-0 z-20 flex justify-end px-2 py-1 pointer-events-none">
-                            <div className="pointer-events-auto flex items-center gap-0.5 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg p-1 shadow-sm">
-                                {/* Edit Mode Toggle */}
-                                <div className="flex items-center bg-slate-100 rounded-md p-0.5">
-                                    <button
-                                        onClick={() => setIsSourceMode(true)}
-                                        className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${isSourceMode ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                                        title="Source Mode - Edit raw code"
-                                    >
-                                        <Code size={12} className="inline mr-1" />Source
-                                    </button>
-                                    <button
-                                        onClick={() => setIsSourceMode(false)}
-                                        className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${!isSourceMode ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                                        title="Visual Mode - Styled editing"
-                                    >
-                                        <Eye size={12} className="inline mr-1" />Visual
-                                    </button>
-                                </div>
-
-                                <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-
-                                {/* Editor Options */}
-                                <div className="flex items-center gap-0.5">
-                                    <button
-                                        onClick={() => setUseMonospace(!useMonospace)}
-                                        className={`p-1.5 rounded-md transition-all ${useMonospace ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={`Font: ${useMonospace ? 'Monospace' : 'Sans-serif'}`}
-                                    ><Type size={13} /></button>
-                                    <button
-                                        onClick={() => setIsVimMode(!isVimMode)}
-                                        className={`p-1.5 rounded-md transition-all ${isVimMode ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={`Vim Mode: ${isVimMode ? 'ON' : 'OFF'} (Ctrl+Shift+V)`}
-                                    ><Keyboard size={13} /></button>
-                                    <button
-                                        onClick={() => setShowLineNumbers(!showLineNumbers)}
-                                        className={`p-1.5 rounded-md transition-all ${showLineNumbers ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={`Line Numbers: ${showLineNumbers ? 'ON' : 'OFF'}`}
-                                    ><ListOrdered size={13} /></button>
-                                    <button
-                                        onClick={handleToggleMinimap}
-                                        className={`p-1.5 rounded-md transition-all ${showMinimap ? 'bg-slate-200 text-slate-700' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={`Minimap: ${showMinimap ? 'ON' : 'OFF'} (Ctrl+Shift+M)`}
-                                    ><MapIcon size={13} /></button>
-                                </div>
-                            </div>
-                        </div>
+                        {toolbarPosition === 'top' && renderEditorToolbar()}
 
                         {/* Main Content Area with Resizable Panels */}
                         <div className="flex-1 min-w-0 flex min-h-0 relative">
@@ -567,14 +580,14 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                 <CodeSnap
                                                     code={snapCode}
                                                     fileName={tabs.find(t => t.path === activePath)?.name}
-                                                    renderPreview={(previewCode, isDark) => {
+                                                    renderPreview={(previewCode, isDark, scale) => {
                                                         const baseClass = "h-auto overflow-visible p-4";
                                                         const themeClass = isDark ? "bg-[#282a36] text-gray-300" : "bg-white text-slate-900";
 
-                                                        if (docType === 'markdown') return <MarkdownPreview content={previewCode} className={`${baseClass} ${isDark ? 'bg-[#282a36] prose-invert' : 'bg-white'}`} />;
-                                                        if (docType === 'typst') return <TypstPreview content={previewCode} isDark={isDark} filePath={activePath} className={`${baseClass} ${themeClass}`} />;
-                                                        if (docType === 'mermaid') return <MermaidPreview content={previewCode} isDark={isDark} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} />;
-                                                        if (docType === 'latex') return <LatexPreview content={previewCode} className={`${baseClass} ${themeClass}`} />;
+                                                        if (docType === 'markdown') return <MarkdownPreview content={previewCode} className={`${baseClass} ${isDark ? 'bg-[#282a36] prose-invert' : 'bg-white'}`} showActions={false} scale={scale} />;
+                                                        if (docType === 'typst') return <TypstPreview content={previewCode} isDark={isDark} filePath={activePath} className={`${baseClass} ${themeClass}`} showActions={false} scale={scale} />;
+                                                        if (docType === 'mermaid') return <MermaidPreview content={previewCode} isDark={isDark} idPrefix={`snap-${groupId}`} className={`${baseClass} ${themeClass}`} showActions={false} scale={scale} />;
+                                                        if (docType === 'latex') return <LatexPreview content={previewCode} className={`${baseClass} ${themeClass}`} showActions={false} scale={scale} />;
 
                                                         // Generic Code Preview
                                                         return (
@@ -642,6 +655,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 </div>
                             )}
                         </div>
+
+                        {toolbarPosition === 'bottom' && renderEditorToolbar()}
 
                         <StatusBar
                             language={languageName}

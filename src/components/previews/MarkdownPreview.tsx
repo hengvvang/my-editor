@@ -10,11 +10,18 @@ interface Props {
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
     onExportPdf?: () => void;
+    showActions?: boolean;
+    scale?: number;
 }
 
-export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
+export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf, showActions = true, scale: externalScale }) => {
     const [html, setHtml] = useState<string>('');
-    const [scale, setScale] = useState(1);
+    const [internalScale, setInternalScale] = useState(1);
+
+    // Use external scale if provided (controlled mode), otherwise use internal state
+    const scale = externalScale !== undefined ? externalScale : internalScale;
+    const setScale = setInternalScale;
+
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Expose ref to parent
@@ -44,17 +51,19 @@ export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName,
 
     return (
         <div className={`relative group h-full overflow-hidden ${className || ''}`}>
-            <PreviewActions
-                targetRef={containerRef}
-                fileName={fileName}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onResetZoom={handleReset}
-                scale={scale}
-                isSyncScroll={isSyncScroll}
-                onToggleSyncScroll={onToggleSyncScroll}
-                onExportPdf={onExportPdf}
-            />
+            {showActions && (
+                <PreviewActions
+                    targetRef={containerRef}
+                    fileName={fileName}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onResetZoom={handleReset}
+                    scale={scale}
+                    isSyncScroll={isSyncScroll}
+                    onToggleSyncScroll={onToggleSyncScroll}
+                    onExportPdf={onExportPdf}
+                />
+            )}
             <div
                 ref={containerRef}
                 className={`prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 p-8 h-full overflow-auto transition-all duration-200 origin-top-left ${className?.includes('prose-invert') ? 'prose-invert bg-transparent' : 'bg-white'}`}

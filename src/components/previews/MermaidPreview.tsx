@@ -11,11 +11,17 @@ interface Props {
     isSyncScroll?: boolean;
     onToggleSyncScroll?: () => void;
     onExportPdf?: () => void;
+    showActions?: boolean;
+    scale?: number;
 }
 
-export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, isDark = false, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf }) => {
+export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, isDark = false, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf, showActions = true, scale: externalScale }) => {
     const [svg, setSvg] = useState<string>('');
-    const [scale, setScale] = useState(1);
+    const [internalScale, setInternalScale] = useState(1);
+
+    const scale = externalScale !== undefined ? externalScale : internalScale;
+    const setScale = setInternalScale;
+
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Expose ref
@@ -82,16 +88,18 @@ export const MermaidPreview: React.FC<Props> = ({ content, className, idPrefix, 
 
     return (
         <div className={`mermaid-preview-wrapper relative group h-full overflow-hidden ${className || ''}`}>
-            <PreviewActions
-                targetRef={containerRef}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onResetZoom={handleReset}
-                scale={scale}
-                isSyncScroll={isSyncScroll}
-                onToggleSyncScroll={onToggleSyncScroll}
-                onExportPdf={onExportPdf}
-            />
+            {showActions && (
+                <PreviewActions
+                    targetRef={containerRef}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onResetZoom={handleReset}
+                    scale={scale}
+                    isSyncScroll={isSyncScroll}
+                    onToggleSyncScroll={onToggleSyncScroll}
+                    onExportPdf={onExportPdf}
+                />
+            )}
             <div
                 ref={containerRef}
                 className="mermaid-preview-container h-full flex items-center justify-center p-4 overflow-auto origin-center transition-transform duration-200"

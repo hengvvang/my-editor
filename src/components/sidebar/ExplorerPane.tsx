@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FilePlus, FolderPlus, FolderOpen, Trash2, AlignLeft } from "lucide-react";
+import { FilePlus, FolderPlus, FolderOpen, Trash2, AlignLeft, MinusSquare } from "lucide-react";
 import { FileEntry } from "../../types";
 import { SidebarItem } from "./SidebarItem";
 import { NewItemInput } from "./NewItemInput";
@@ -31,6 +31,9 @@ export const ExplorerPane: React.FC<ExplorerPaneProps> = ({
     // New File/Folder state
     const [creatingItem, setCreatingItem] = useState<{ parentPath: string; type: 'file' | 'folder' } | null>(null);
     const [pathsToRefresh, setPathsToRefresh] = useState<string[]>([]);
+
+    // Collapse All State
+    const [collapseSignal, setCollapseSignal] = useState(0);
 
     const handleFocus = (entry: FileEntry) => {
         setSelectedPath(entry.path);
@@ -113,6 +116,10 @@ export const ExplorerPane: React.FC<ExplorerPaneProps> = ({
         }
     };
 
+    const handleCollapseAll = () => {
+        setCollapseSignal(prev => prev + 1);
+    };
+
     return (
         <div className="flex-1 overflow-auto bg-slate-50/30">
             <div className="flex items-center justify-between px-2 pt-2 pb-1 bg-slate-50/50 sticky top-0 z-10">
@@ -123,6 +130,7 @@ export const ExplorerPane: React.FC<ExplorerPaneProps> = ({
                 <div className="flex items-center gap-1">
                     <button onClick={handleNewFile} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New File"><FilePlus size={14} /></button>
                     <button onClick={handleNewFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="New Folder"><FolderPlus size={14} /></button>
+                    <button onClick={handleCollapseAll} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="Collapse All"><MinusSquare size={14} /></button>
                     <button onClick={onOpenFolder} className="p-1 hover:bg-slate-200 rounded text-slate-500" title="Open Folder"><FolderOpen size={14} /></button>
                     <button onClick={handleDelete} className={`p-1 hover:bg-slate-200 rounded ${selectedEntry ? 'text-slate-500 hover:text-red-500' : 'text-slate-300 cursor-not-allowed'}`} title="Delete"><Trash2 size={14} /></button>
                 </div>
@@ -153,6 +161,7 @@ export const ExplorerPane: React.FC<ExplorerPaneProps> = ({
                         onCancelCreate={handleCancelCreate}
                         pathsToRefresh={pathsToRefresh}
                         onRefreshComplete={handleRefreshComplete}
+                        collapseSignal={collapseSignal}
                     />
                 ))}
             </div>
