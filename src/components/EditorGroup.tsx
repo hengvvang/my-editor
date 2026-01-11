@@ -27,6 +27,7 @@ import { EditorTabs } from "./editor/EditorTabs";
 import { EditorBreadcrumbs } from "./editor/EditorBreadcrumbs";
 import { EditorEmptyState } from "./editor/EditorEmptyState";
 import { GlobalFontStyles } from "./editor/GlobalFontStyles";
+import { selectionHighlightExtension } from "../utils/selectionHighlight";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
@@ -210,6 +211,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         ...(docType === 'latex' && !isSourceMode ? [latexLivePreview()] : []),
         // Line wrapping for all modes, plus visual styling for visual mode
         EditorView.lineWrapping,
+        selectionHighlightExtension,
         ...(!isSourceMode && (docType === 'markdown' || docType === 'latex') ? [hybridTheme] : [])
     ], [activePath, isVimMode, docType, isSourceMode]);
 
