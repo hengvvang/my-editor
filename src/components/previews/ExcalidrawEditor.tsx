@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+// @ts-ignore
 import { ExcalidrawElement } from "@excalidraw/excalidraw/types/element/types";
+// @ts-ignore
 import { AppState, BinaryFiles } from "@excalidraw/excalidraw/types/types";
 import "@excalidraw/excalidraw/index.css"; // --- CRITICAL: Import Excalidraw CSS ---
 

@@ -6,7 +6,7 @@ export function useSound() {
       if (!src) return;
       const audio = new Audio(src);
       audio.volume = volume;
-      audio.play().catch((e) => {
+      audio.play().catch(() => {
         // Ignore user interaction errors or missing file errors to prevent console spam
         // console.warn('Audio play failed:', e);
       });

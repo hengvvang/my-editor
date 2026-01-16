@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, ListTree, Files, FolderKanban, PenTool, Keyboard } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban, Keyboard } from "lucide-react";
 import { FileEntry, SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./sidebar/SearchPane";
 import { ExplorerPane } from "./sidebar/ExplorerPane";
