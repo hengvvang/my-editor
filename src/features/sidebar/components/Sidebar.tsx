@@ -1,12 +1,12 @@
 import React from "react";
 import { Search, ListTree, Files, FolderKanban, Keyboard } from "lucide-react";
-import { FileEntry, SearchResult, SearchScope } from "../types";
-import { SearchPane } from "./sidebar/SearchPane";
-import { ExplorerPane } from "./sidebar/ExplorerPane";
-import { OutlinePane } from "./sidebar/OutlinePane";
-import { WorkspacesPane } from "./sidebar/WorkspacesPane";
-import { TypingPane } from "./sidebar/TypingPane";
-import appLogo from "../assets/logo.png";
+import { FileEntry, SearchResult, SearchScope } from "../../../types";
+import { SearchPane } from "./SearchPane";
+import { ExplorerPane } from "./ExplorerPane";
+import { OutlinePane } from "./OutlinePane";
+import { WorkspacesPane } from "./WorkspacesPane";
+import { TypingPane } from "./TypingPane";
+import appLogo from "../../../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;

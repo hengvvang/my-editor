@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DocState } from '../types';
+import { DocState } from '../../../types';
 
 export function useDocuments() {
     const [documents, setDocuments] = useState<Record<string, DocState>>({});

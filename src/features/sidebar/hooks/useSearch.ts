@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useMemo, useState } from 'react';
-import { SearchResult, SearchScope } from '../types';
+import { SearchResult, SearchScope } from '../../../types';
 
 export interface SearchOptions {
     caseSensitive: boolean;

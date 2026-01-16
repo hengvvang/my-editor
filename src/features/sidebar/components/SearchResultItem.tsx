@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { SearchResult } from "../../types";
+import { SearchResult } from "../../../types";
 
 export interface SearchResultItemProps {
     result: SearchResult;

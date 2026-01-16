@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Play, BookOpen, Volume2, VolumeX, Repeat, Shuffle, Eye, Settings, Type, RefreshCw, Plus } from 'lucide-react';
-import { dictionaries } from '../tools/QwertyLearner/config/dictionary';
+import { dictionaries } from '../../tools/QwertyLearner/config/dictionary';
 
 interface TypingPaneProps {
     onStartPractice?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;

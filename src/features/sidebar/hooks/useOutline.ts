@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DocState, GroupState } from '../types';
+import { DocState, GroupState } from '../../../types';
 
 export function useOutline(
     documents: Record<string, DocState>,

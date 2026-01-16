@@ -5,11 +5,11 @@ import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { latexLivePreview } from "../utils/codemirror-latex";
+import { latexLivePreview } from "../../../utils/codemirror-latex";
 
-import { Tab } from "../types";
-import { hybridHighlightStyle } from "../config/editor";
-import { getLanguageExtension, getLanguageInfo } from "../utils/languageManager";
+import { Tab } from "../../../types";
+import { hybridHighlightStyle } from "../../../config/editor";
+import { getLanguageExtension, getLanguageInfo } from "../../../utils/languageManager";
 import { MinimapView } from "./MinimapView";
 import { StatusBar, colorSchemes } from "./StatusBar";
 import { CodeSnap } from "./CodeSnap";
@@ -23,13 +23,13 @@ import { MarkdownPreview } from "./previews/MarkdownPreview";
 import { LatexPreview } from "./previews/LatexPreview";
 import { GenericPreview } from "./previews/GenericPreview";
 import { ExcalidrawEditor } from "./previews/ExcalidrawEditor";
-import { QwertyLearner } from "./tools/QwertyLearner/QwertyLearner";
+import { QwertyLearner } from "../../tools/QwertyLearner/QwertyLearner";
 
-import { EditorTabs } from "./editor/EditorTabs";
-import { EditorBreadcrumbs } from "./editor/EditorBreadcrumbs";
-import { EditorEmptyState } from "./editor/EditorEmptyState";
-import { GlobalFontStyles } from "./editor/GlobalFontStyles";
-import { selectionHighlightExtension } from "../utils/selectionHighlight";
+import { EditorTabs } from "./EditorTabs";
+import { EditorBreadcrumbs } from "./EditorBreadcrumbs";
+import { EditorEmptyState } from "./EditorEmptyState";
+import { GlobalFontStyles } from "./GlobalFontStyles";
+import { selectionHighlightExtension } from "../../../utils/selectionHighlight";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 

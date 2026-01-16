@@ -6,19 +6,19 @@ import { save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
 import { LayoutRenderer } from "./components/layout/LayoutRenderer";
-import { EditorGroup } from "./components/EditorGroup";
-import { Sidebar } from "./components/Sidebar";
+import { EditorGroup } from "./features/editor/components/EditorGroup";
+import { Sidebar } from "./features/sidebar/components/Sidebar";
 import { Tab, GroupState } from "./types";
 import "./styles.css";
 import "./print.css";
 
-import { useDocuments } from "./hooks/useDocuments";
-import { useEditorGroups } from "./hooks/useEditorGroups";
+import { useDocuments } from "./features/documents/hooks/useDocuments";
+import { useEditorGroups } from "./features/editor/hooks/useEditorGroups";
 import { useWorkspace } from "./hooks/useWorkspace";
-import { useSidebar } from "./hooks/useSidebar";
-import { useOutline } from "./hooks/useOutline";
-import { useSearch } from "./hooks/useSearch";
-import { useEditorViewState } from "./hooks/useEditorViewState";
+import { useSidebar } from "./features/sidebar/hooks/useSidebar";
+import { useOutline } from "./features/sidebar/hooks/useOutline";
+import { useSearch } from "./features/sidebar/hooks/useSearch";
+import { useEditorViewState } from "./features/editor/hooks/useEditorViewState";
 
 
 const appWindow = getCurrentWebviewWindow()
