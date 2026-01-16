@@ -1,16 +1,18 @@
 import React from "react";
-import { Search, ListTree, Files, FolderKanban, PenTool } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban, PenTool, Keyboard } from "lucide-react";
 import { FileEntry, SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./sidebar/SearchPane";
 import { ExplorerPane } from "./sidebar/ExplorerPane";
 import { OutlinePane } from "./sidebar/OutlinePane";
 import { WorkspacesPane } from "./sidebar/WorkspacesPane";
+import { TypingPane } from "./sidebar/TypingPane";
 import appLogo from "../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
-    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces') => void;
+    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing';
+    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing') => void;
+    onQuickTyping?: () => void;
     rootDir: string | null;
     rootFiles: FileEntry[];
     currentPath: string | null;
@@ -59,6 +61,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
     search,
     onOpenFileAtLine,
     activeGroupFiles = [],
+    onQuickTyping,
 }) => {
 
     if (!isOpen) return null;
@@ -71,6 +74,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                 {activeSideTab === 'search' && "SEARCH"}
                 {activeSideTab === 'outline' && "OUTLINE"}
                 {activeSideTab === 'workspaces' && "WORKSPACES"}
+                {activeSideTab === 'typing' && "TYPING PRACTICE"}
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}
@@ -100,6 +104,14 @@ const SidebarBase: React.FC<SidebarProps> = ({
                     </button>
 
                     <div className="flex-1" />
+
+                    <button
+                        onClick={() => onActiveSideTabChange('typing')}
+                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'typing' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        title="Typing Practice"
+                    >
+                        <Keyboard size={20} />
+                    </button>
 
                     <button
                         onClick={() => onActiveSideTabChange('workspaces')}
@@ -154,6 +166,10 @@ const SidebarBase: React.FC<SidebarProps> = ({
                             onToggleActiveWorkspace={onToggleActiveWorkspace}
                             onOpenFolder={onOpenFolder}
                         />
+                    )}
+
+                    {activeSideTab === 'typing' && (
+                        <TypingPane onStartPractice={onQuickTyping} />
                     )}
                 </div>
             </div>

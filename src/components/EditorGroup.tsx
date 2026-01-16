@@ -23,6 +23,7 @@ import { MarkdownPreview } from "./previews/MarkdownPreview";
 import { LatexPreview } from "./previews/LatexPreview";
 import { GenericPreview } from "./previews/GenericPreview";
 import { ExcalidrawEditor } from "./previews/ExcalidrawEditor";
+import { QwertyLearner } from "./tools/QwertyLearner/QwertyLearner";
 
 import { EditorTabs } from "./editor/EditorTabs";
 import { EditorBreadcrumbs } from "./editor/EditorBreadcrumbs";
@@ -62,6 +63,7 @@ interface EditorGroupProps {
     onOpenFile?: (path: string) => void;
     viewStateManager: EditorViewStateManager;
     onQuickDraw?: () => void;
+    onQuickTyping?: () => void;
 }
 
 export const EditorGroup: React.FC<EditorGroupProps> = ({
@@ -82,7 +84,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     onCloseGroup,
     onOpenFile,
     viewStateManager,
-    onQuickDraw
+    onQuickDraw,
+    onQuickTyping
 }) => {
     // --- Theme ---
     const scheme = colorSchemes[groupIndex % colorSchemes.length];
@@ -195,13 +198,14 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     }, [isSyncScrollEnabled, activePath, showSplitPreview]); // Re-attach when file changes or preview opens
 
     // --- Derived State ---
-    const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'text' => {
+    const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'typing' | 'text' => {
         if (!path) return 'text';
         if (path.endsWith('.typ')) return 'typst';
         if (path.endsWith('.md')) return 'markdown';
         if (path.endsWith('.mmd') || path.endsWith('.mermaid')) return 'mermaid';
         if (path.endsWith('.excalidraw') || path.endsWith('.excalidraw.json')) return 'excalidraw';
         if (path.endsWith('.tex') || path.endsWith('.latex')) return 'latex';
+        if (path.includes('typing-practice')) return 'typing';
         return 'text';
     }, []);
 
@@ -487,6 +491,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 onSave={onSave}
                 onCloseGroup={onCloseGroup}
                 onQuickDraw={onQuickDraw}
+                onQuickTyping={onQuickTyping}
             />
 
             <EditorBreadcrumbs
@@ -511,6 +516,10 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                         onChange={onContentChange}
                         theme="light"
                     />
+                </div>
+            ) : docType === 'typing' ? (
+                <div className="flex-1 relative bg-white overflow-hidden">
+                    <QwertyLearner />
                 </div>
             ) : (
                 <div className="flex-1 relative bg-white overflow-hidden" id={`scroll-${groupId}`}>

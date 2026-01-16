@@ -184,6 +184,12 @@ function App() {
     // --- Custom Save Logic for Untitled Files ---
     const handleSave = async (path: string, groupId: string) => {
         if (path.startsWith("untitled:")) {
+            // Don't allow saving typing practice sessions
+            if (path.includes('typing-practice')) {
+                console.log("Typing practice sessions are not saved");
+                return;
+            }
+
             try {
                 // Determine default path properly
                 let defaultPath = 'drawing.excalidraw';
@@ -306,6 +312,16 @@ function App() {
                         setActiveGroupId(group.id);
                         openTab(virtualPath);
                     }}
+                    onQuickTyping={() => {
+                        const timestamp = new Date().getTime();
+                        const virtualPath = `untitled:typing-practice-${timestamp}`;
+                        // Create a minimal placeholder content (won't be used by QwertyLearner)
+                        const initialContent = "# Typing Practice Session";
+
+                        createVirtualDocument(virtualPath, initialContent, "Typing Practice");
+                        setActiveGroupId(group.id);
+                        openTab(virtualPath);
+                    }}
                 />
             </div>
         );
@@ -343,6 +359,16 @@ function App() {
                                 onCreateFolder={createFolder}
                                 onDeleteItem={deleteItem}
                                 activeGroupFiles={activeGroupFiles}
+                                onQuickTyping={() => {
+                                    const timestamp = new Date().getTime();
+                                    const virtualPath = `untitled:typing-practice-${timestamp}`;
+                                    const initialContent = "# Typing Practice Session";
+                                    createVirtualDocument(virtualPath, initialContent, "Typing Practice");
+                                    const currentGroup = groups.find(g => g.id === activeGroupId);
+                                    if (currentGroup) {
+                                        openTab(virtualPath);
+                                    }
+                                }}
                             />
                         </Panel>
                         <PanelResizeHandle className="group relative w-1 transition-all duration-150 z-50">

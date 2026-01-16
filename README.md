@@ -88,6 +88,13 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Offline Ready**: All assets (fonts, scripts) are bundled locally — no internet connection required.
     *   **Quick Draw**: Instantly launch a new whiteboard via the **Pen Tool** in the tab bar.
     *   **Virtual Documents**: Drawings start as lightweight "Untitled" files in memory and prompt for save location only when you're ready.
+*   **Typing Practice (Qwerty Learner)**:
+    *   **Integrated Training**: Built-in typing practice tool to improve keyboard speed and accuracy without leaving the editor.
+    *   **Dual Dictionaries**: Choose from **Programmer** (50 coding keywords) or **Basic** (30 algorithm terms) word lists.
+    *   **Real-time Metrics**: Live WPM (Words Per Minute), accuracy percentage, and progress tracking.
+    *   **Smart Feedback**: Color-coded character highlighting (green for correct, red for errors) with shake animation on mistakes.
+    *   **Customizable**: Toggle translation hints and sound effects from the sidebar settings panel.
+    *   **Quick Access**: Launch practice sessions via sidebar or tab bar keyboard icon.
 *   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
 *   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
 *   **Minimap**: Visual overview of your document with active line and selection indicators.
@@ -129,9 +136,17 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   [x] System Fonts Integration
 *   [x] Global Search
 *   [x] Minimap & Layout fixes
+*   [x] Excalidraw Integration
+*   [x] Typing Practice Tool
 *   [ ] Custom Themes support.
 *   [ ] Export to PDF/HTML.
 *   [ ] Plugin system.
+
+## 📦 Package Size
+
+*   **Installer**: ~11-15 MB (NSIS/MSI)
+*   **Source Code**: 0.31 MB
+*   **Frontend Build**: 5.13 MB
 
 ## 📄 License
 
