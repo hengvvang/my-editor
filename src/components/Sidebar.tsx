@@ -67,63 +67,63 @@ const SidebarBase: React.FC<SidebarProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="flex flex-col h-full w-full border-r border-slate-200 bg-slate-50/50">
+        <div className="flex flex-col h-full w-full border-r border-slate-200 bg-slate-50/80 backdrop-blur-md">
             {/* 1. Header ("EXPLORER" / "SEARCH" / "OUTLINE") */}
-            <div className="h-[35px] flex items-center px-4 font-bold text-slate-500 text-xs tracking-wider uppercase bg-slate-50 border-b border-slate-200 shrink-0" data-tauri-drag-region>
+            <div className="h-[40px] flex items-center px-4 font-bold text-slate-500 text-[11px] tracking-widest uppercase bg-slate-50/50 border-b border-slate-200 shrink-0 select-none" data-tauri-drag-region>
                 {activeSideTab === 'explorer' && "EXPLORER"}
                 {activeSideTab === 'search' && "SEARCH"}
                 {activeSideTab === 'outline' && "OUTLINE"}
                 {activeSideTab === 'workspaces' && "WORKSPACES"}
-                {activeSideTab === 'typing' && "TYPING PRACTICE"}
+                {activeSideTab === 'typing' && "TYPING"}
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}
             <div className="flex-1 flex min-h-0">
                 {/* Left Side: Tabs (Activity Bar inside) */}
-                <div className="w-[48px] flex flex-col items-center py-2 gap-2 bg-slate-100 border-r border-slate-200 shrink-0">
+                <div className="w-[52px] flex flex-col items-center py-3 gap-3 bg-slate-100/50 border-r border-slate-200 shrink-0">
                     <button
                         onClick={() => onActiveSideTabChange('explorer')}
-                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Explorer"
                     >
-                        <Files size={20} />
+                        <Files size={20} className="transition-transform duration-300" />
                     </button>
                     <button
                         onClick={() => onActiveSideTabChange('search')}
-                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Search"
                     >
-                        <Search size={20} />
+                        <Search size={20} className="transition-transform duration-300" />
                     </button>
                     <button
                         onClick={() => onActiveSideTabChange('outline')}
-                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Outline"
                     >
-                        <ListTree size={20} />
+                        <ListTree size={20} className="transition-transform duration-300" />
                     </button>
 
                     <div className="flex-1" />
 
                     <button
                         onClick={() => onActiveSideTabChange('typing')}
-                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'typing' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'typing' ? 'bg-white shadow-sm text-green-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Typing Practice"
                     >
-                        <Keyboard size={20} />
+                        <Keyboard size={20} className="transition-transform duration-300" />
                     </button>
 
                     <button
                         onClick={() => onActiveSideTabChange('workspaces')}
-                        className={`p-2.5 rounded-md transition-all ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Workspaces"
                     >
-                        <FolderKanban size={20} />
+                        <FolderKanban size={20} className="transition-transform duration-300" />
                     </button>
                 </div>
 
                 {/* Right Side: Window / Panel Content */}
-                <div className="flex-1 bg-white overflow-hidden flex flex-col">
+                <div className="flex-1 bg-white/50 overflow-hidden flex flex-col">
 
                     {activeSideTab === 'explorer' && (
                         <ExplorerPane

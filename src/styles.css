@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Typography & Smooth Rendering */
+@layer base {
+    body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+}
+
 /* Custom Milkdown overrides to make it look like Typora */
 .milkdown .ProseMirror {
     outline: none;

@@ -214,22 +214,22 @@ export const EditorBreadcrumbs: React.FC<EditorBreadcrumbsProps> = ({
     };
 
     return (
-        <div className="flex items-center gap-0.5 px-4 h-[26px] text-[11px] text-slate-500 bg-white border-b border-slate-100 shrink-0 select-none relative z-30" ref={dropdownRef}>
+        <div className="flex items-center gap-0.5 px-3 h-[30px] text-xs text-slate-500 bg-slate-50/50 border-b border-transparent shrink-0 select-none relative z-30" ref={dropdownRef}>
             {breadcrumbs.map((part, index) => {
                 const isDropdownActive = dropdown?.path === part.path;
                 return (
                     <React.Fragment key={part.path}>
-                        {index > 0 && <ChevronRight size={10} className="text-slate-300 shrink-0 mx-0.5" />}
+                        {index > 0 && <ChevronRight size={12} className="text-slate-300 shrink-0 mx-0.5" />}
                         <div className="relative h-full flex items-center">
                             <div
                                 className={`
                                     flex items-center gap-1.5 px-1.5 py-0.5 rounded-md cursor-pointer transition-all duration-200
-                                    ${isDropdownActive ? 'bg-slate-100 text-slate-900 font-medium' : 'hover:bg-slate-50 hover:text-slate-800'}
-                                    ${index === breadcrumbs.length - 1 && !isDropdownActive ? 'text-slate-800 font-medium' : ''}
+                                    ${isDropdownActive ? 'bg-slate-200 text-slate-900 font-medium' : 'hover:bg-slate-200/50 hover:text-slate-800'}
+                                    ${index === breadcrumbs.length - 1 && !isDropdownActive ? 'text-slate-700 font-medium' : ''}
                                 `}
                                 onClick={() => handleSegmentClick(part)}
                             >
-                                {part.isDir ? <Folder size={12} className={isDropdownActive ? "text-blue-500" : "text-slate-400"} /> : <FileText size={12} className="text-blue-500 opacity-80" />}
+                                {part.isDir ? <Folder size={12} className={isDropdownActive ? "text-blue-600" : "text-slate-400"} /> : <FileText size={12} className="text-blue-500 opacity-90" />}
                                 <span className="whitespace-nowrap max-w-[150px] truncate">{part.name}</span>
                             </div>
                         </div>

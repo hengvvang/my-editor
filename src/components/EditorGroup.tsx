@@ -472,7 +472,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const hasRightPanels = showSplitPreview || showCodeSnap;
 
     return (
-        <div className="flex-1 flex flex-col h-full min-w-0 bg-white border-r border-slate-200 last:border-r-0">
+        <div className="flex-1 flex flex-col h-full min-w-0 bg-slate-50 border-r border-slate-200 last:border-r-0">
             <GlobalFontStyles useMonospace={useMonospace} />
 
             <EditorTabs
@@ -501,16 +501,16 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 onOpenFile={onOpenFile}
             />
 
-            {/* Editor Area */}
+            {/* Editor Area - Enforce rounded top corner to match the detached tab feel if desired, or keep flat */}
             {activePath?.startsWith('typoly://codesnap') ? (
-                <div className="flex-1 relative bg-white overflow-hidden">
+                <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50">
                     <CodeSnap
                         code={content}
                         fileName={tabs.find(t => t.path === activePath)?.name}
                     />
                 </div>
             ) : docType === 'excalidraw' ? (
-                <div className="flex-1 relative bg-white overflow-hidden">
+                <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50">
                     <ExcalidrawEditor
                         content={content}
                         onChange={onContentChange}
@@ -518,7 +518,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                     />
                 </div>
             ) : docType === 'typing' ? (
-                <div className="flex-1 relative bg-white overflow-hidden">
+                <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50">
                     {(() => {
                         let props = {};
                         try {
@@ -531,7 +531,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                     })()}
                 </div>
             ) : (
-                <div className="flex-1 relative bg-white overflow-hidden" id={`scroll-${groupId}`}>
+                <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50" id={`scroll-${groupId}`}>
                     <div className="flex min-h-full w-full h-full flex-col">
                         {toolbarPosition === 'top' && renderEditorToolbar()}
 
