@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, Folder, FileText, FileCode, FileJson, FileType, Check } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { FileEntry } from "../../../types/shared";
+import { FileEntry } from "../../../../shared/types";
 
 interface EditorBreadcrumbsProps {
     activePath: string | null;

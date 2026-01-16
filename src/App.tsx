@@ -5,7 +5,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
-import { LayoutRenderer } from "./components/layout/LayoutRenderer";
+import { LayoutRenderer } from "./features/editor/components/LayoutRenderer";
 import { EditorGroup } from "./features/editor/components/EditorGroup";
 import { Sidebar } from "./features/sidebar/components/Sidebar";
 import { Tab, GroupState } from "./features/editor/types";
@@ -14,10 +14,10 @@ import "./print.css";
 
 import { useDocuments } from "./features/documents/hooks/useDocuments";
 import { useEditorGroups } from "./features/editor/hooks/useEditorGroups";
-import { useWorkspace } from "./hooks/useWorkspace";
+import { useWorkspace } from "./features/workspace/hooks/useWorkspace";
 import { useSidebar } from "./features/sidebar/hooks/useSidebar";
-import { useOutline } from "./features/sidebar/hooks/useOutline";
-import { useSearch } from "./features/sidebar/hooks/useSearch";
+import { useOutline } from "./features/sidebar/components/OutlinePane/useOutline";
+import { useSearch } from "./features/sidebar/components/SearchPane/useSearch";
 import { useEditorViewState } from "./features/editor/hooks/useEditorViewState";
 
 

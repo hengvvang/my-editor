@@ -6,8 +6,8 @@ import { Copy, Download, Check, Moon, Sun, Code2, Eye, ZoomIn, ZoomOut, RefreshC
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
-import { getLanguageExtension } from '../../../utils/languageManager';
-import { hybridHighlightStyle } from '../../../config/editor';
+import { getLanguageExtension } from '../../../../shared/utils/languageManager';
+import { hybridHighlightStyle } from '../../../../shared/config/editor';
 
 interface CodeSnapProps {
     code: string;

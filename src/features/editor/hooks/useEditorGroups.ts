@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { closeGroupInTree, getAllGroups, splitGroupInTree, updateGroupInTree } from '../../../utils/layoutUtils';
 import { LayoutNode } from '../types';
+import { closeGroupInTree, getAllGroups, splitGroupInTree, updateGroupInTree } from '../utils/layoutUtils';
 
 export function useEditorGroups() {
      // Initial State: Single Group

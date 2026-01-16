@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FilePlus, FolderPlus, FolderOpen, Trash2, AlignLeft, MinusSquare } from "lucide-react";
-import { FileEntry } from "../../../types/shared";
+import { FileEntry } from "../../../../shared/types";
 import { SidebarItem } from "./SidebarItem";
 import { NewItemInput } from "./NewItemInput";
 

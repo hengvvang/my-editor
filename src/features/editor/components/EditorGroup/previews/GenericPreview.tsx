@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from "@codemirror/view";
-import { getLanguageExtension } from '../../../../utils/languageManager';
+import { getLanguageExtension } from '../../../../../shared/utils/languageManager';
 import { PreviewActions } from './PreviewActions';
 
 interface Props {

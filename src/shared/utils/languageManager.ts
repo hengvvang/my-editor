@@ -1,20 +1,20 @@
-import { Extension } from "@codemirror/state";
+import { cpp } from "@codemirror/lang-cpp";
+import { css } from "@codemirror/lang-css";
+import { go } from "@codemirror/lang-go";
+import { html } from "@codemirror/lang-html";
+import { java } from "@codemirror/lang-java";
 import { javascript } from "@codemirror/lang-javascript";
+import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
+import { php } from "@codemirror/lang-php";
 import { python } from "@codemirror/lang-python";
 import { rust } from "@codemirror/lang-rust";
-import { json } from "@codemirror/lang-json";
-import { cpp } from "@codemirror/lang-cpp";
-import { html } from "@codemirror/lang-html";
-import { css } from "@codemirror/lang-css";
-import { markdown } from "@codemirror/lang-markdown";
-import { java } from "@codemirror/lang-java";
-import { go } from "@codemirror/lang-go";
-import { sql } from "@codemirror/lang-sql";
-import { yaml } from "@codemirror/lang-yaml";
-import { xml } from "@codemirror/lang-xml";
-import { php } from "@codemirror/lang-php";
 import { sass } from "@codemirror/lang-sass";
+import { sql } from "@codemirror/lang-sql";
 import { vue } from "@codemirror/lang-vue";
+import { xml } from "@codemirror/lang-xml";
+import { yaml } from "@codemirror/lang-yaml";
+import { Extension } from "@codemirror/state";
 
 import { markdownExtensions } from "../config/editor";
 

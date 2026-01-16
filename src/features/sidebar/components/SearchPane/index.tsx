@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Loader2, ChevronRight, ChevronDown, ReplaceAll, RefreshCcw, Eraser, BookOpen, FileText, Database, Layers, Briefcase, AlignLeft } from "lucide-react";
-import { SearchResult, SearchScope } from "../types";
+import { SearchResult, SearchScope } from "../../types";
 import { SearchResultItem } from "./SearchResultItem";
 
 export interface SearchPaneProps {

@@ -5,15 +5,15 @@ import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { latexLivePreview } from "../../../utils/codemirror-latex";
+import { latexLivePreview } from "../../utils/codemirror-latex";
 
-import { Tab } from "../types";
-import { hybridHighlightStyle } from "../../../config/editor";
-import { getLanguageExtension, getLanguageInfo } from "../../../utils/languageManager";
+import { Tab } from "../../types";
+import { hybridHighlightStyle } from "../../../../shared/config/editor";
+import { getLanguageExtension, getLanguageInfo } from "../../../../shared/utils/languageManager";
 import { MinimapView } from "./MinimapView";
 import { StatusBar, colorSchemes } from "./StatusBar";
-import { CodeSnap } from "./CodeSnap";
-import { EditorViewStateManager } from "../hooks/useEditorViewState";
+import { CodeSnap } from "../CodeSnap";
+import { EditorViewStateManager } from "../../hooks/useEditorViewState";
 import { save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -23,13 +23,13 @@ import { MarkdownPreview } from "./previews/MarkdownPreview";
 import { LatexPreview } from "./previews/LatexPreview";
 import { GenericPreview } from "./previews/GenericPreview";
 import { ExcalidrawEditor } from "./previews/ExcalidrawEditor";
-import { QwertyLearner } from "../../tools/QwertyLearner/QwertyLearner";
+import { QwertyLearner } from "../../../tools/QwertyLearner/QwertyLearner";
 
 import { EditorTabs } from "./EditorTabs";
 import { EditorBreadcrumbs } from "./EditorBreadcrumbs";
 import { EditorEmptyState } from "./EditorEmptyState";
 import { GlobalFontStyles } from "./GlobalFontStyles";
-import { selectionHighlightExtension } from "../../../utils/selectionHighlight";
+import { selectionHighlightExtension } from "../../utils/selectionHighlight";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
