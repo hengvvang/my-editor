@@ -151,6 +151,23 @@ export function useTyping(words: Word[], config: TypingConfig) {
       }
 
       // Ignore modifier keys and special keys
+      // Allow Space in Memory Mode to act as a "Reveal" placeholder if needed,
+      // but typically we just start typing. However, if the user presses Space at the START of a word in Memory Mode,
+      // we might want to temporarily "flash" the word or just ignore it.
+      // Current design: Space at start is ignored by `Prevent leading spaces` check below.
+      // If we want "Space to Reveal", we might need to handle it separately.
+
+      // Special Handling for Memory Mode "Reveal" via Space
+      if (config.mode === 'memory' && state.input.length === 0 && key === ' ') {
+         e.preventDefault();
+         // Just return, the UI will likely use a separate state for "Revealed" or we rely on the first correct input.
+         // Actually, let's allow typing space to count as a "wrong" or just flash the word if we had that logic.
+         // For now, let's keep it consistent: Space starts input.
+         // If we want "Space to Reveal", we should probably just let the user type.
+         // If they don't know, they press space -> it counts as input -> it's wrong -> they see red input -> they know they failed.
+         return
+      }
+
       if (e.altKey || e.ctrlKey || e.metaKey || !isLegal(key)) {
         return
       }
@@ -158,7 +175,8 @@ export function useTyping(words: Word[], config: TypingConfig) {
       e.preventDefault()
 
       setState((prev) => {
-        // Prevent leading spaces
+        // Prevent leading spaces, UNLESS we are in a special state.
+        // In this app, space is the word separator, so a leading space is invalid.
         if (key === ' ' && prev.input.length === 0) return prev
 
         const newInput = key === ' ' ? prev.input + ' ' : prev.input + key

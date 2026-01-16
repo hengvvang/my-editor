@@ -40,6 +40,7 @@ export const TypingPane: React.FC<TypingPaneProps> = ({ onStartPractice, isTypin
         loopTimes: 1,
         randomEnabled: false,
         fontSize: 4,
+        mode: 'practice', // 'practice' | 'memory'
     });
 
     const currentDict = dictionaries.find(d => d.id === selectedDict) || dictionaries[0];
@@ -60,23 +61,70 @@ export const TypingPane: React.FC<TypingPaneProps> = ({ onStartPractice, isTypin
         onStartPractice?.(selectedDict, selectedChapter, config, forceNew);
     };
 
+    const getActionLabel = () => {
+        switch (config.mode) {
+            case 'memory': return 'Start Memory';
+            case 'read': return 'Start Reading';
+            default: return 'Start Practice';
+        }
+    };
+
+    const getModeColor = () => {
+        switch (config.mode) {
+            case 'memory': return 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800';
+            case 'read': return 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800';
+            default: return 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800';
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col overflow-auto bg-slate-50">
             {/* Quick Start Hero */}
-            <div className="p-4 bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+            <div className="p-3 bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm flex flex-col gap-3">
+                {/* Mode Switcher */}
+                <div className="flex p-1 bg-slate-100 rounded-lg gap-1 border border-slate-200">
+                    <button
+                        onClick={() => setConfig({ ...config, mode: 'practice' })}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${config.mode === 'practice'
+                            ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                            }`}
+                    >
+                        <Type size={14} /> Practice
+                    </button>
+                    <button
+                        onClick={() => setConfig({ ...config, mode: 'memory' })}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${config.mode === 'memory'
+                            ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                            }`}
+                    >
+                        <Eye size={14} /> Memory
+                    </button>
+                    <button
+                        onClick={() => setConfig({ ...config, mode: 'read' })}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${config.mode === 'read'
+                            ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-black/5'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                            }`}
+                    >
+                        <Volume2 size={14} /> Read
+                    </button>
+                </div>
+
                 {isTypingActive ? (
                     <div className="flex gap-2">
                         <button
                             onClick={() => handleStart(false)}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98] ${getModeColor()}`}
                         >
-                            <RefreshCw size={20} />
+                            <RefreshCw size={18} />
                             Update Settings
                         </button>
                         <button
                             onClick={() => handleStart(true)}
                             title="Start New Session"
-                            className="flex items-center justify-center w-12 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95"
+                            className="flex items-center justify-center w-12 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95 border border-slate-200"
                         >
                             <Plus size={24} />
                         </button>
@@ -84,10 +132,10 @@ export const TypingPane: React.FC<TypingPaneProps> = ({ onStartPractice, isTypin
                 ) : (
                     <button
                         onClick={() => handleStart(false)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+                        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98] ${getModeColor()}`}
                     >
-                        <Play size={20} fill="currentColor" />
-                        Start Practice
+                        <Play size={18} fill="currentColor" />
+                        {getActionLabel()}
                     </button>
                 )}
             </div>
@@ -171,56 +219,72 @@ export const TypingPane: React.FC<TypingPaneProps> = ({ onStartPractice, isTypin
                     </div>
                 </div>
 
-                <div className="space-y-1">
-                    <SectionTitle>Experience</SectionTitle>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-1 divide-y divide-slate-100">
-                        <ToggleSwitch
-                            label="Mechanical Keys"
-                            icon={config.keySoundEnabled ? Volume2 : VolumeX}
-                            checked={config.keySoundEnabled}
-                            onChange={(checked) => setConfig({ ...config, keySoundEnabled: checked })}
-                        />
-                        <ToggleSwitch
-                            label="Pronunciation"
-                            icon={Volume2}
-                            checked={config.pronunciationEnabled}
-                            onChange={(checked) => setConfig({ ...config, pronunciationEnabled: checked })}
-                        />
-                        <ToggleSwitch
-                            label="Random Order"
-                            icon={Shuffle}
-                            checked={config.randomEnabled}
-                            onChange={(checked) => setConfig({ ...config, randomEnabled: checked })}
-                        />
+                {config.mode !== 'read' ? (
+                    <div className="space-y-1">
+                        <SectionTitle>Experience</SectionTitle>
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-1 divide-y divide-slate-100">
+                            <ToggleSwitch
+                                label="Mechanical Keys"
+                                icon={config.keySoundEnabled ? Volume2 : VolumeX}
+                                checked={config.keySoundEnabled}
+                                onChange={(checked) => setConfig({ ...config, keySoundEnabled: checked })}
+                            />
+                            <ToggleSwitch
+                                label="Pronunciation"
+                                icon={Volume2}
+                                checked={config.pronunciationEnabled}
+                                onChange={(checked) => setConfig({ ...config, pronunciationEnabled: checked })}
+                            />
+                            <ToggleSwitch
+                                label="Random Order"
+                                icon={Shuffle}
+                                checked={config.randomEnabled}
+                                onChange={(checked) => setConfig({ ...config, randomEnabled: checked })}
+                            />
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="space-y-1">
+                        <SectionTitle>Experience</SectionTitle>
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+                            <ToggleSwitch
+                                label="Random Order"
+                                icon={Shuffle}
+                                checked={config.randomEnabled}
+                                onChange={(checked) => setConfig({ ...config, randomEnabled: checked })}
+                            />
+                        </div>
+                    </div>
+                )}
 
-                <div className="space-y-1">
-                    <SectionTitle>Drill Mode</SectionTitle>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Repeat size={16} className="text-slate-400" />
-                                <span className="text-sm font-medium text-slate-600">Loop Word</span>
+                {config.mode !== 'read' && (
+                    <div className="space-y-1">
+                        <SectionTitle>Drill Mode</SectionTitle>
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Repeat size={16} className="text-slate-400" />
+                                    <span className="text-sm font-medium text-slate-600">Loop Word</span>
+                                </div>
+                                <span className="text-xs font-bold text-slate-500">{config.loopTimes}x</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-500">{config.loopTimes}x</span>
-                        </div>
-                        <div className="flex gap-1">
-                            {[1, 2, 3, 5, 10].map(num => (
-                                <button
-                                    key={num}
-                                    onClick={() => setConfig({ ...config, loopTimes: num })}
-                                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${config.loopTimes === num
-                                        ? 'bg-blue-100 text-blue-600 ring-1 ring-blue-200'
-                                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
-                                        }`}
-                                >
-                                    {num}x
-                                </button>
-                            ))}
+                            <div className="flex gap-1">
+                                {[1, 2, 3, 5, 10].map(num => (
+                                    <button
+                                        key={num}
+                                        onClick={() => setConfig({ ...config, loopTimes: num })}
+                                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${config.loopTimes === num
+                                            ? 'bg-blue-100 text-blue-600 ring-1 ring-blue-200'
+                                            : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        {num}x
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
             </div>
 

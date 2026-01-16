@@ -18,10 +18,13 @@ export interface TypingConfig {
   pronunciationSpeed: number
 
   // Loop settings
-  loopTimes: 1 | 2 | 3 | 4 | 5
+  loopTimes: 1 | 2 | 3 | 4 | 5 | 10
 
   // Random settings
   randomEnabled: boolean
+
+  // Learning Mode
+  mode: 'practice' | 'memory' | 'read'
 
   // Word dictation (spelling mode)
   wordDictationEnabled: boolean
@@ -42,6 +45,7 @@ export const defaultTypingConfig: TypingConfig = {
   loopTimes: 1,
   randomEnabled: false,
   wordDictationEnabled: false,
+  mode: 'practice',
 }
 
 // Chapter configuration

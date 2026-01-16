@@ -20,11 +20,17 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Independent**: Preview panes work independently of editor modes.
     *   **Universal Zoom**: All preview windows (Markdown, Typst, Mermaid, LaTeX) now support **smooth scaling**. Float over the preview area to access Zoom In/Out controls.
 
-### � Productivity Tools
+### 🧠 Productivity Tools
 *   **Integrated Typing Practice**:
     *   Based on the powerful engine of **[Qwerty Learner](https://github.com/RealKai42/qwerty-learner)**.
+    *   **Three Powerful Modes**:
+        *   **Practice Mode**: Traditional typing practice to build muscle memory and speed.
+        *   **Memory Mode**: Challenge yourself by hiding words until typed—perfect for active recall.
+        *   **Read Mode**: A distraction-free "Card" mode for passive vocabulary review.
+            *   *Focus*: Optimized layout with large phonetic symbols and centralized content to minimize eye movement.
+            *   *Interactive Blur*: "No EN" and "No CN" toggles use intelligent blurring for self-testing; hover to reveal.
+            *   *Audio-First*: One-click pronunciation and "Next Word" controls moved to the ergonomic bottom zone for single-handed use.
     *   **Features**:
-        *   Practice vocabulary while improving typing speed.
         *   Supports multiple dictionaries (CET-4, CET-6, TOEFL, IELTS, Code, etc.).
         *   **Visual & Audio Feedback**: Key sounds, pronunciation, and progress tracking.
         *   **Ergonomic Integration**: Built directly into the editor as a dedicated tab type.
