@@ -287,97 +287,69 @@
     font-style: italic;
 }
 
-.preview-mode-cm .cm-activeLine {
-    background-color: #f0f9ff !important; /* Sky-50: Clearer highlight */
-    border-left: 4px solid #0ea5e9; /* Sky-500: Thicker, more visible indicator */
-    border-radius: 0 6px 6px 0; /* Soft rounded corners on the right */
 
-    /* Visual Depth */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+/* Active Line: Clean, Standard Box without large offsets */
+.cm-activeLine {
+    background-color: #f0f9ff63 !important; /* Sky-50 with transparency for mix-blend-mode */
+
+    /* Reset Border - Use pseudo-element instead */
+    border-left: none !important;
+    border-radius: 0; /* Rectangular as requested */
 
     /* Font settings */
-    font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #0f172a;
+    font-family: inherit; /* Inherit logic */
 
-    /* Smooth transition for movement */
-    transition: background-color 0.1s ease, border-left-color 0.1s ease;
+    position: relative; /* For pseudo-element positioning */
 }
 
-/* Enhancing the Gutter for the Active Line */
-.preview-mode-cm .cm-activeLineGutter {
-    background-color: #f0f9ff !important;
-    color: #0ea5e9 !important; /* Highlight line number */
-    font-weight: bold;
+/* The Pulsing Indicator */
+@keyframes active-line-pulse {
+    0%, 100% { opacity: 1; transform: scaleY(1); }
+    50% { opacity: 0.7; transform: scaleY(0.95); }
 }
 
-/* Explicitly make markers visible and gray in active line */
-.preview-mode-cm .cm-activeLine .cm-md-mark {
-    display: inline;
-    color: #94a3b8; /* gray-400 */
-}
-.preview-mode-cm .cm-activeLine .cm-md-h1,
-.preview-mode-cm .cm-activeLine .cm-md-h2,
-.preview-mode-cm .cm-activeLine .cm-md-h3 {
-    font-size: inherit;
-    font-weight: bold;
-    color: #334155;
-    padding: 0;
-    border: none;
-    width: auto;
+.cm-activeLine::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #0ea5e9; /* Sky-500 */
+    animation: active-line-pulse 2s infinite ease-in-out;
+    z-index: 5; /* Ensure visibility */
+    pointer-events: none;
 }
 
 /* --- Ergonomic Layout Configuration --- */
 
-/* Base Padding for Editor Content */
+/* Base Padding for Editor Content - Unified for ALL Modes */
 .cm-content {
     min-height: 100%;
 
-    /* Default comfortable padding */
     padding-top: 16px;
-    padding-bottom: 30vh !important; /* Overscroll */
-}
+    padding-bottom: 30vh !important;
 
-/* 1. Standard Mode (Source Mode or Regular Code) */
-/* When line numbers are present, CodeMirror handles left spacing via gutter margin.
-   We just ensure it's not too cramped against the gutter if we want. */
-.cm-line {
-    padding-left: 8px; /* Slight gap from line numbers */
-}
-
-/* 2. Unified Standard Layout (No Zen/Centered Mode) */
-/* User requested consistent compact layout across all modes */
-.cm-no-numbers .cm-content,
-.preview-mode-cm .cm-content {
-    max-width: none;
-    margin: 0;
-
-    /* Standard padding matching standard editor feel */
-    padding-top: 16px;
-    padding-left: 16px;
+    /* UNIFIED: Remove container padding so active line touches edge */
+    padding-left: 0 !important;
     padding-right: 16px;
+
+    /* Ensure no margins interfere, but let flexbox (for gutters) do its job */
+    /* margin: 0;  <-- REMOVED: Don't override margin, let CM handle gutter spacing */
+    max-width: none;
+}
+
+/* Base Line Styling - Unified for ALL Modes */
+.cm-line {
+    /* UNIFIED: Consistent text indentation from the edge/gutter */
+    padding-left: 16px !important;
 }
 
 /* Ensure scroller doesn't clip */
-.cm-no-numbers .cm-scroller,
-.preview-mode-cm .cm-scroller {
+.cm-scroller {
     background-color: transparent;
 }
 
-/* Active Line: Clean, Standard Box without large offsets */
-.cm-no-numbers .cm-activeLine,
-.preview-mode-cm .cm-activeLine {
-    /* Reset Zen offsets */
-    margin-left: 0;
-    padding-left: 6px; /* Text distance from the blue border */
-    width: auto;
-    padding-right: 0;
-
-    /* Maintain the visual highlighting style */
-    border-left-width: 4px;
-    border-radius: 0 4px 4px 0;
-}
 
 
 /* --- Beautiful Line Numbers --- */

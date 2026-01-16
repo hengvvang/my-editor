@@ -46,4 +46,20 @@ const selectionHighlightPlugin = ViewPlugin.fromClass(class {
     decorations: v => v.decorations
 });
 
-export const selectionHighlightExtension: Extension = [selectionHighlightPlugin];
+/**
+ * Fix for Active Line covering Selection.
+ * CodeMirror 6 draws the active line background in the content layer (top),
+ * and the selection layer behind it.
+ * Using mix-blend-mode allows the selection to show through the active line.
+ */
+const activeLineLayerFix = EditorView.theme({
+    ".cm-activeLine": {
+        mixBlendMode: "multiply"
+    },
+    // For dark themes, we might want screen or overlay, but multiply usually works well for light backgrounds
+    "&.cm-dark .cm-activeLine": {
+        mixBlendMode: "screen"
+    }
+});
+
+export const selectionHighlightExtension: Extension = [selectionHighlightPlugin, activeLineLayerFix];
