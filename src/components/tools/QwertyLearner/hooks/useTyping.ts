@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import type { Word } from '../types'
+import { useCallback, useEffect, useState } from 'react'
 import type { TypingConfig } from '../config/typing'
+import type { Word } from '../types'
 
 export interface TypingState {
   currentIndex: number
@@ -27,6 +27,10 @@ export interface TypingState {
   }>
 }
 
+const isLegal = (key: string): boolean => {
+  return key.length === 1 && /[a-zA-Z0-9\s\-'.!?;:,]/.test(key)
+}
+
 export function useTyping(words: Word[], config: TypingConfig) {
   const [state, setState] = useState<TypingState>({
     currentIndex: 0,
@@ -47,9 +51,6 @@ export function useTyping(words: Word[], config: TypingConfig) {
     },
     wordStats: [],
   })
-
-  const inputRef = useRef<HTMLInputElement>(null)
-  const wordStartTimeRef = useRef<number>(0)
 
   const currentWord = state.chapterData.words[state.currentIndex]
 
@@ -74,62 +75,72 @@ export function useTyping(words: Word[], config: TypingConfig) {
 
   // Calculate WPM and accuracy
   useEffect(() => {
-    if (state.stats.startTime) {
-      const elapsed = (Date.now() - state.stats.startTime) / 1000 / 60
-      const totalChars = state.stats.correctCount + state.stats.wrongCount
-      const wpm = elapsed > 0 ? Math.round(state.stats.correctCount / 5 / elapsed) : 0
-      const accuracy = totalChars > 0 ? Math.round((state.stats.correctCount / totalChars) * 100) : 100
+    if (state.stats.startTime && state.isTyping) {
+      const timer = setInterval(() => {
+        setState((prev) => {
+          const elapsed = (Date.now() - prev.stats.startTime!) / 1000 / 60
+          const totalChars = prev.stats.correctCount + prev.stats.wrongCount
+          const wpm = elapsed > 0 ? Math.round(prev.stats.correctCount / 5 / elapsed) : 0
+          const accuracy = totalChars > 0 ? Math.round((prev.stats.correctCount / totalChars) * 100) : 100
 
-      setState((prev) => ({
-        ...prev,
-        stats: {
-          ...prev.stats,
-          wpm,
-          accuracy,
-        },
-      }))
+          return {
+            ...prev,
+            stats: {
+              ...prev.stats,
+              wpm,
+              accuracy,
+            },
+          }
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
     }
-  }, [state.stats.correctCount, state.stats.wrongCount, state.stats.startTime])
+  }, [state.stats.startTime, state.isTyping])
 
-  const handleInput = useCallback(
-    (value: string) => {
-      if (!currentWord) return
+  // Keyboard event handler
+  useEffect(() => {
+    if (!state.isTyping || state.isFinished || !currentWord) return
 
-      // Start timer on first input
-      if (!state.stats.startTime) {
-        setState((prev) => ({
-          ...prev,
-          stats: {
-            ...prev.stats,
-            startTime: Date.now(),
-          },
-          isTyping: true,
-        }))
-        wordStartTimeRef.current = Date.now()
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key
+
+      // Ignore modifier keys and special keys
+      if (e.altKey || e.ctrlKey || e.metaKey || !isLegal(key)) {
+        return
       }
 
-      setState((prev) => ({ ...prev, input: value }))
+      e.preventDefault()
 
-      // Check completion
-      if (value === currentWord.word + ' ' || (value === currentWord.word && value.endsWith(' '))) {
-        const timeSpent = Date.now() - wordStartTimeRef.current
+      setState((prev) => {
+        const newInput = key === ' ' ? prev.input + ' ' : prev.input + key
+        const targetWord = currentWord.word
 
-        // Update word stats
-        setState((prev) => {
-          const newWordStats = [...prev.wordStats]
-          const wordStatIndex = newWordStats.findIndex((s) => s.word === currentWord.word)
-          if (wordStatIndex !== -1) {
-            newWordStats[wordStatIndex].correctCount += 1
-            newWordStats[wordStatIndex].timeSpent += timeSpent
+        // Check if input matches target so far
+        const isCorrect = targetWord.startsWith(newInput.trim())
+
+        if (!isCorrect) {
+          // Wrong input - count error
+          return {
+            ...prev,
+            stats: {
+              ...prev.stats,
+              wrongCount: prev.stats.wrongCount + 1,
+            },
           }
+        }
 
-          const newStats = {
-            ...prev.stats,
-            correctCount: prev.stats.correctCount + currentWord.word.length,
-          }
+        // Correct so far
+        const newStats = {
+          ...prev.stats,
+          correctCount: prev.stats.correctCount + 1,
+        }
 
-          // Move to next word
+        // Check if word is complete (ends with space)
+        if (key === ' ' && newInput.trim() === targetWord) {
+          // Word completed correctly
           const nextIndex = prev.currentIndex + 1
+
           if (nextIndex >= prev.chapterData.words.length) {
             // Chapter finished
             return {
@@ -142,23 +153,52 @@ export function useTyping(words: Word[], config: TypingConfig) {
                 ...newStats,
                 endTime: Date.now(),
               },
-              wordStats: newWordStats,
             }
           }
 
-          wordStartTimeRef.current = Date.now()
+          // Move to next word
           return {
             ...prev,
             input: '',
             currentIndex: nextIndex,
             stats: newStats,
-            wordStats: newWordStats,
           }
-        })
-      }
-    },
-    [currentWord, state.stats.startTime],
-  )
+        }
+
+        // Continue typing current word
+        return {
+          ...prev,
+          input: newInput,
+          stats: newStats,
+        }
+      })
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.isTyping, state.isFinished, currentWord])
+
+  // Start typing on any key press
+  useEffect(() => {
+    if (state.isTyping || state.isFinished || !currentWord) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || !isLegal(e.key)) return
+
+      e.preventDefault()
+      setState((prev) => ({
+        ...prev,
+        isTyping: true,
+        stats: {
+          ...prev.stats,
+          startTime: Date.now(),
+        },
+      }))
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.isTyping, state.isFinished, currentWord])
 
   const reset = useCallback(() => {
     setState({
@@ -185,29 +225,33 @@ export function useTyping(words: Word[], config: TypingConfig) {
         timeSpent: 0,
       })),
     })
-    wordStartTimeRef.current = 0
-    setTimeout(() => inputRef.current?.focus(), 0)
   }, [words, config.randomEnabled])
 
   const skipWord = useCallback(() => {
     setState((prev) => {
-      if (prev.currentIndex >= prev.chapterData.words.length - 1) {
-        return prev
+      const nextIndex = prev.currentIndex + 1
+      if (nextIndex >= prev.chapterData.words.length) {
+        return {
+          ...prev,
+          isFinished: true,
+          isTyping: false,
+          stats: {
+            ...prev.stats,
+            endTime: Date.now(),
+          },
+        }
       }
       return {
         ...prev,
         input: '',
-        currentIndex: prev.currentIndex + 1,
+        currentIndex: nextIndex,
       }
     })
-    wordStartTimeRef.current = Date.now()
   }, [])
 
   return {
     state,
     currentWord,
-    inputRef,
-    handleInput,
     reset,
     skipWord,
   }

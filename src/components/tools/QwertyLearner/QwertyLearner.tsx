@@ -15,7 +15,7 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
     const [words, setWords] = useState<Word[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { state, currentWord, inputRef, handleInput, reset, skipWord } = useTyping(words, config);
+    const { state, currentWord, reset, skipWord } = useTyping(words, config);
 
     // Load dictionary words
     useEffect(() => {
@@ -31,12 +31,12 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
 
                 const response = await fetch(dict.url);
                 const allWords: Word[] = await response.json();
-                
+
                 // Extract chapter words
                 const startIdx = chapter * WORDS_PER_CHAPTER;
                 const endIdx = Math.min(startIdx + WORDS_PER_CHAPTER, allWords.length);
                 const chapterWords = allWords.slice(startIdx, endIdx);
-                
+
                 setWords(chapterWords);
             } catch (error) {
                 console.error('Failed to load dictionary:', error);
@@ -84,7 +84,7 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
                 <div className="w-full max-w-3xl flex flex-col items-center">
                     {/* Current Word Display */}
                     <div className="mb-8 text-center">
-                        <div 
+                        <div
                             className="font-bold text-slate-800 tracking-wider mb-4 select-none"
                             style={{ fontSize: `${config.fontSize * 1.5}rem` }}
                         >
@@ -92,7 +92,7 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
                                 const isTyped = idx < state.input.length;
                                 const isCurrentChar = idx === state.input.length;
                                 const isCorrectChar = isTyped && state.input[idx] === char;
-                                
+
                                 return (
                                     <span
                                         key={idx}
@@ -121,26 +121,19 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
                         )}
                     </div>
 
-                    {/* Input Area */}
+                    {/* Input Progress Display */}
                     <div className="w-full max-w-xl">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={state.input}
-                            onChange={(e) => handleInput(e.target.value)}
-                            className={`
-                                w-full px-6 py-4 text-2xl text-center font-mono
-                                border-2 rounded-xl outline-none transition-all
-                                ${currentWord && currentWord.word.startsWith(state.input)
-                                    ? 'border-slate-300 focus:border-blue-400 bg-white' 
-                                    : 'border-red-300 focus:border-red-400 bg-red-50 animate-shake'
-                                }
-                            `}
-                            placeholder="Type the word..."
-                            autoComplete="off"
-                            spellCheck={false}
-                            autoFocus
-                        />
+                        <div className="w-full px-6 py-4 text-2xl text-center font-mono bg-white border-2 border-slate-300 rounded-xl min-h-[60px] flex items-center justify-center">
+                            {state.input ? (
+                                <span className={currentWord && currentWord.word.startsWith(state.input.trim()) ? 'text-slate-800' : 'text-red-500'}>
+                                    {state.input}
+                                </span>
+                            ) : (
+                                <span className="text-slate-400">
+                                    {state.isTyping ? 'Typing...' : 'Press any key to start...'}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Action Buttons */}
@@ -180,8 +173,8 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
                         </div>
                         <div className="bg-white p-4 rounded-xl border border-slate-200">
                             <div className="text-3xl font-bold text-blue-500">
-                                {state.stats.endTime && state.stats.startTime 
-                                    ? Math.round((state.stats.endTime - state.stats.startTime) / 1000) 
+                                {state.stats.endTime && state.stats.startTime
+                                    ? Math.round((state.stats.endTime - state.stats.startTime) / 1000)
                                     : 0}s
                             </div>
                             <div className="text-sm text-slate-500">Time</div>

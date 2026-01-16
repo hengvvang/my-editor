@@ -12,7 +12,7 @@ export interface TypingConfig {
   showTranslation: boolean
   showPhonetic: boolean
   fontSize: number
-  
+
   // Pronunciation settings
   pronunciationEnabled: boolean
   pronunciationSpeed: number
