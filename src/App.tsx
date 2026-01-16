@@ -60,6 +60,30 @@ function App() {
     const documentsRef = useRef(documents);
     useEffect(() => { documentsRef.current = documents; }, [documents]);
 
+
+    // Explicit close handler for the UI button
+    const handleCloseApp = useCallback(async () => {
+        try {
+            const unsaved = Object.values(documentsRef.current).filter(d => d.isDirty);
+            if (unsaved.length > 0) {
+                const confirmed = await confirm(
+                    `You have ${unsaved.length} unsaved documents.\nAre you sure you want to exit and discard changes?`,
+                    { title: 'Unsaved Changes', kind: 'warning', okLabel: 'Exit', cancelLabel: 'Cancel' }
+                );
+                if (confirmed) {
+                    await appWindow.destroy();
+                }
+            } else {
+                // Force destroy instead of close to avoid event loop issues on custom titlebars
+                await appWindow.destroy();
+            }
+        } catch (e) {
+            console.error("Failed to close/destroy window:", e);
+            // Fallback
+            await appWindow.close();
+        }
+    }, []);
+
     useEffect(() => {
         // Track window maximization state
         const updateState = async () => {
@@ -75,7 +99,7 @@ function App() {
 
         const unlistenPromise = appWindow.onResized(updateState);
 
-        // Prevent accidental exit with unsaved changes
+        // Prevent accidental exit with unsaved changes (System Close / Alt+F4)
         const unlistenClosePromise = appWindow.onCloseRequested(async (event) => {
             const unsaved = Object.values(documentsRef.current).filter(d => d.isDirty);
             if (unsaved.length > 0) {
@@ -411,7 +435,7 @@ function App() {
                                             <Square size={12} />
                                         )}
                                     </button>
-                                    <button onClick={() => appWindow.close()} className="p-2 hover:bg-red-500 hover:text-white rounded cursor-pointer"><X size={14} /></button>
+                                    <button onClick={handleCloseApp} className="p-2 hover:bg-red-500 hover:text-white rounded cursor-pointer"><X size={14} /></button>
                                 </div>
                             </div>
                         </div>
