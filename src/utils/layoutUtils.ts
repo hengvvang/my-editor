@@ -1,4 +1,4 @@
-import { GroupState, LayoutNode, SplitState } from '../types';
+import { GroupState, LayoutNode, SplitState } from '../features/editor/types';
 
 // Helper to find all groups in the tree
 export function getAllGroups(node: LayoutNode): GroupState[] {

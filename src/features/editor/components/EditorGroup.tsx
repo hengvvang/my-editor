@@ -7,7 +7,7 @@ import { EditorView } from "@codemirror/view";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { latexLivePreview } from "../../../utils/codemirror-latex";
 
-import { Tab } from "../../../types";
+import { Tab } from "../types";
 import { hybridHighlightStyle } from "../../../config/editor";
 import { getLanguageExtension, getLanguageInfo } from "../../../utils/languageManager";
 import { MinimapView } from "./MinimapView";

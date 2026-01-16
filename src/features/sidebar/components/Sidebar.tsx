@@ -1,6 +1,7 @@
 import React from "react";
 import { Search, ListTree, Files, FolderKanban, Keyboard } from "lucide-react";
-import { FileEntry, SearchResult, SearchScope } from "../../../types";
+import { FileEntry } from "../../../types/shared";
+import { SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./SearchPane";
 import { ExplorerPane } from "./ExplorerPane";
 import { OutlinePane } from "./OutlinePane";

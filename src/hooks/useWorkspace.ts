@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from 'react';
-import { FileEntry, LayoutNode, Workspace } from '../types';
+import { LayoutNode } from '../features/editor/types';
+import { Workspace } from '../features/sidebar/types';
+import { FileEntry } from '../types/shared';
 
 export function useWorkspace(
     layout: LayoutNode,

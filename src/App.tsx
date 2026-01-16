@@ -8,7 +8,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { LayoutRenderer } from "./components/layout/LayoutRenderer";
 import { EditorGroup } from "./features/editor/components/EditorGroup";
 import { Sidebar } from "./features/sidebar/components/Sidebar";
-import { Tab, GroupState } from "./types";
+import { Tab, GroupState } from "./features/editor/types";
 import "./styles.css";
 import "./print.css";
 

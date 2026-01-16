@@ -1,6 +1,6 @@
 import React from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { LayoutNode, GroupState } from "../../types";
+import { LayoutNode, GroupState } from "../../features/editor/types";
 
 // Consistent resize handle for splits
 const SplitResizeHandle: React.FC<{ direction: 'horizontal' | 'vertical' }> = ({ direction }) => (

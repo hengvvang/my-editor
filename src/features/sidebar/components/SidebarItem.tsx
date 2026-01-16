@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileText, Folder, ChevronRight } from "lucide-react";
-import { FileEntry } from "../../../types";
+import { FileEntry } from "../../../types/shared";
 import { NewItemInput } from "./NewItemInput";
 
 export interface SidebarItemProps {
