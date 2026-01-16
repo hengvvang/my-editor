@@ -7,7 +7,7 @@ interface TypingPaneProps {
 }
 
 export const TypingPane: React.FC<TypingPaneProps> = ({ onStartPractice }) => {
-    const [selectedDict, setSelectedDict] = useState('programmer');
+    const [selectedDict, setSelectedDict] = useState('cet4');
     const [selectedChapter, setSelectedChapter] = useState(0);
     const [config, setConfig] = useState({
         showTranslation: true,

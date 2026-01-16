@@ -1,0 +1,252 @@
+[
+  {
+    "name": "function",
+    "trans": ["函数"],
+    "usphone": "'fʌŋkʃn"
+  },
+  {
+    "name": "variable",
+    "trans": ["变量"],
+    "usphone": "'veriəbl"
+  },
+  {
+    "name": "array",
+    "trans": ["数组"],
+    "usphone": "ə're"
+  },
+  {
+    "name": "object",
+    "trans": ["对象"],
+    "usphone": "'ɑbdʒekt"
+  },
+  {
+    "name": "string",
+    "trans": ["字符串"],
+    "usphone": "strɪŋ"
+  },
+  {
+    "name": "number",
+    "trans": ["数字"],
+    "usphone": "'nʌmbər"
+  },
+  {
+    "name": "boolean",
+    "trans": ["布尔值"],
+    "usphone": "'buːliən"
+  },
+  {
+    "name": "class",
+    "trans": ["类"],
+    "usphone": "klæs"
+  },
+  {
+    "name": "method",
+    "trans": ["方法"],
+    "usphone": "'meθəd"
+  },
+  {
+    "name": "interface",
+    "trans": ["接口"],
+    "usphone": "'ɪntərfeɪs"
+  },
+  {
+    "name": "async",
+    "trans": ["异步"],
+    "usphone": "eɪ'sɪŋk"
+  },
+  {
+    "name": "await",
+    "trans": ["等待"],
+    "usphone": "ə'weɪt"
+  },
+  {
+    "name": "promise",
+    "trans": ["承诺"],
+    "usphone": "'prɑmɪs"
+  },
+  {
+    "name": "callback",
+    "trans": ["回调"],
+    "usphone": "'kɔlbæk"
+  },
+  {
+    "name": "parameter",
+    "trans": ["参数"],
+    "usphone": "pə'ræmɪtər"
+  },
+  {
+    "name": "return",
+    "trans": ["返回"],
+    "usphone": "rɪ'tɜrn"
+  },
+  {
+    "name": "import",
+    "trans": ["导入"],
+    "usphone": "ɪm'pɔrt"
+  },
+  {
+    "name": "export",
+    "trans": ["导出"],
+    "usphone": "ɪk'spɔrt"
+  },
+  {
+    "name": "const",
+    "trans": ["常量"],
+    "usphone": "kɑnst"
+  },
+  {
+    "name": "let",
+    "trans": ["声明变量"],
+    "usphone": "let"
+  },
+  {
+    "name": "if",
+    "trans": ["如果"],
+    "usphone": "ɪf"
+  },
+  {
+    "name": "else",
+    "trans": ["否则"],
+    "usphone": "els"
+  },
+  {
+    "name": "switch",
+    "trans": ["切换"],
+    "usphone": "swɪtʃ"
+  },
+  {
+    "name": "case",
+    "trans": ["情况"],
+    "usphone": "keɪs"
+  },
+  {
+    "name": "break",
+    "trans": ["中断"],
+    "usphone": "breɪk"
+  },
+  {
+    "name": "continue",
+    "trans": ["继续"],
+    "usphone": "kən'tɪnjuː"
+  },
+  {
+    "name": "for",
+    "trans": ["循环"],
+    "usphone": "fɔr"
+  },
+  {
+    "name": "while",
+    "trans": ["当...时"],
+    "usphone": "waɪl"
+  },
+  {
+    "name": "try",
+    "trans": ["尝试"],
+    "usphone": "traɪ"
+  },
+  {
+    "name": "catch",
+    "trans": ["捕获"],
+    "usphone": "kætʃ"
+  },
+  {
+    "name": "throw",
+    "trans": ["抛出"],
+    "usphone": "θroʊ"
+  },
+  {
+    "name": "error",
+    "trans": ["错误"],
+    "usphone": "'erər"
+  },
+  {
+    "name": "debug",
+    "trans": ["调试"],
+    "usphone": "'dibʌɡ"
+  },
+  {
+    "name": "console",
+    "trans": ["控制台"],
+    "usphone": "'kɑnsoʊl"
+  },
+  {
+    "name": "log",
+    "trans": ["日志"],
+    "usphone": "lɔɡ"
+  },
+  {
+    "name": "component",
+    "trans": ["组件"],
+    "usphone": "kəm'poʊnənt"
+  },
+  {
+    "name": "props",
+    "trans": ["属性"],
+    "usphone": "prɑps"
+  },
+  {
+    "name": "state",
+    "trans": ["状态"],
+    "usphone": "steɪt"
+  },
+  {
+    "name": "hook",
+    "trans": ["钩子"],
+    "usphone": "hʊk"
+  },
+  {
+    "name": "effect",
+    "trans": ["效果"],
+    "usphone": "ɪ'fekt"
+  },
+  {
+    "name": "render",
+    "trans": ["渲染"],
+    "usphone": "'rendər"
+  },
+  {
+    "name": "event",
+    "trans": ["事件"],
+    "usphone": "ɪ'vent"
+  },
+  {
+    "name": "listener",
+    "trans": ["监听器"],
+    "usphone": "'lɪsənər"
+  },
+  {
+    "name": "click",
+    "trans": ["点击"],
+    "usphone": "klɪk"
+  },
+  {
+    "name": "keydown",
+    "trans": ["按键按下"],
+    "usphone": "'kiːdaʊn"
+  },
+  {
+    "name": "keyup",
+    "trans": ["按键释放"],
+    "usphone": "'kiːʌp"
+  },
+  {
+    "name": "mouse",
+    "trans": ["鼠标"],
+    "usphone": "maʊs"
+  },
+  {
+    "name": "element",
+    "trans": ["元素"],
+    "usphone": "'elɪmənt"
+  },
+  {
+    "name": "attribute",
+    "trans": ["属性"],
+    "usphone": "ə'trɪbjuːt"
+  },
+  {
+    "name": "style",
+    "trans": ["样式"],
+    "usphone": "staɪl"
+  }
+]

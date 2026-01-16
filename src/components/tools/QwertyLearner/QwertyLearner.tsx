@@ -11,7 +11,7 @@ interface QwertyLearnerProps {
     config?: typeof defaultTypingConfig;
 }
 
-export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = defaultTypingConfig }: QwertyLearnerProps) {
+export function QwertyLearner({ dictId = 'cet4', chapter = 0, config = defaultTypingConfig }: QwertyLearnerProps) {
     const [words, setWords] = useState<Word[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -88,7 +88,7 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
                             className="font-bold text-slate-800 tracking-wider mb-4 select-none"
                             style={{ fontSize: `${config.fontSize * 1.5}rem` }}
                         >
-                            {currentWord?.word.split('').map((char: string, idx: number) => {
+                            {currentWord?.name.split('').map((char: string, idx: number) => {
                                 const isTyped = idx < state.input.length;
                                 const isCurrentChar = idx === state.input.length;
                                 const isCorrectChar = isTyped && state.input[idx] === char;
@@ -125,7 +125,7 @@ export function QwertyLearner({ dictId = 'programmer', chapter = 0, config = def
                     <div className="w-full max-w-xl">
                         <div className="w-full px-6 py-4 text-2xl text-center font-mono bg-white border-2 border-slate-300 rounded-xl min-h-[60px] flex items-center justify-center">
                             {state.input ? (
-                                <span className={currentWord && currentWord.word.startsWith(state.input.trim()) ? 'text-slate-800' : 'text-red-500'}>
+                                <span className={currentWord && currentWord.name.startsWith(state.input.trim()) ? 'text-slate-800' : 'text-red-500'}>
                                     {state.input}
                                 </span>
                             ) : (

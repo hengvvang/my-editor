@@ -1,5 +1,5 @@
 export interface Word {
-  word: string
+  name: string
   trans?: string[]
   usphone?: string
   ukphone?: string

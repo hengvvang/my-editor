@@ -64,7 +64,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
           index: 0,
         },
         wordStats: words.map((w) => ({
-          word: w.word,
+          word: w.name,
           correctCount: 0,
           wrongCount: 0,
           timeSpent: 0,
@@ -114,7 +114,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
 
       setState((prev) => {
         const newInput = key === ' ' ? prev.input + ' ' : prev.input + key
-        const targetWord = currentWord.word
+        const targetWord = currentWord.name
 
         // Check if input matches target so far
         const isCorrect = targetWord.startsWith(newInput.trim())
@@ -219,7 +219,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
         accuracy: 100,
       },
       wordStats: words.map((w) => ({
-        word: w.word,
+        word: w.name,
         correctCount: 0,
         wrongCount: 0,
         timeSpent: 0,

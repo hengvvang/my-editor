@@ -88,4 +88,4 @@ export const idDictionaryMap = dictionaries.reduce<Record<string, Dictionary>>((
   return acc
 }, {})
 
-export const defaultDictId = 'programmer'
+export const defaultDictId = 'cet4'

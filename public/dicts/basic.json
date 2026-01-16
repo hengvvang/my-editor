@@ -1,0 +1,152 @@
+[
+  {
+    "name": "algorithm",
+    "trans": ["算法"],
+    "usphone": "'ælɡərɪðəm"
+  },
+  {
+    "name": "data",
+    "trans": ["数据"],
+    "usphone": "'deɪtə"
+  },
+  {
+    "name": "structure",
+    "trans": ["结构"],
+    "usphone": "'strʌktʃər"
+  },
+  {
+    "name": "queue",
+    "trans": ["队列"],
+    "usphone": "kjuː"
+  },
+  {
+    "name": "stack",
+    "trans": ["栈"],
+    "usphone": "stæk"
+  },
+  {
+    "name": "tree",
+    "trans": ["树"],
+    "usphone": "triː"
+  },
+  {
+    "name": "graph",
+    "trans": ["图"],
+    "usphone": "ɡræf"
+  },
+  {
+    "name": "node",
+    "trans": ["节点"],
+    "usphone": "noʊd"
+  },
+  {
+    "name": "edge",
+    "trans": ["边"],
+    "usphone": "edʒ"
+  },
+  {
+    "name": "vertex",
+    "trans": ["顶点"],
+    "usphone": "'vɜrteks"
+  },
+  {
+    "name": "sort",
+    "trans": ["排序"],
+    "usphone": "sɔrt"
+  },
+  {
+    "name": "search",
+    "trans": ["搜索"],
+    "usphone": "sɜrtʃ"
+  },
+  {
+    "name": "binary",
+    "trans": ["二进制"],
+    "usphone": "'baɪnəri"
+  },
+  {
+    "name": "linear",
+    "trans": ["线性"],
+    "usphone": "'lɪniər"
+  },
+  {
+    "name": "recursive",
+    "trans": ["递归"],
+    "usphone": "rɪ'kɜrsɪv"
+  },
+  {
+    "name": "iterate",
+    "trans": ["迭代"],
+    "usphone": "'ɪtəreɪt"
+  },
+  {
+    "name": "traverse",
+    "trans": ["遍历"],
+    "usphone": "trə'vɜrs"
+  },
+  {
+    "name": "pointer",
+    "trans": ["指针"],
+    "usphone": "'pɔɪntər"
+  },
+  {
+    "name": "reference",
+    "trans": ["引用"],
+    "usphone": "'refrəns"
+  },
+  {
+    "name": "memory",
+    "trans": ["内存"],
+    "usphone": "'meməri"
+  },
+  {
+    "name": "heap",
+    "trans": ["堆"],
+    "usphone": "hiːp"
+  },
+  {
+    "name": "hash",
+    "trans": ["哈希"],
+    "usphone": "hæʃ"
+  },
+  {
+    "name": "map",
+    "trans": ["映射"],
+    "usphone": "mæp"
+  },
+  {
+    "name": "set",
+    "trans": ["集合"],
+    "usphone": "set"
+  },
+  {
+    "name": "list",
+    "trans": ["列表"],
+    "usphone": "lɪst"
+  },
+  {
+    "name": "linked",
+    "trans": ["链接的"],
+    "usphone": "lɪŋkt"
+  },
+  {
+    "name": "double",
+    "trans": ["双倍"],
+    "usphone": "'dʌbl"
+  },
+  {
+    "name": "complexity",
+    "trans": ["复杂度"],
+    "usphone": "kəm'pleksəti"
+  },
+  {
+    "name": "time",
+    "trans": ["时间"],
+    "usphone": "taɪm"
+  },
+  {
+    "name": "space",
+    "trans": ["空间"],
+    "usphone": "speɪs"
+  }
+]
