@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { TypingConfig } from '../config/typing'
 import type { Word } from '../types'
+import { useSound } from './useSound'
 
 export interface TypingState {
   currentIndex: number
   input: string
+  loopCount: number
   chapterData: {
     words: Word[]
     index: number
@@ -19,12 +21,6 @@ export interface TypingState {
     wpm: number
     accuracy: number
   }
-  wordStats: Array<{
-    word: string
-    correctCount: number
-    wrongCount: number
-    timeSpent: number
-  }>
 }
 
 const isLegal = (key: string): boolean => {
@@ -32,9 +28,11 @@ const isLegal = (key: string): boolean => {
 }
 
 export function useTyping(words: Word[], config: TypingConfig) {
+  const { play } = useSound()
   const [state, setState] = useState<TypingState>({
     currentIndex: 0,
     input: '',
+    loopCount: 1,
     chapterData: {
       words: [],
       index: 0,
@@ -49,10 +47,25 @@ export function useTyping(words: Word[], config: TypingConfig) {
       wpm: 0,
       accuracy: 100,
     },
-    wordStats: [],
   })
 
+  // Speech Synthesis
+  const speak = useCallback((text: string) => {
+    if (!config.pronunciationEnabled) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'en-US'
+    window.speechSynthesis.speak(utterance)
+  }, [config.pronunciationEnabled])
+
   const currentWord = state.chapterData.words[state.currentIndex]
+
+  // Play word on change
+  useEffect(() => {
+    if (currentWord && config.pronunciationEnabled) {
+      speak(currentWord.name)
+    }
+  }, [currentWord, config.pronunciationEnabled, speak])
 
   // Initialize chapter data
   useEffect(() => {
@@ -63,19 +76,26 @@ export function useTyping(words: Word[], config: TypingConfig) {
           words: config.randomEnabled ? [...words].sort(() => Math.random() - 0.5) : words,
           index: 0,
         },
-        wordStats: words.map((w) => ({
-          word: w.name,
+        currentIndex: 0,
+        input: '',
+        loopCount: 1,
+        isTyping: false,
+        isFinished: false,
+        stats: {
           correctCount: 0,
           wrongCount: 0,
-          timeSpent: 0,
-        })),
+          startTime: null,
+          endTime: null,
+          wpm: 0,
+          accuracy: 100,
+        },
       }))
     }
   }, [words, config.randomEnabled])
 
   // Calculate WPM and accuracy
   useEffect(() => {
-    if (state.stats.startTime && state.isTyping) {
+    if (state.stats.startTime && state.isTyping && !state.isFinished) {
       const timer = setInterval(() => {
         setState((prev) => {
           const elapsed = (Date.now() - prev.stats.startTime!) / 1000 / 60
@@ -96,14 +116,39 @@ export function useTyping(words: Word[], config: TypingConfig) {
 
       return () => clearInterval(timer)
     }
-  }, [state.stats.startTime, state.isTyping])
+  }, [state.stats.startTime, state.isTyping, state.isFinished])
 
   // Keyboard event handler
   useEffect(() => {
-    if (!state.isTyping || state.isFinished || !currentWord) return
+    if (state.isFinished || !currentWord) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key
+
+      // Handle Backspace
+      if (key === 'Backspace' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        setState((prev) => ({
+          ...prev,
+          input: prev.input.slice(0, -1),
+        }))
+        return
+      }
+
+      // Start typing if not started
+      if (!state.isTyping && isLegal(key) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        // Prevent starting with Space
+        if (key === ' ') return
+
+        setState((prev) => ({
+          ...prev,
+          isTyping: true,
+          stats: {
+            ...prev.stats,
+            startTime: Date.now(),
+          },
+        }))
+      }
 
       // Ignore modifier keys and special keys
       if (e.altKey || e.ctrlKey || e.metaKey || !isLegal(key)) {
@@ -113,6 +158,9 @@ export function useTyping(words: Word[], config: TypingConfig) {
       e.preventDefault()
 
       setState((prev) => {
+        // Prevent leading spaces
+        if (key === ' ' && prev.input.length === 0) return prev
+
         const newInput = key === ' ' ? prev.input + ' ' : prev.input + key
         const targetWord = currentWord.name
 
@@ -121,6 +169,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
 
         if (!isCorrect) {
           // Wrong input - count error
+          if (config.wrongSoundEnabled) play('/sounds/beep.wav')
           return {
             ...prev,
             stats: {
@@ -131,6 +180,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
         }
 
         // Correct so far
+        if (config.keySoundEnabled) play('/sounds/key-sound/Default.wav')
         const newStats = {
           ...prev.stats,
           correctCount: prev.stats.correctCount + 1,
@@ -139,6 +189,18 @@ export function useTyping(words: Word[], config: TypingConfig) {
         // Check if word is complete (ends with space)
         if (key === ' ' && newInput.trim() === targetWord) {
           // Word completed correctly
+          if (config.correctSoundEnabled) play('/sounds/correct.wav')
+
+          const currentLoop = prev.loopCount || 1
+          if (config.loopTimes && config.loopTimes > 1 && currentLoop < config.loopTimes) {
+            return {
+              ...prev,
+              input: '',
+              loopCount: currentLoop + 1,
+              stats: newStats,
+            }
+          }
+
           const nextIndex = prev.currentIndex + 1
 
           if (nextIndex >= prev.chapterData.words.length) {
@@ -146,6 +208,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
             return {
               ...prev,
               input: '',
+              loopCount: 1,
               currentIndex: nextIndex,
               isFinished: true,
               isTyping: false,
@@ -160,6 +223,7 @@ export function useTyping(words: Word[], config: TypingConfig) {
           return {
             ...prev,
             input: '',
+            loopCount: 1,
             currentIndex: nextIndex,
             stats: newStats,
           }
@@ -176,34 +240,13 @@ export function useTyping(words: Word[], config: TypingConfig) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.isTyping, state.isFinished, currentWord])
-
-  // Start typing on any key press
-  useEffect(() => {
-    if (state.isTyping || state.isFinished || !currentWord) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || !isLegal(e.key)) return
-
-      e.preventDefault()
-      setState((prev) => ({
-        ...prev,
-        isTyping: true,
-        stats: {
-          ...prev.stats,
-          startTime: Date.now(),
-        },
-      }))
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.isTyping, state.isFinished, currentWord])
+  }, [state.isTyping, state.isFinished, currentWord, config, play])
 
   const reset = useCallback(() => {
     setState({
       currentIndex: 0,
       input: '',
+      loopCount: 1,
       chapterData: {
         words: config.randomEnabled ? [...words].sort(() => Math.random() - 0.5) : words,
         index: 0,
@@ -218,12 +261,6 @@ export function useTyping(words: Word[], config: TypingConfig) {
         wpm: 0,
         accuracy: 100,
       },
-      wordStats: words.map((w) => ({
-        word: w.name,
-        correctCount: 0,
-        wrongCount: 0,
-        timeSpent: 0,
-      })),
     })
   }, [words, config.randomEnabled])
 

@@ -12,7 +12,7 @@ export interface SidebarProps {
     isOpen: boolean;
     activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing';
     onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing') => void;
-    onQuickTyping?: () => void;
+    onQuickTyping?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
     rootDir: string | null;
     rootFiles: FileEntry[];
     currentPath: string | null;
@@ -169,7 +169,10 @@ const SidebarBase: React.FC<SidebarProps> = ({
                     )}
 
                     {activeSideTab === 'typing' && (
-                        <TypingPane onStartPractice={onQuickTyping} />
+                        <TypingPane
+                            onStartPractice={onQuickTyping}
+                            isTypingActive={!!currentPath && currentPath.includes('typing-practice')}
+                        />
                     )}
                 </div>
             </div>

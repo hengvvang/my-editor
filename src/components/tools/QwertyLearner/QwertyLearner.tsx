@@ -8,10 +8,11 @@ import { idDictionaryMap } from './config/dictionary';
 interface QwertyLearnerProps {
     dictId?: string;
     chapter?: number;
-    config?: typeof defaultTypingConfig;
+    config?: Partial<typeof defaultTypingConfig>;
 }
 
-export function QwertyLearner({ dictId = 'cet4', chapter = 0, config = defaultTypingConfig }: QwertyLearnerProps) {
+export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig }: QwertyLearnerProps) {
+    const config = { ...defaultTypingConfig, ...userConfig };
     const [words, setWords] = useState<Word[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 

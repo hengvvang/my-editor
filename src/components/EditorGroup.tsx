@@ -519,7 +519,16 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 </div>
             ) : docType === 'typing' ? (
                 <div className="flex-1 relative bg-white overflow-hidden">
-                    <QwertyLearner />
+                    {(() => {
+                        let props = {};
+                        try {
+                            props = JSON.parse(content || '{}');
+                        } catch (e) {
+                            // Support legacy string content or invalid JSON
+                            console.warn('Invalid typing config', e);
+                        }
+                        return <QwertyLearner {...props} />;
+                    })()}
                 </div>
             ) : (
                 <div className="flex-1 relative bg-white overflow-hidden" id={`scroll-${groupId}`}>

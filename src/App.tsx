@@ -315,8 +315,8 @@ function App() {
                     onQuickTyping={() => {
                         const timestamp = new Date().getTime();
                         const virtualPath = `untitled:typing-practice-${timestamp}`;
-                        // Create a minimal placeholder content (won't be used by QwertyLearner)
-                        const initialContent = "# Typing Practice Session";
+                        // Create a minimal placeholder content with defaults
+                        const initialContent = JSON.stringify({});
 
                         createVirtualDocument(virtualPath, initialContent, "Typing Practice");
                         setActiveGroupId(group.id);
@@ -359,13 +359,33 @@ function App() {
                                 onCreateFolder={createFolder}
                                 onDeleteItem={deleteItem}
                                 activeGroupFiles={activeGroupFiles}
-                                onQuickTyping={() => {
+                                onQuickTyping={(dictId, chapter, config, forceNew = false) => {
+                                    const group = groups.find(g => g.id === activeGroupId);
+
+                                    // If not forcing new, check if we can update current
+                                    if (!forceNew && group?.activePath?.includes('typing-practice')) {
+                                        const newContent = JSON.stringify({
+                                            dictId,
+                                            chapter,
+                                            config
+                                        }, null, 2);
+                                        updateDoc(group.activePath, { content: newContent });
+                                        return;
+                                    }
+
+                                    // Create new (default behavior)
                                     const timestamp = new Date().getTime();
                                     const virtualPath = `untitled:typing-practice-${timestamp}`;
-                                    const initialContent = "# Typing Practice Session";
+                                    const initialContent = JSON.stringify({
+                                        dictId,
+                                        chapter,
+                                        config
+                                    }, null, 2);
                                     createVirtualDocument(virtualPath, initialContent, "Typing Practice");
-                                    const currentGroup = groups.find(g => g.id === activeGroupId);
-                                    if (currentGroup) {
+
+                                    // Ensure we open in the active group
+                                    if (group) {
+                                        // If we are updating logic but forced new, openTab will switch to it
                                         openTab(virtualPath);
                                     }
                                 }}

@@ -20,7 +20,17 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Independent**: Preview panes work independently of editor modes.
     *   **Universal Zoom**: All preview windows (Markdown, Typst, Mermaid, LaTeX) now support **smooth scaling**. Float over the preview area to access Zoom In/Out controls.
 
-### 🎨 Typography & Design
+### � Productivity Tools
+*   **Integrated Typing Practice**:
+    *   Based on the powerful engine of **[Qwerty Learner](https://github.com/RealKai42/qwerty-learner)**.
+    *   **Features**:
+        *   Practice vocabulary while improving typing speed.
+        *   Supports multiple dictionaries (CET-4, CET-6, TOEFL, IELTS, Code, etc.).
+        *   **Visual & Audio Feedback**: Key sounds, pronunciation, and progress tracking.
+        *   **Ergonomic Integration**: Built directly into the editor as a dedicated tab type.
+        *   **Sessions**: Save and resume your practice sessions (stored as JSON files).
+
+### �🎨 Typography & Design
 *   **System Fonts**: Uses system native fonts for a consistent and optimized reading and writing experience.
     *   *Screen Version*: Optimized non-monospace font used for UI and reading.
     *   *Mono Version*: Native fallback to system monospaced fonts (Consolas/Monaco) for code alignment.
@@ -147,6 +157,14 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Installer**: ~11-15 MB (NSIS/MSI)
 *   **Source Code**: 0.31 MB
 *   **Frontend Build**: 5.13 MB
+
+## ❤️ Acknowledgments
+
+Special thanks to the open source community and these amazing projects:
+
+*   **[Qwerty Learner](https://github.com/RealKai42/qwerty-learner)** by [RealKai42](https://github.com/RealKai42):
+    *   Typoly integrates the core logic and dictionary resources of Qwerty Learner to provide a seamless typing practice experience for developers.
+    *   *“For keyboard workers, memory muscle training software.”*
 
 ## 📄 License
 
