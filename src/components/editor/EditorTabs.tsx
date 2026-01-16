@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, X, Columns, SplitSquareHorizontal, SplitSquareVertical, Lock, Camera, Save } from "lucide-react";
+import { FileText, X, Columns, SplitSquareHorizontal, SplitSquareVertical, Lock, Camera, Save, PenTool } from "lucide-react";
 import { Tab } from "../../types";
 
 interface EditorTabsProps {
@@ -17,6 +17,7 @@ interface EditorTabsProps {
     onToggleCodeSnap: () => void;
     onSave: () => void;
     onCloseGroup?: () => void;
+    onQuickDraw?: () => void;
 }
 
 export const EditorTabs: React.FC<EditorTabsProps> = ({
@@ -33,7 +34,8 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
     showCodeSnap,
     onToggleCodeSnap,
     onSave,
-    onCloseGroup
+    onCloseGroup,
+    onQuickDraw
 }) => {
     return (
         <div className="flex bg-slate-50 border-b border-slate-200 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 relative h-[35px]">
@@ -74,6 +76,15 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
                     >
                         <Camera size={14} />
                     </button>
+                    {onQuickDraw && (
+                        <button
+                            onClick={onQuickDraw}
+                            className={`p-1.5 rounded-md transition-all hover:bg-white/50 hover:text-purple-600 text-slate-400`}
+                            title="Quick Draw (New Whiteboard)"
+                        >
+                            <PenTool size={14} />
+                        </button>
+                    )}
                 </div>
 
                 <div className="w-[1px] h-4 bg-slate-300/50 mx-0.5" />

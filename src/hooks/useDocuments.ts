@@ -53,10 +53,27 @@ export function useDocuments() {
         }
     }, [updateDoc]);
 
+    const createVirtualDocument = useCallback((path: string, content: string, name: string) => {
+        setDocuments(prev => ({
+            ...prev,
+            [path]: { path, name, content, originalContent: content, isDirty: true }
+        }));
+    }, []);
+
+    const removeDocument = useCallback((path: string) => {
+        setDocuments(prev => {
+            const next = { ...prev };
+            delete next[path];
+            return next;
+        });
+    }, []);
+
     return {
         documents,
         ensureDocumentLoaded,
         updateDoc,
-        saveDocument
+        saveDocument,
+        createVirtualDocument,
+        removeDocument
     };
 }

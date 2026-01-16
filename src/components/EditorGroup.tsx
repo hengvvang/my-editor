@@ -22,6 +22,7 @@ import { MermaidPreview } from "./previews/MermaidPreview";
 import { MarkdownPreview } from "./previews/MarkdownPreview";
 import { LatexPreview } from "./previews/LatexPreview";
 import { GenericPreview } from "./previews/GenericPreview";
+import { ExcalidrawEditor } from "./previews/ExcalidrawEditor";
 
 import { EditorTabs } from "./editor/EditorTabs";
 import { EditorBreadcrumbs } from "./editor/EditorBreadcrumbs";
@@ -60,6 +61,7 @@ interface EditorGroupProps {
     onCloseGroup?: () => void;
     onOpenFile?: (path: string) => void;
     viewStateManager: EditorViewStateManager;
+    onQuickDraw?: () => void;
 }
 
 export const EditorGroup: React.FC<EditorGroupProps> = ({
@@ -79,7 +81,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     onToggleLock,
     onCloseGroup,
     onOpenFile,
-    viewStateManager
+    viewStateManager,
+    onQuickDraw
 }) => {
     // --- Theme ---
     const scheme = colorSchemes[groupIndex % colorSchemes.length];
@@ -192,11 +195,12 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     }, [isSyncScrollEnabled, activePath, showSplitPreview]); // Re-attach when file changes or preview opens
 
     // --- Derived State ---
-    const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'text' => {
+    const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'text' => {
         if (!path) return 'text';
         if (path.endsWith('.typ')) return 'typst';
         if (path.endsWith('.md')) return 'markdown';
         if (path.endsWith('.mmd') || path.endsWith('.mermaid')) return 'mermaid';
+        if (path.endsWith('.excalidraw') || path.endsWith('.excalidraw.json')) return 'excalidraw';
         if (path.endsWith('.tex') || path.endsWith('.latex')) return 'latex';
         return 'text';
     }, []);
@@ -482,6 +486,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 onToggleCodeSnap={handleToggleCodeSnap}
                 onSave={onSave}
                 onCloseGroup={onCloseGroup}
+                onQuickDraw={onQuickDraw}
             />
 
             <EditorBreadcrumbs
@@ -497,6 +502,14 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                     <CodeSnap
                         code={content}
                         fileName={tabs.find(t => t.path === activePath)?.name}
+                    />
+                </div>
+            ) : docType === 'excalidraw' ? (
+                <div className="flex-1 relative bg-white overflow-hidden">
+                    <ExcalidrawEditor
+                        content={content}
+                        onChange={onContentChange}
+                        theme="light"
                     />
                 </div>
             ) : (

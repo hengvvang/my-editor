@@ -83,6 +83,11 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   *Enhanced Preview*: Real-time "Paper View" simulation with auto-scaling to full width.
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
     *   *Native Dark Mode*: Forces native dark theme rendering in dark mode for crisp, high-contrast diagrams.
+*   **Excalidraw Integration**:
+    *   **Native Whiteboard**: Full-featured [Excalidraw](https://excalidraw.com/) editor embedded directly in the workspace. Support for `.excalidraw` files.
+    *   **Offline Ready**: All assets (fonts, scripts) are bundled locally — no internet connection required.
+    *   **Quick Draw**: Instantly launch a new whiteboard via the **Pen Tool** in the tab bar.
+    *   **Virtual Documents**: Drawings start as lightweight "Untitled" files in memory and prompt for save location only when you're ready.
 *   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
 *   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
 *   **Minimap**: Visual overview of your document with active line and selection indicators.

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Menu, Minus, Square, X } from "lucide-react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { save, confirm } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 import { LayoutRenderer } from "./components/layout/LayoutRenderer";
 import { EditorGroup } from "./components/EditorGroup";
@@ -27,7 +29,9 @@ function App() {
         documents,
         ensureDocumentLoaded,
         updateDoc,
-        saveDocument
+        saveDocument,
+        createVirtualDocument,
+        removeDocument
     } = useDocuments();
 
     const {
@@ -52,6 +56,10 @@ function App() {
 
     const [isMaximized, setIsMaximized] = useState(false);
 
+    // Track documents for event listeners
+    const documentsRef = useRef(documents);
+    useEffect(() => { documentsRef.current = documents; }, [documents]);
+
     useEffect(() => {
         // Track window maximization state
         const updateState = async () => {
@@ -67,8 +75,24 @@ function App() {
 
         const unlistenPromise = appWindow.onResized(updateState);
 
+        // Prevent accidental exit with unsaved changes
+        const unlistenClosePromise = appWindow.onCloseRequested(async (event) => {
+            const unsaved = Object.values(documentsRef.current).filter(d => d.isDirty);
+            if (unsaved.length > 0) {
+                event.preventDefault();
+                const confirmed = await confirm(
+                    `You have ${unsaved.length} unsaved documents.\nAre you sure you want to exit and discard changes?`,
+                    { title: 'Unsaved Changes', kind: 'warning', okLabel: 'Exit', cancelLabel: 'Cancel' }
+                );
+                if (confirmed) {
+                    await appWindow.destroy();
+                }
+            }
+        });
+
         return () => {
             unlistenPromise.then(unlisten => unlisten());
+            unlistenClosePromise.then(unlisten => unlisten());
         };
     }, []);
 
@@ -133,6 +157,54 @@ function App() {
         return group?.activePath || null;
     }
 
+    // --- Custom Save Logic for Untitled Files ---
+    const handleSave = async (path: string, groupId: string) => {
+        if (path.startsWith("untitled:")) {
+            try {
+                // Determine default path properly
+                let defaultPath = 'drawing.excalidraw';
+                if (rootDir) {
+                    // Ensure we use correct separator for the OS (Windows uses backslash, but save dialog might handle forward slash too)
+                    // Safe bet is to let Tauri/OS handle it or just concatenate with /.
+                    // However, for visual consistency in dialog, backslash is better on Windows.
+                    // Simple check:
+                    const sep = navigator.userAgent.includes("Windows") ? '\\' : '/';
+                    defaultPath = `${rootDir}${sep}drawing.excalidraw`;
+                }
+
+                const selectedPath = await save({
+                    filters: [{ name: 'Excalidraw', extensions: ['excalidraw', 'excalidraw.json'] }],
+                    defaultPath: defaultPath
+                });
+
+                if (selectedPath) {
+                    const doc = documents[path];
+                    if (doc) {
+                        // 1. Save content to disk
+                        await invoke("save_content", { path: selectedPath, content: doc.content });
+
+                        // 2. Load it as a real document
+                        await ensureDocumentLoaded(selectedPath);
+
+                        // 3. Switch tab in the group
+                        // We need to close the old one and open the new one
+                        // Ideally we swap them to keep position, but for now:
+                        setActiveGroupId(groupId);
+                        await openTab(selectedPath); // Adds to group
+                        closeTab(path, groupId);     // Removes old
+
+                        // 4. Cleanup virtual doc
+                        removeDocument(path);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to save untitled file", err);
+            }
+        } else {
+            saveDocument(path);
+        }
+    };
+
     // --- Layout Renderer ---
     const renderNodeGroup = (group: GroupState, index: number) => {
         const doc = group.activePath && documents[group.activePath];
@@ -157,14 +229,28 @@ function App() {
                     content={doc ? doc.content : ""}
                     isReadOnly={group.isReadOnly}
                     onSwitchTab={(path) => switchTab(group.id, path)}
-                    onCloseTab={(e, path) => {
+                    onCloseTab={async (e, path) => {
                         e.stopPropagation();
+                        // Check for unsaved changes
+                        const doc = documents[path];
+                        if (doc && doc.isDirty) {
+                            const confirmed = await confirm(
+                                `"${doc.name}" has unsaved changes.\nDo you want to discard them?`,
+                                { title: 'Close Document', kind: 'warning', okLabel: 'Discard', cancelLabel: 'Cancel' }
+                            );
+                            if (!confirmed) return;
+                        }
+
                         closeTab(path, group.id);
+                        // Cleanup virtual docs immediately
+                        if (path.startsWith("untitled:")) {
+                            removeDocument(path);
+                        }
                     }}
                     onContentChange={(val) => {
                         if (group.activePath) updateDoc(group.activePath, { content: val, isDirty: true });
                     }}
-                    onSave={() => group.activePath && saveDocument(group.activePath)}
+                    onSave={() => group.activePath && handleSave(group.activePath, group.id)}
                     onSplit={(dir) => {
                         const newGroupId = Date.now().toString();
                         // Copy editor preferences (font, vim mode, etc.) to new group
@@ -179,6 +265,23 @@ function App() {
                     rootDir={rootDir}
                     onOpenFile={(path) => loadFile(path)}
                     viewStateManager={viewStateManager}
+                    onQuickDraw={() => {
+                        const timestamp = new Date().getTime();
+                        const virtualPath = `untitled:drawing-${timestamp}.excalidraw`;
+                        // Create empty excalidraw JSON
+                        const initialContent = JSON.stringify({
+                            type: "excalidraw",
+                            version: 2,
+                            source: "typoly",
+                            elements: [],
+                            appState: { viewBackgroundColor: "#ffffff", gridSize: null },
+                            files: {}
+                        }, null, 2);
+
+                        createVirtualDocument(virtualPath, initialContent, "Untitled Drawing");
+                        setActiveGroupId(group.id);
+                        openTab(virtualPath);
+                    }}
                 />
             </div>
         );
@@ -218,7 +321,7 @@ function App() {
                                 activeGroupFiles={activeGroupFiles}
                             />
                         </Panel>
-                        <PanelResizeHandle className="group relative w-1 transition-all duration-150">
+                        <PanelResizeHandle className="group relative w-1 transition-all duration-150 z-50">
                             <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-blue-400/20 group-active:bg-blue-500/30 transition-colors" />
                             <div className="absolute inset-y-0 left-0 right-0 bg-slate-200 group-hover:bg-blue-400 group-active:bg-blue-600 transition-colors" />
                         </PanelResizeHandle>

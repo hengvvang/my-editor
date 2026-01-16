@@ -5,7 +5,7 @@ import { LayoutNode, GroupState } from "../../types";
 // Consistent resize handle for splits
 const SplitResizeHandle: React.FC<{ direction: 'horizontal' | 'vertical' }> = ({ direction }) => (
     <PanelResizeHandle
-        className={`group relative ${direction === 'horizontal' ? 'w-1' : 'h-1'} transition-all duration-150`}
+        className={`group relative ${direction === 'horizontal' ? 'w-1' : 'h-1'} transition-all duration-150 z-50`}
     >
         <div className={`absolute ${direction === 'horizontal' ? 'inset-y-0 -left-1 -right-1' : 'inset-x-0 -top-1 -bottom-1'} group-hover:bg-blue-400/20 group-active:bg-blue-500/30 transition-colors`} />
         <div className={`absolute ${direction === 'horizontal' ? 'inset-y-0 left-0 right-0' : 'inset-x-0 top-0 bottom-0'} bg-slate-200 group-hover:bg-blue-400 group-active:bg-blue-600 transition-colors`} />
