@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
 import { useTyping } from './hooks/useTyping';
 import { RotateCcw, Trophy, Target, Zap, SkipForward, SkipBack, Loader2, Volume2, Eye, EyeOff, Languages } from 'lucide-react';
 import type { Word } from './types';
@@ -18,14 +18,23 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
     const [isRevealed, setIsRevealed] = useState(false);
     const [readDisplayMode, setReadDisplayMode] = useState<'all' | 'hide-trans' | 'hide-word'>('all');
 
-    // Scale logic
-    const containerRef = useRef<HTMLDivElement>(null);
+    // Scale logic using callback ref for reliability
     const [scale, setScale] = useState(1);
+    const observerRef = useRef<ResizeObserver | null>(null);
 
-    useLayoutEffect(() => {
-        const handleResize = () => {
-            if (containerRef.current) {
-                const { clientWidth, clientHeight } = containerRef.current;
+    const containerRef = useCallback((node: HTMLDivElement | null) => {
+        // Cleanup previous observer
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
+
+        if (node) {
+            const updateScale = () => {
+                const { clientWidth, clientHeight } = node;
+                // If container is hidden or not ready
+                if (clientWidth === 0 || clientHeight === 0) return;
+
                 const baseWidth = 1000;
                 const baseHeight = 800;
 
@@ -34,12 +43,18 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
                     clientHeight / baseHeight < 1 ? clientHeight / baseHeight : 1
                 );
                 setScale(s);
-            }
-        };
+            };
 
-        window.addEventListener('resize', handleResize);
-        handleResize();
-        return () => window.removeEventListener('resize', handleResize);
+            const observer = new ResizeObserver(() => {
+                requestAnimationFrame(updateScale);
+            });
+
+            observer.observe(node);
+            observerRef.current = observer;
+
+            // Initial calculation
+            updateScale();
+        }
     }, []);
 
     const { state, currentWord, reset, skipWord, prevWord } = useTyping(words, config);
@@ -111,7 +126,7 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
     return (
         <div ref={containerRef} className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
             <div
-                className="relative flex flex-col items-center transition-transform duration-200 ease-out origin-center bg-white/0"
+                className="relative flex flex-col items-center justify-between bg-white/0 transition-transform duration-200 ease-out origin-center"
                 style={{
                     width: 1000,
                     height: 800,
@@ -120,7 +135,7 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
                 }}
             >
                 {/* Top Bar Area */}
-                <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-20 pointer-events-none">
+                <div className="w-full p-6 flex justify-between items-start z-20 pointer-events-none">
                     {/* Left: Stats (Practice/Memory) or Counter (Read) */}
                     <div className="pointer-events-auto">
                         {config.mode !== 'read' ? (
@@ -179,9 +194,9 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
                     </div>
                 </div>
 
-                <div className="flex-1 w-full flex items-center justify-center">
+                <div className="flex-1 w-full flex items-center justify-center p-4 min-h-0">
                     {!state.isFinished ? (
-                        <div className="w-full max-w-3xl flex flex-col items-center justify-center -mt-20">
+                        <div className="w-full max-w-3xl flex flex-col items-center justify-center">
                             {/* Current Word Display */}
                             {/* Wrapper for Word and Phonetic (Grouped for Read Mode Blur) */}
                             <div className={`relative flex flex-col items-center gap-6 transition-all duration-300 w-full
@@ -383,7 +398,7 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
                 {/* Progress Bar */}
                 {
                     !state.isFinished && (
-                        <div className="absolute bottom-8 w-full max-w-3xl px-8">
+                        <div className="w-full max-w-3xl px-8 pb-8">
                             <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
                                 <span>Progress</span>
                                 <span>{Math.round(((state.currentIndex + 1) / words.length) * 100)}%</span>
