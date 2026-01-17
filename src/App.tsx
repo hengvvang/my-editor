@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Menu, Minus, Square, X } from "lucide-react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
 import { LayoutRenderer } from "./features/editor/components/LayoutRenderer";
 import { EditorGroup } from "./features/editor/components/EditorGroup";
+import { GhostResizeHandle } from "./features/editor/components/GhostResizeHandle";
 import { Sidebar } from "./features/sidebar/components/Sidebar";
 import { Tab, GroupState } from "./features/editor/types";
 import "./styles.css";
@@ -171,6 +172,7 @@ function App() {
     }, [shouldShowSidebar, setSidebarOpen, setShouldShowSidebar]);
 
     const groupsContainerRef = useRef<HTMLDivElement>(null);
+    const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
 
     // Handle Split Resizing - Deprecated in favor of recursive internal resizing
     // useLayoutResizing(resizingGroupIndex, setResizingGroupIndex, groups, setGroups, groupsContainerRef);
@@ -332,8 +334,8 @@ function App() {
         [groups, activeGroupId]);
 
     return (
-        <div className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
-            <PanelGroup direction="horizontal" autoSaveId="main-layout">
+        <div ref={groupsContainerRef} className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
+            <PanelGroup ref={panelGroupRef} direction="horizontal" autoSaveId="main-layout">
                 {/* Sidebar Panel */}
                 {sidebarOpen && (
                     <>
@@ -391,10 +393,17 @@ function App() {
                                 }}
                             />
                         </Panel>
-                        <PanelResizeHandle className="group relative w-1 transition-all duration-150 z-50">
-                            <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-blue-400/20 group-active:bg-blue-500/30 transition-colors" />
-                            <div className="absolute inset-y-0 left-0 right-0 bg-slate-200 group-hover:bg-blue-400 group-active:bg-blue-600 transition-colors" />
-                        </PanelResizeHandle>
+                        <GhostResizeHandle
+                            containerRef={groupsContainerRef}
+                            orientation="horizontal"
+                            minPercent={15}
+                            maxPercent={40}
+                            onResizeEnd={(val) => {
+                                if (panelGroupRef.current) {
+                                    panelGroupRef.current.setLayout([val, 100 - val]);
+                                }
+                            }}
+                        />
                     </>
                 )}
 
