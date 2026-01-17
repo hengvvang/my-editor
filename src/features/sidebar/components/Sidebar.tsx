@@ -89,24 +89,24 @@ const SidebarBase: React.FC<SidebarProps> = ({
             {/* 2. Main Body: Left Tabs + Right Pane */}
             <div className="flex-1 flex min-h-0">
                 {/* Left Side: Tabs (Activity Bar inside) */}
-                <div className="w-[52px] flex flex-col items-center py-3 gap-3 bg-slate-100/50 border-r border-slate-200 shrink-0">
+                <div className="w-[44px] flex flex-col items-center py-3 gap-3 bg-slate-100/50 border-r border-slate-200 shrink-0">
                     <button
                         onClick={() => onActiveSideTabChange('explorer')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Explorer"
                     >
                         <Files size={20} className="transition-transform duration-300" />
                     </button>
                     <button
                         onClick={() => onActiveSideTabChange('search')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Search"
                     >
                         <Search size={20} className="transition-transform duration-300" />
                     </button>
                     <button
                         onClick={() => onActiveSideTabChange('outline')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Outline"
                     >
                         <ListTree size={20} className="transition-transform duration-300" />
@@ -116,7 +116,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
 
                     <button
                         onClick={() => onActiveSideTabChange('typing')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'typing' ? 'bg-white shadow-sm text-green-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'typing' ? 'bg-white shadow-sm text-green-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Typing Practice"
                     >
                         <Keyboard size={20} className="transition-transform duration-300" />
@@ -124,7 +124,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
 
                     <button
                         onClick={() => onActiveSideTabChange('canvas')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'canvas' ? 'bg-white shadow-sm text-orange-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'canvas' ? 'bg-white shadow-sm text-orange-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Canvas"
                     >
                         <PenTool size={20} className="transition-transform duration-300" />
@@ -132,7 +132,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
 
                     <button
                         onClick={() => onActiveSideTabChange('calendar')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'calendar' ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'calendar' ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Calendar"
                     >
                         <Calendar size={20} className="transition-transform duration-300" />
@@ -140,7 +140,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
 
                     <button
                         onClick={() => onActiveSideTabChange('world-clock')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'world-clock' ? 'bg-white shadow-sm text-purple-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'world-clock' ? 'bg-white shadow-sm text-purple-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="World Clock"
                     >
                         <Globe2 size={20} className="transition-transform duration-300" />
@@ -148,7 +148,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
 
                     <button
                         onClick={() => onActiveSideTabChange('workspaces')}
-                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Workspaces"
                     >
                         <FolderKanban size={20} className="transition-transform duration-300" />
