@@ -61,7 +61,7 @@ export function useSearch() {
             }
 
             const promises = searchPaths.map(path =>
-                invoke<SearchResult[]>("search_in_files", {
+                invoke<SearchResult[]>("search_files", {
                     path: path,
                     query: query,
                     caseSensitive: options.caseSensitive,

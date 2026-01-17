@@ -41,7 +41,7 @@ export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName,
         const delay = length > 100000 ? 800 : (length > 20000 ? 300 : 100);
 
         const timer = setTimeout(() => {
-            invoke('render_markdown', { text: content }).then((res) => {
+            invoke('markdown_render', { text: content }).then((res) => {
                 // Backend sanitization via ammonia is used now, no need for DOMPurify here
                 setHtml(res as string);
             });

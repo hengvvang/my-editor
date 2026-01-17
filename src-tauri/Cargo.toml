@@ -26,8 +26,17 @@ grep-searcher = "0.1"
 grep-matcher = "0.1"
 anyhow = "1.0"
 ammonia = "4.0"
+typst-assets = { version = "0.14.2", features = ["fonts"] }
+fontdb = "0.23.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
+panic = "abort"
+opt-level = "z"

@@ -38,7 +38,7 @@ export const TypstPreview: React.FC<Props> = ({ content, className, isDark, file
     useEffect(() => {
         const timer = setTimeout(async () => {
             try {
-                const result = await invoke<string>('compile_typst', { content, filePath });
+                const result = await invoke<string>('typst_compile', { content, filePath });
                 setSvg(result);
             } catch (e) {
                 console.error("Typst compilation failed:", e);

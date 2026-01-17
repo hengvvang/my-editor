@@ -1,7 +1,7 @@
 use comrak::{markdown_to_html, ComrakOptions};
 
 #[tauri::command]
-pub fn render_markdown(text: String) -> String {
+pub fn markdown_render(text: String) -> String {
     let mut options = ComrakOptions::default();
 
     // Enable extensions to match or exceed pulldown-cmark

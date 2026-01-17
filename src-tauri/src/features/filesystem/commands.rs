@@ -1,15 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::fs;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct FileEntry {
-    name: String,
-    path: String,
-    is_dir: bool,
-}
+use super::models::FileEntry;
 
 #[tauri::command]
-pub fn read_dir(path: String) -> Result<Vec<FileEntry>, String> {
+pub fn fs_read_dir(path: String) -> Result<Vec<FileEntry>, String> {
     let entries = fs::read_dir(path).map_err(|e| e.to_string())?;
     let mut files = Vec::new();
     for entry in entries {
@@ -45,22 +38,22 @@ pub fn read_dir(path: String) -> Result<Vec<FileEntry>, String> {
 }
 
 #[tauri::command]
-pub fn save_content(path: String, content: String) -> Result<(), String> {
+pub fn fs_write_file(path: String, content: String) -> Result<(), String> {
     fs::write(path, content).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn read_content(path: String) -> Result<String, String> {
+pub fn fs_read_file(path: String) -> Result<String, String> {
     fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn create_directory(path: String) -> Result<(), String> {
+pub fn fs_create_dir(path: String) -> Result<(), String> {
     fs::create_dir_all(path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn delete_item(path: String) -> Result<(), String> {
+pub fn fs_delete(path: String) -> Result<(), String> {
     let metadata = fs::metadata(&path).map_err(|e| e.to_string())?;
     if metadata.is_dir() {
         fs::remove_dir_all(path).map_err(|e| e.to_string())
@@ -70,12 +63,12 @@ pub fn delete_item(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn rename_item(path: String, new_path: String) -> Result<(), String> {
+pub fn fs_rename(path: String, new_path: String) -> Result<(), String> {
     fs::rename(path, new_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn copy_item(path: String, new_path: String) -> Result<(), String> {
+pub fn fs_copy(path: String, new_path: String) -> Result<(), String> {
     // Simple file copy for now. For directories, it's more complex.
     fs::copy(path, new_path)
         .map(|_| ())

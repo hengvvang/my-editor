@@ -43,7 +43,7 @@ const BreadcrumbNode: React.FC<BreadcrumbNodeProps> = ({ file, activePath, depth
             if (!children) {
                 setLoading(true);
                 try {
-                    const res = await invoke<FileEntry[]>("read_dir", { path: file.path });
+                    const res = await invoke<FileEntry[]>("fs_read_dir", { path: file.path });
                     // Sort folders first
                     res.sort((a, b) => {
                         if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
@@ -201,7 +201,7 @@ export const EditorBreadcrumbs: React.FC<EditorBreadcrumbsProps> = ({
         }
 
         try {
-            const files = await invoke<FileEntry[]>("read_dir", { path: targetPath });
+            const files = await invoke<FileEntry[]>("fs_read_dir", { path: targetPath });
             // Sort
             files.sort((a, b) => {
                 if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);

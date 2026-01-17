@@ -48,7 +48,7 @@ export const SidebarItem = ({
 
     const fetchChildren = async () => {
         try {
-            const files = await invoke<FileEntry[]>("read_dir", { path: entry.path });
+            const files = await invoke<FileEntry[]>("fs_read_dir", { path: entry.path });
             files.sort((a, b) => {
                 if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
                 return a.is_dir ? -1 : 1;

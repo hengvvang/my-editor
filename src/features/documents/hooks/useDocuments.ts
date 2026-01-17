@@ -23,7 +23,7 @@ export function useDocuments() {
         if (documentsRef.current[path]) return true;
 
         try {
-            const content = await invoke<string>("read_content", { path });
+            const content = await invoke<string>("fs_read_file", { path });
             const name = path.split(/[\\/]/).pop() || "Untitled";
 
             setDocuments(prev => {
@@ -45,7 +45,7 @@ export function useDocuments() {
         if (!doc) return;
 
         try {
-            await invoke("save_content", { path: doc.path, content: doc.content });
+            await invoke("fs_write_file", { path: doc.path, content: doc.content });
             updateDoc(doc.path, { originalContent: doc.content, isDirty: false });
             console.log("Saved", doc.path);
         } catch (err) {

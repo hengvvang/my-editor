@@ -271,7 +271,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
                 if (!filePath) return;
 
-                await invoke('export_typst_pdf', {
+                await invoke('typst_export_pdf', {
                     content: content,
                     filePath: activePath || null,
                     savePath: filePath

@@ -71,7 +71,7 @@ export function useWorkspace(
         // the useEffect above handles it for the *current* rootDir before it changes.
 
         try {
-            const files = await invoke<FileEntry[]>("read_dir", { path });
+            const files = await invoke<FileEntry[]>("fs_read_dir", { path });
             setRootFiles(files);
             setRootDir(path);
             setShouldShowSidebar(true);
@@ -198,7 +198,7 @@ export function useWorkspace(
         try {
             const sep = targetDir.includes("\\") ? "\\" : "/";
             const newPath = `${targetDir}${sep}${name}`;
-            await invoke("save_content", { path: newPath, content: "" });
+            await invoke("fs_write_file", { path: newPath, content: "" });
             if (targetDir === rootDir && rootDir) await loadWorkspace(rootDir);
             return true;
         } catch (e) {
@@ -214,7 +214,7 @@ export function useWorkspace(
         try {
             const sep = targetDir.includes("\\") ? "\\" : "/";
             const newPath = `${targetDir}${sep}${name}`;
-            await invoke("create_directory", { path: newPath });
+            await invoke("fs_create_dir", { path: newPath });
             if (targetDir === rootDir && rootDir) await loadWorkspace(rootDir);
             return true;
         } catch (e) {
@@ -225,7 +225,7 @@ export function useWorkspace(
 
     const deleteItem = useCallback(async (path: string) => {
          try {
-            await invoke("delete_item", { path });
+            await invoke("fs_delete", { path });
              if (rootDir && rootFiles.some(f => f.path === path)) {
                   await loadWorkspace(rootDir);
              }

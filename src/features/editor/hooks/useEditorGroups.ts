@@ -1,11 +1,18 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { LayoutNode } from '../types';
 import { closeGroupInTree, getAllGroups, splitGroupInTree, updateGroupInTree } from '../utils/layoutUtils';
 
 export function useEditorGroups() {
      // Initial State: Single Group
     const [layout, setLayout] = useState<LayoutNode>({ id: '1', type: 'group', tabs: [], activePath: null, isReadOnly: false });
-    const [activeGroupId, setActiveGroupId] = useState('1');
+    const [activeGroupId, setActiveGroupIdState] = useState('1');
+    const [isPending, startTransition] = useTransition();
+
+    const setActiveGroupId = useCallback((id: string) => {
+        startTransition(() => {
+            setActiveGroupIdState(id);
+        });
+    }, []);
 
     // Flattened groups for consumers who expect a list (like useDocuments, useOutline, etc)
     const groups = getAllGroups(layout);
@@ -17,51 +24,61 @@ export function useEditorGroups() {
 
     const openTab = useCallback((path: string, targetGroupId?: string) => {
         const idToUse = targetGroupId || activeGroupId;
-        setLayout(prev => updateGroupInTree(prev, idToUse, g => {
-            const tabs = g.tabs.includes(path) ? g.tabs : [...g.tabs, path];
-            return { ...g, tabs, activePath: path };
-        }));
+        startTransition(() => {
+            setLayout(prev => updateGroupInTree(prev, idToUse, g => {
+                const tabs = g.tabs.includes(path) ? g.tabs : [...g.tabs, path];
+                return { ...g, tabs, activePath: path };
+            }));
+        });
     }, [activeGroupId]);
 
     const closeTab = useCallback((path: string, groupId: string) => {
-        setLayout(prev => updateGroupInTree(prev, groupId, g => {
-            const newTabs = g.tabs.filter(t => t !== path);
-            let newActive = g.activePath;
-            if (g.activePath === path) {
-                newActive = newTabs.length > 0 ? newTabs[newTabs.length - 1] : null;
-            }
-            return { ...g, tabs: newTabs, activePath: newActive };
-        }));
+        startTransition(() => {
+            setLayout(prev => updateGroupInTree(prev, groupId, g => {
+                const newTabs = g.tabs.filter(t => t !== path);
+                let newActive = g.activePath;
+                if (g.activePath === path) {
+                    newActive = newTabs.length > 0 ? newTabs[newTabs.length - 1] : null;
+                }
+                return { ...g, tabs: newTabs, activePath: newActive };
+            }));
+        });
     }, []);
 
     const splitGroup = useCallback((sourceGroupId: string, direction: 'horizontal' | 'vertical' = 'horizontal', newGroupId?: string) => {
         const newId = newGroupId || Date.now().toString();
-        setLayout(prev => {
-            const res = splitGroupInTree(prev, sourceGroupId, newId, direction);
-            return res || prev;
+        startTransition(() => {
+            setLayout(prev => {
+                const res = splitGroupInTree(prev, sourceGroupId, newId, direction);
+                return res || prev;
+            });
+            setActiveGroupIdState(newId);
         });
-        setActiveGroupId(newId);
     }, []);
 
     const closeGroup = useCallback((groupId: string) => {
-        setLayout(prev => {
-            if (prev.type === 'group' && prev.id === groupId) return prev; // Cannot close if only one group left (and it's root)
-            const res = closeGroupInTree(prev, groupId);
+        startTransition(() => {
+            setLayout(prev => {
+                if (prev.type === 'group' && prev.id === groupId) return prev; // Cannot close if only one group left (and it's root)
+                const res = closeGroupInTree(prev, groupId);
 
-            // If active group closed, we should update activeGroupId.
-            // Simplified: we rely on user clicking another group, or we pick the first one from new layout.
-            if (res && activeGroupId === groupId) {
-               const all = getAllGroups(res);
-               if (all.length > 0) setActiveGroupId(all[0].id);
-            }
+                // If active group closed, we should update activeGroupId.
+                // Simplified: we rely on user clicking another group, or we pick the first one from new layout.
+                if (res && activeGroupId === groupId) {
+                   const all = getAllGroups(res);
+                   if (all.length > 0) setActiveGroupIdState(all[0].id);
+                }
 
-            return res || prev;
+                return res || prev;
+            });
         });
     }, [activeGroupId]);
 
     const switchTab = useCallback((groupId: string, path: string) => {
-        setLayout(prev => updateGroupInTree(prev, groupId, g => ({ ...g, activePath: path })));
-        setActiveGroupId(groupId);
+        startTransition(() => {
+            setLayout(prev => updateGroupInTree(prev, groupId, g => ({ ...g, activePath: path })));
+            setActiveGroupIdState(groupId);
+        });
     }, []);
 
     const toggleLock = useCallback((groupId: string) => {

@@ -133,7 +133,7 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
             for (const fileResult of filesToProcess) {
                 try {
                     // Read file content
-                    const content = await invoke<string>("read_content", { path: fileResult.path });
+                    const content = await invoke<string>("fs_read_file", { path: fileResult.path });
 
                     // Perform replacement
                     // We can't just use match indices because we might have modified the file if we do sequential?
@@ -143,7 +143,7 @@ export const SearchPane: React.FC<SearchPaneProps> = ({
 
                     if (newContent !== content) {
                         // Save file
-                        await invoke("save_content", { path: fileResult.path, content: newContent });
+                        await invoke("fs_write_file", { path: fileResult.path, content: newContent });
                         replacedCount++;
                     }
                 } catch (err) {
