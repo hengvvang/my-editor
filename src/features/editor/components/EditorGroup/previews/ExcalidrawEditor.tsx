@@ -21,6 +21,7 @@ export const ExcalidrawEditor: React.FC<ExcalidrawEditorProps> = ({ content, onC
     // Dynamically load the component to avoid SSR/bundling issues with global objects if any
     const [ExcalidrawModule, setExcalidrawModule] = useState<any>(null);
     const lastSavedData = useRef<string>(content);
+    const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
 
     useEffect(() => {
         import("@excalidraw/excalidraw").then((mod) => {
@@ -37,6 +38,40 @@ export const ExcalidrawEditor: React.FC<ExcalidrawEditorProps> = ({ content, onC
             return null;
         }
     }, []); // Only on mount
+
+    // --- Sync external state changes (e.g. from CanvasPane sidebar) ---
+    // If content changes externally (and it's different from what we last saved), update the scene
+    useEffect(() => {
+        if (!excalidrawAPI || !content) return;
+
+        // Check if content update comes from outside (not our own save)
+        if (content !== lastSavedData.current) {
+            try {
+                const newData = JSON.parse(content);
+                // We only want to update view settings if they changed, to avoid jarring UX
+                // But simplified: just update appState if provided
+                if (newData.appState) {
+                    excalidrawAPI.updateScene({
+                        appState: {
+                            viewBackgroundColor: newData.appState.viewBackgroundColor,
+                            gridSize: newData.appState.gridSize,
+                            gridModeEnabled: newData.appState.gridModeEnabled,
+                            theme: newData.appState.theme,
+                        }
+                    });
+                }
+
+                // If elements changed externally (rare in this app context but possible), update them too?
+                // For now, let's focus on appState (grid, bg, theme) which CanvasPane controls.
+
+                // Update local ref so we don't reflect this back as a change
+                lastSavedData.current = content;
+            } catch (e) {
+                console.error("Failed to sync external content to Excalidraw", e);
+            }
+        }
+    }, [content, excalidrawAPI]);
+
 
     // Debounced Save
     const saveTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -55,6 +90,7 @@ export const ExcalidrawEditor: React.FC<ExcalidrawEditorProps> = ({ content, onC
                 appState: {
                     viewBackgroundColor: appState.viewBackgroundColor,
                     gridSize: appState.gridSize,
+                    gridModeEnabled: appState.gridModeEnabled,
                     theme: appState.theme,
                 },
                 files,
@@ -80,6 +116,7 @@ export const ExcalidrawEditor: React.FC<ExcalidrawEditorProps> = ({ content, onC
                 theme={theme}
                 initialData={initialData}
                 onChange={handleChange}
+                excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
                 // Ensure offline functionality by pointing to public assets
                 // Use /excalidraw-assets/ which maps to public/excalidraw-assets/
                 validateEmbeddable={true}

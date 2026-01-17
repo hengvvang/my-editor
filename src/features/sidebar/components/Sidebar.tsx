@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, ListTree, Files, FolderKanban, Keyboard } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool } from "lucide-react";
 import { FileEntry } from "../../../shared/types";
 import { SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./SearchPane";
@@ -7,13 +7,15 @@ import { ExplorerPane } from "./ExplorerPane";
 import { OutlinePane } from "./OutlinePane";
 import { WorkspacesPane } from "./WorkspacesPane";
 import { TypingPane } from "./TypingPane";
+import { CanvasPane, CanvasConfig } from "./CanvasPane";
 import appLogo from "../../../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
-    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing') => void;
+    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas';
+    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas') => void;
     onQuickTyping?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
+    onQuickDraw?: (config: CanvasConfig) => void;
     rootDir: string | null;
     rootFiles: FileEntry[];
     currentPath: string | null;
@@ -63,6 +65,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
     onOpenFileAtLine,
     activeGroupFiles = [],
     onQuickTyping,
+    onQuickDraw,
 }) => {
 
     if (!isOpen) return null;
@@ -76,6 +79,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                 {activeSideTab === 'outline' && "OUTLINE"}
                 {activeSideTab === 'workspaces' && "WORKSPACES"}
                 {activeSideTab === 'typing' && "TYPING"}
+                {activeSideTab === 'canvas' && "CANVAS"}
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}
@@ -112,6 +116,14 @@ const SidebarBase: React.FC<SidebarProps> = ({
                         title="Typing Practice"
                     >
                         <Keyboard size={20} className="transition-transform duration-300" />
+                    </button>
+
+                    <button
+                        onClick={() => onActiveSideTabChange('canvas')}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'canvas' ? 'bg-white shadow-sm text-orange-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        title="Canvas"
+                    >
+                        <PenTool size={20} className="transition-transform duration-300" />
                     </button>
 
                     <button
@@ -173,6 +185,13 @@ const SidebarBase: React.FC<SidebarProps> = ({
                         <TypingPane
                             onStartPractice={onQuickTyping}
                             isTypingActive={!!currentPath && currentPath.includes('typing-practice')}
+                        />
+                    )}
+
+                    {activeSideTab === 'canvas' && (
+                        <CanvasPane
+                            onStartDrawing={onQuickDraw}
+                            isCanvasActive={!!currentPath && currentPath.includes('drawing-')}
                         />
                     )}
                 </div>

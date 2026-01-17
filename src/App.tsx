@@ -391,6 +391,78 @@ function App() {
                                         openTab(virtualPath);
                                     }
                                 }}
+                                onQuickDraw={(config) => {
+                                    console.log("App: onQuickDraw called with config", config);
+
+                                    // Check if we are updating existing active drawing
+                                    // We need to type cast config to access 'forceNew' until we update types formally
+                                    const forceNew = (config as any).forceNew;
+
+                                    // Find active group and path
+                                    let targetGroup = activeGroupId ? groups.find(g => g.id === activeGroupId) : groups[0];
+                                    if (!targetGroup && groups.length > 0) targetGroup = groups[0];
+
+                                    const activePath = targetGroup?.activePath;
+
+                                    // If we are active (viewing a drawing) and NOT forcing new, let's update settings
+                                    if (!forceNew && activePath && activePath.endsWith('.excalidraw')) {
+                                        console.log("App: Updating existing drawing settings...", activePath);
+                                        const doc = documents[activePath];
+                                        if (doc) {
+                                            try {
+                                                const currentJson = JSON.parse(doc.content);
+                                                // Update only appState settings
+                                                const newAppState = {
+                                                    ...currentJson.appState,
+                                                    viewBackgroundColor: config?.background || "#ffffff",
+                                                    gridSize: config?.grid ? 20 : null,
+                                                    gridModeEnabled: !!config?.grid,
+                                                    theme: config?.theme || "light"
+                                                };
+
+                                                const newContent = JSON.stringify({
+                                                    ...currentJson,
+                                                    appState: newAppState
+                                                }, null, 2);
+
+                                                updateDoc(activePath, { content: newContent, isDirty: true });
+                                                return; // Done updating
+                                            } catch (e) {
+                                                console.error("App: Failed to parse/update existing drawing", e);
+                                            }
+                                        }
+                                    }
+
+                                    const timestamp = new Date().getTime();
+                                    const virtualPath = `untitled:drawing-${timestamp}.excalidraw`;
+
+                                    const initialContent = JSON.stringify({
+                                        type: "excalidraw",
+                                        version: 2,
+                                        source: "typoly",
+                                        elements: [],
+                                        appState: {
+                                            viewBackgroundColor: config?.background || "#ffffff",
+                                            gridSize: config?.grid ? 20 : null,
+                                            gridModeEnabled: !!config?.grid,
+                                            theme: config?.theme || "light"
+                                        },
+                                        files: {}
+                                    }, null, 2);
+
+                                    createVirtualDocument(virtualPath, initialContent, "Untitled Drawing");
+
+                                    // Robust group ID finding
+                                    if (targetGroup) {
+                                        console.log("App: Opening tab in group", targetGroup.id);
+                                        // Slight delay to ensure virtual doc state might ideally settle (though not strictly required for tab creation)
+                                        setTimeout(() => {
+                                            openTab(virtualPath, targetGroup!.id);
+                                        }, 0);
+                                    } else {
+                                        console.error("App: No active group found to open drawing");
+                                    }
+                                }}
                             />
                         </Panel>
                         <GhostResizeHandle
