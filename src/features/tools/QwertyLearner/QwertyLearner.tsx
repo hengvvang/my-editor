@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTyping } from './hooks/useTyping';
-import { RotateCcw, Trophy, Target, Zap, SkipForward, Loader2, Volume2, Eye, EyeOff, Languages } from 'lucide-react';
+import { RotateCcw, Trophy, Target, Zap, SkipForward, SkipBack, Loader2, Volume2, Eye, EyeOff, Languages } from 'lucide-react';
 import type { Word } from './types';
 import { defaultTypingConfig, WORDS_PER_CHAPTER } from './config/typing';
 import { idDictionaryMap } from './config/dictionary';
@@ -18,7 +18,7 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
     const [isRevealed, setIsRevealed] = useState(false);
     const [readDisplayMode, setReadDisplayMode] = useState<'all' | 'hide-trans' | 'hide-word'>('all');
 
-    const { state, currentWord, reset, skipWord } = useTyping(words, config);
+    const { state, currentWord, reset, skipWord, prevWord } = useTyping(words, config);
 
     const speak = (word: string) => {
         if (!word) return;
@@ -149,83 +149,117 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
             {!state.isFinished ? (
                 <div className="w-full max-w-3xl flex-1 flex flex-col items-center justify-center -mt-20">
                     {/* Current Word Display */}
-                    <div className="mb-20 text-center w-full px-8 flex flex-col items-center gap-10">
-
-                        {/* Wrapper for Word and Phonetic (Grouped for Read Mode Blur) */}
-                        <div className={`relative flex flex-col items-center gap-4 transition-all duration-300
+                    {/* Wrapper for Word and Phonetic (Grouped for Read Mode Blur) */}
+                    <div className={`relative flex flex-col items-center gap-6 transition-all duration-300 w-full
                             ${config.mode === 'read' && readDisplayMode === 'hide-word' ? 'blur-md opacity-20 hover:blur-none hover:opacity-100 cursor-pointer' : ''}
                         `}>
-                            {config.mode === 'memory' && state.input.length === 0 && !isRevealed && (
-                                <div className="absolute inset-0 flex items-center justify-center z-10">
-                                    <span className="text-3xl text-slate-300 font-bold tracking-widest blur-sm select-none">
-                                        {currentWord?.name.replace(/./g, '?')}
-                                    </span>
-                                </div>
-                            )}
-
-                            <div
-                                className={`font-bold text-slate-800 tracking-wider select-none leading-none
-                                    ${config.mode === 'memory' && state.input.length === 0 && !isRevealed ? 'opacity-0' : 'opacity-100'}
-                                    transition-opacity duration-300`}
-                                style={{ fontSize: `${config.fontSize * 1.5}rem` }}
-                            >
-                                {currentWord?.name.split('').map((char: string, idx: number) => {
-                                    const isTyped = idx < state.input.length;
-                                    const isCurrentChar = idx === state.input.length;
-                                    const isCorrectChar = isTyped && state.input[idx] === char;
-
-                                    // In read mode, always show as normal text color unless typed (which shouldn't happen)
-                                    if (config.mode === 'read') return <span key={idx}>{char}</span>;
-
-                                    return (
-                                        <span
-                                            key={idx}
-                                            className={`
-                                                transition-colors duration-100
-                                                ${isCurrentChar ? 'border-b-4 border-blue-500' : ''}
-                                                ${isTyped && isCorrectChar ? 'text-green-500' : ''}
-                                                ${isTyped && !isCorrectChar ? 'text-red-500' : ''}
-                                                ${!isTyped ? 'text-slate-300' : ''}
-                                            `}
-                                        >
-                                            {char}
-                                        </span>
-                                    );
-                                })}
+                        {config.mode === 'memory' && state.input.length === 0 && !isRevealed && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 -mt-8">
+                                <span className="text-4xl text-slate-200 font-bold tracking-[0.2em] blur-[2px] select-none animate-pulse">
+                                    {currentWord?.name.replace(/./g, '?')}
+                                </span>
                             </div>
+                        )}
 
-                            {config.showPhonetic && currentWord?.usphone && (
-                                <div className="text-4xl text-slate-500 font-mono font-medium transition-all duration-300">
-                                    /{currentWord.usphone}/
-                                </div>
-                            )}
+                        <div
+                            className={`font-bold text-slate-800 tracking-wider select-none leading-none relative z-0
+                                    ${config.mode === 'memory' && state.input.length === 0 && !isRevealed ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
+                                    transition-all duration-300 ease-out`}
+                            style={{ fontSize: `${config.fontSize * 1.8}rem`, fontFamily: '"JetBrains Mono", monospace' }}
+                        >
+                            {currentWord?.name.split('').map((char: string, idx: number) => {
+                                const isTyped = idx < state.input.length;
+                                const isCurrentChar = idx === state.input.length;
+                                const isCorrectChar = isTyped && state.input[idx] === char;
+
+                                // Calculate if previous char was an error to show connection issues if desired
+                                // For now just simple coloring
+
+                                // In read mode, always show as normal text color unless typed (which shouldn't happen)
+                                if (config.mode === 'read') return <span key={idx}>{char}</span>;
+
+                                return (
+                                    <span
+                                        key={idx}
+                                        className={`
+                                                relative
+                                                transition-colors duration-150
+                                                ${isCurrentChar ? 'text-blue-600' : ''}
+                                                ${isTyped && isCorrectChar ? 'text-slate-300' : ''}
+                                                ${isTyped && !isCorrectChar ? 'text-red-500' : ''}
+                                                ${!isTyped && !isCurrentChar ? 'text-slate-800' : ''}
+                                            `}
+                                    >
+                                        {char}
+                                        {isCurrentChar && (
+                                            <div className="absolute -bottom-2 left-0 right-0 h-1 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                        )}
+                                    </span>
+                                );
+                            })}
                         </div>
 
-                        {config.showTranslation && currentWord?.trans && (
-                            <div className={`text-xl text-slate-700 font-medium italic transition-all duration-300 max-w-2xl
-                                ${config.mode === 'memory' && state.input.length === 0 && !isRevealed ? 'scale-125 mb-4 text-blue-600' : ''}
-                                ${config.mode === 'read' && readDisplayMode === 'hide-trans' ? 'blur-md opacity-20 hover:blur-none hover:opacity-100 cursor-pointer' : ''}
-                            `}>
-                                {currentWord.trans.join('; ')}
+                        {config.showPhonetic && (currentWord?.usphone || currentWord?.ukphone) && (
+                            <div className="flex items-center gap-3">
+                                <div className="text-3xl font-mono text-slate-500 font-medium">/{currentWord?.usphone || currentWord?.ukphone}/</div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        speak(currentWord.name);
+                                    }}
+                                    className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-500 transition-all hover:scale-110 active:scale-95 hover:shadow-sm"
+                                    title="Play Pronunciation"
+                                >
+                                    <Volume2 size={24} />
+                                </button>
                             </div>
                         )}
                     </div>
 
+                    {config.showTranslation && currentWord?.trans && (
+                        <div className={`mt-8 text-xl text-slate-600 font-medium transition-all duration-300 max-w-2xl leading-relaxed bg-white/50 backdrop-blur px-8 py-4 rounded-xl border border-slate-200/50 shadow-sm
+                            ${config.mode === 'memory' && state.input.length === 0 && !isRevealed ? 'scale-110 text-blue-600 shadow-md bg-white border-blue-100' : ''}
+                            ${config.mode === 'read' && readDisplayMode === 'hide-trans' ? 'blur-md opacity-20 hover:blur-none hover:opacity-100 cursor-pointer' : ''}
+                        `}>
+                            {currentWord.trans.map((t, i) => (
+                                <div key={i} className="mb-0.5 last:mb-0">{t}</div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Input Progress Display */}
                     {config.mode !== 'read' && (
-                        <div className="w-full max-w-xl">
-                            <div className={`w-full px-6 py-4 text-2xl text-center font-mono bg-white border-2 rounded-2xl min-h-[60px] flex items-center justify-center transition-all ${state.input ? 'border-blue-300 shadow-lg' : 'border-slate-300'}`}>
+                        <div className="w-full max-w-xl mt-12 relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+
+                            <div className={`relative w-full px-8 py-5 text-2xl text-center font-mono bg-white border-2 rounded-2xl min-h-[72px] flex items-center justify-center transition-all duration-200
+                                ${state.input
+                                    ? state.input.trim() === (currentWord?.name || '').substring(0, state.input.length)
+                                        ? 'border-blue-400 shadow-[0_4px_20px_-2px_rgba(59,130,246,0.1)]'
+                                        : 'border-red-300 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.1)] bg-red-50'
+                                    : 'border-slate-200'
+                                }
+                            `}>
                                 {state.input ? (
-                                    <span className={currentWord && currentWord.name.startsWith(state.input.trim()) ? 'text-slate-800' : 'text-red-500'}>
+                                    <span className={`tracking-wide ${currentWord && currentWord.name.startsWith(state.input.trim())
+                                        ? 'text-slate-700'
+                                        : 'text-red-500 line-through decoration-2 decoration-red-300'
+                                        }`}>
                                         {state.input}
                                     </span>
                                 ) : (
-                                    <span className="text-slate-400 text-lg flex items-center gap-2">
+                                    <span className="text-slate-300 text-lg flex items-center gap-3 font-medium select-none">
                                         {config.mode === 'memory'
-                                            ? <><span className="animate-pulse">Press Enter to Reveal</span> or Type</>
-                                            : (state.isTyping ? 'Typing...' : 'Press any key to start...')}
+                                            ? <><span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" /> Press <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-500 text-sm font-bold border border-slate-300 border-b-2">Enter</span> to Reveal</>
+                                            : (state.isTyping ? 'Typing...' : 'Start typing...')}
                                     </span>
+                                )}
+
+                                {/* Right-side indicator */}
+                                {state.input && currentWord?.name.startsWith(state.input.trim()) && (
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 opacity-50">
+                                        <Zap size={20} fill="currentColor" />
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -233,37 +267,42 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
 
                     {/* Action Buttons */}
                     <div className="mt-24 flex gap-3">
-                        {config.mode === 'read' ? (
-                            <div className="flex gap-6">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="flex gap-4">
                                 <button
-                                    onClick={() => speak(currentWord.name)}
-                                    className="px-8 py-4 bg-white hover:bg-slate-50 text-blue-500 rounded-full font-bold text-xl shadow-md hover:shadow-lg border border-slate-200 transition-all active:scale-95"
-                                    title="Listen to Pronunciation"
+                                    onClick={prevWord}
+                                    className="group flex items-center justify-center w-20 h-16 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-2xl text-xl font-bold transition-all border-2 border-slate-200 shadow-[0_4px_0_0_rgb(226,232,240)] hover:shadow-[0_2px_0_0_rgb(226,232,240)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px]"
+                                    title="Previous Word"
                                 >
-                                    <Volume2 size={28} fill="currentColor" />
+                                    <SkipBack size={24} className="group-hover:-translate-x-0.5 transition-transform" />
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.currentTarget.blur();
+                                        speak(currentWord.name);
+                                    }}
+                                    className="group flex items-center justify-center w-24 h-16 bg-white hover:bg-slate-50 text-slate-500 hover:text-blue-500 rounded-2xl text-xl font-bold transition-all border-2 border-slate-200 shadow-[0_4px_0_0_rgb(226,232,240)] hover:shadow-[0_2px_0_0_rgb(226,232,240)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px]"
+                                    title="Listen (Space)"
+                                >
+                                    <Volume2 size={28} className="group-hover:scale-110 transition-transform" />
                                 </button>
                                 <button
                                     onClick={skipWord}
-                                    className="flex items-center gap-4 px-10 py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full font-bold text-xl shadow-lg hover:shadow-xl transition-all active:scale-95"
+                                    className="group flex items-center justify-center gap-3 px-10 h-16 min-w-[200px] bg-blue-500 hover:bg-blue-400 text-white rounded-2xl text-xl font-bold transition-all border-2 border-blue-600 shadow-[0_4px_0_0_rgb(29,78,216)] hover:shadow-[0_2px_0_0_rgb(29,78,216)] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px]"
                                 >
-                                    Next Word <SkipForward size={28} />
+                                    {config.mode === 'read' ? 'Next' : 'Skip'} <SkipForward size={24} className="group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             </div>
-                        ) : (
-                            <button
-                                onClick={skipWord}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-full text-sm font-bold transition-colors shadow-sm hover:shadow"
-                            >
-                                <SkipForward size={16} />
-                                Skip (Tab)
-                            </button>
-                        )}
+                            {config.mode !== 'read' && (
+                                <span className="text-xs font-medium text-slate-300 mt-2">Press <kbd>Tab</kbd> to skip</span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Hint */}
                     {config.mode !== 'read' && (
-                        <div className="mt-6 text-sm text-slate-400">
-                            Press <kbd className="px-2 py-1 bg-slate-200 rounded-md text-slate-600 font-sans font-bold border-b-2 border-slate-300">Space</kbd> to continue
+                        <div className="mt-8 opacity-0 hover:opacity-100 transition-opacity">
+                            {/* Placeholder for future hints or stats */}
                         </div>
                     )}
                 </div>
@@ -304,23 +343,26 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
                         Practice Again
                     </button>
                 </div>
-            )}
+            )
+            }
 
             {/* Progress Bar */}
-            {!state.isFinished && (
-                <div className="absolute bottom-8 w-full max-w-3xl px-8">
-                    <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
-                        <span>Progress</span>
-                        <span>{Math.round(((state.currentIndex + 1) / words.length) * 100)}%</span>
+            {
+                !state.isFinished && (
+                    <div className="absolute bottom-8 w-full max-w-3xl px-8">
+                        <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
+                            <span>Progress</span>
+                            <span>{Math.round(((state.currentIndex + 1) / words.length) * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-500 ease-out rounded-full shadow-sm"
+                                style={{ width: `${((state.currentIndex + 1) / words.length) * 100}%` }}
+                            />
+                        </div>
                     </div>
-                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                        <div
-                            className="h-full bg-blue-500 transition-all duration-500 ease-out rounded-full shadow-sm"
-                            style={{ width: `${((state.currentIndex + 1) / words.length) * 100}%` }}
-                        />
-                    </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

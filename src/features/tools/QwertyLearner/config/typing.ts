@@ -38,7 +38,7 @@ export const defaultTypingConfig: TypingConfig = {
   wrongSoundEnabled: true,
   hintSoundVolume: 0.5,
   showTranslation: true,
-  showPhonetic: false,
+  showPhonetic: true,
   fontSize: 4, // 1-5 scale
   pronunciationEnabled: false,
   pronunciationSpeed: 1,

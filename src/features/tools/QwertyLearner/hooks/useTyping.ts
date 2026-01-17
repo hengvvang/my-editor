@@ -304,10 +304,24 @@ export function useTyping(words: Word[], config: TypingConfig) {
     })
   }, [])
 
+  const prevWord = useCallback(() => {
+    setState((prev) => {
+      const prevIndex = prev.currentIndex - 1
+      if (prevIndex < 0) return prev
+      return {
+        ...prev,
+        input: '',
+        currentIndex: prevIndex,
+        isFinished: false,
+      }
+    })
+  }, [])
+
   return {
     state,
     currentWord,
     reset,
     skipWord,
+    prevWord,
   }
 }
