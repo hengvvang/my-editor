@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, memo, useLayoutEffect } from 'react
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import { cities, City } from './cities';
-import { Play, Pause, RotateCcw, Settings2, Maximize2, Minimize2, Globe as GlobeIcon, Sun, Moon, AlarmClock, Timer as TimerIcon, StopCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Maximize2, Minimize2, Globe as GlobeIcon, Sun, Moon } from 'lucide-react';
 
 // --- Hook for Element Size ---
 function useElementSize<T extends HTMLElement>() {
@@ -46,9 +46,7 @@ const FlipCard = memo(({ digit, label, isZenMode }: { digit: number | string; la
     }, [digit, current]);
 
     // Responsive sizing - Default, overridden by parent scaling in Sidebar mode
-    const sizeClass = isZenMode
-        ? "w-16 h-24 text-6xl sm:w-20 sm:h-32 sm:text-8xl" // Responsive for Zen Mode
-        : "w-10 h-16 text-4xl"; // Fixed base size, we will scale the parent
+    const sizeClass = "w-10 h-16 text-4xl"; // Fixed base size, we will scale the parent
 
     return (
         <div className="flex flex-col items-center mx-[2px]">
@@ -91,7 +89,7 @@ const FlipCard = memo(({ digit, label, isZenMode }: { digit: number | string; la
     );
 });
 
-const ReactFlipClock = ({ timeZone, isZenMode, containerWidth }: { timeZone: string, isZenMode: boolean, containerWidth: number }) => {
+const ReactFlipClock = ({ timeZone, isZenMode, containerWidth, timeLeft }: { timeZone: string, isZenMode: boolean, containerWidth: number, timeLeft: number | null }) => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -124,30 +122,53 @@ const ReactFlipClock = ({ timeZone, isZenMode, containerWidth }: { timeZone: str
     };
 
     // Auto-Scaling Logic
-    const baseWidth = isZenMode ? 600 : 320;
+    // We use the same base metric (320px) for both Zen Mode and Normal Mode to ensure consistent scaling behavior
+    const baseWidth = 320;
     let scale = 1;
     if (containerWidth > 0) {
         // -32 padding for sidebar, -80 for Zen Mode
-        scale = Math.min(isZenMode ? 1.5 : 1.2, Math.max(isZenMode ? 0.5 : 0.4, (containerWidth - (isZenMode ? 80 : 32)) / baseWidth));
+        const padding = isZenMode ? 80 : 32;
+        // Allow much larger scaling in Zen Mode (up to 10x is practically unlimited) to fill screen
+        const maxScale = isZenMode ? 10.0 : 1.2;
+        scale = Math.min(maxScale, Math.max(0.4, (containerWidth - padding) / baseWidth));
     }
+
+    // Timer Formatter
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     return (
         <div
-            className={`flex gap-2 items-start select-none justify-center transition-transform duration-200 origin-center`}
+            className={`flex flex-col items-center justify-center select-none transition-transform duration-200 origin-center`}
             style={{ transform: `scale(${scale})` }}
         >
-            {renderGroup(h, "Hrs")}
-            {/* Divider */}
-            <div className={`flex flex-col gap-2 pt-4 ${isZenMode ? 'pt-6 sm:pt-8' : ''}`}>
-                <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
-                <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
+            <div className="flex gap-2 items-start justify-center">
+                {renderGroup(h, "Hrs")}
+                {/* Divider */}
+                <div className="flex flex-col gap-2 pt-4">
+                    <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
+                    <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
+                </div>
+                {renderGroup(m, "Min")}
+                <div className="flex flex-col gap-2 pt-4">
+                    <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
+                    <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
+                </div>
+                {renderGroup(s, "Sec")}
             </div>
-            {renderGroup(m, "Min")}
-            <div className={`flex flex-col gap-2 pt-4 ${isZenMode ? 'pt-6 sm:pt-8' : ''}`}>
-                <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
-                <div className={`w-1.5 h-1.5 rounded-full bg-gray-400 opacity-50`} />
-            </div>
-            {renderGroup(s, "Sec")}
+
+            {/* Timer Display - Scaled with Clock */}
+            {timeLeft !== null && (
+                <div className={`mt-6 text-center ${isZenMode ? 'mt-12' : ''}`}>
+                    <div className="text-4xl font-[Share_Tech_Mono] text-emerald-400 tracking-widest drop-shadow-lg animate-pulse">
+                        {formatTime(timeLeft)}
+                    </div>
+                    {isZenMode && <div className="text-white/50 text-[10px] mt-2 uppercase tracking-[0.5em]">Focusing</div>}
+                </div>
+            )}
         </div>
     );
 };
@@ -382,18 +403,13 @@ export const WorldClockPane: React.FC = () => {
                 <div className={`z-10 flex flex-col items-center pointer-events-none ${isZenMode ? 'justify-center h-full' : 'pt-4'}`}>
                     {/* The Flip Clock */}
                     <div className={`transition-transform duration-500`}>
-                        <ReactFlipClock timeZone={selectedCity.timezone} isZenMode={isZenMode} containerWidth={containerWidth} />
+                        <ReactFlipClock
+                            timeZone={selectedCity.timezone}
+                            isZenMode={isZenMode}
+                            containerWidth={containerWidth}
+                            timeLeft={timeLeft}
+                        />
                     </div>
-
-                    {/* Timer Display (Big in Zen Mode) */}
-                    {isZenMode && timeLeft !== null && (
-                        <div className="mt-16 text-center">
-                            <div className="text-8xl font-[Share_Tech_Mono] text-emerald-400 tracking-widest drop-shadow-2xl animate-pulse">
-                                {formatTime(timeLeft)}
-                            </div>
-                            <div className="text-white/50 text-sm mt-4 uppercase tracking-[0.5em]">Focusing</div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Spacer to push controls to bottom */}

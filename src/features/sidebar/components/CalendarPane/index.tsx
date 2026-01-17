@@ -102,8 +102,8 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, mode, initialData, onCl
                         <h2 className="text-lg font-bold text-slate-800 dark:text-white">
                             {mode === 'create' ? 'New Event' : 'Edit Event'}
                         </h2>
-                        <button type="button" onClick={onClose} className="p-1 rounded hover:bg-slate-200 dark:hover:bg-[#444] transition-colors">
-                            <X className="w-5 h-5 text-slate-500" />
+                        <button type="button" onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
@@ -190,7 +190,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, mode, initialData, onCl
                             <button
                                 type="button"
                                 onClick={() => { onDelete(initialData.id!); onClose(); }}
-                                className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-sm font-medium"
+                                className="flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-sm font-semibold"
                             >
                                 <Trash2 className="w-4 h-4" /> Delete
                             </button>
@@ -201,13 +201,13 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, mode, initialData, onCl
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#444] rounded-lg transition-colors text-sm font-medium"
+                                className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-sm font-semibold"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all text-sm font-bold active:scale-95"
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-sm font-bold active:scale-95"
                             >
                                 Save Event
                             </button>
@@ -331,86 +331,209 @@ export const CalendarPane: React.FC = () => {
                 .fc-theme-standard .fc-list-day-cushion { background-color: transparent !important; }
                 .fc-list-event:hover td { background-color: rgba(0,0,0,0.02) !important; }
                 .dark .fc-list-event:hover td { background-color: rgba(255,255,255,0.05) !important; }
-                .fc-toolbar { display: none !important; } /* We use custom toolbar */
+
+                /* Sidebar Specific Overrides for "Clean List" Look */
+                .sidebar-calendar .fc-list-table { border-collapse: separate; border-spacing: 0 4px; }
+                .sidebar-calendar .fc-list-table td { border: none !important; background: transparent !important; }
+                .sidebar-calendar .fc-list-day-cushion { background: transparent !important; padding: 16px 8px 8px 4px !important; }
+                .sidebar-calendar .fc-list-day-text { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; }
+                .sidebar-calendar .fc-list-day-side-text { display: none; }
+                .sidebar-calendar .fc-list-event-graphic { display: none !important; }
+                .sidebar-calendar .fc-list-event-time { display: none !important; }
+                .sidebar-calendar .fc-list-event { cursor: default; }
+                .sidebar-calendar .fc-list-event:hover td { background: transparent !important; }
+                .sidebar-calendar .fc-toolbar { display: none !important; }
+
                 .fc-col-header-cell-cushion { color: #64748b; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
                 .dark .fc-col-header-cell-cushion { color: #94a3b8; }
                 .fc-daygrid-day-number { color: #334155; font-size: 0.875rem; font-weight: 500; }
                 .dark .fc-daygrid-day-number { color: #cbd5e1; }
                 .fc-day-today { background-color: #f0f9ff !important; }
                 .dark .fc-day-today { background-color: rgba(59, 130, 246, 0.1) !important; }
+
+                /* --- Unified Button Styles (Next, Prev, Month, Week) --- */
+                .fc .fc-button {
+                    background-color: white !important;
+                    border: 1px solid #e2e8f0 !important;
+                    color: #475569 !important;
+                    text-transform: capitalize;
+                    font-weight: 600;
+                    padding: 0 1rem !important;
+                    height: 2.25rem !important;
+                    min-width: 2.25rem !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    font-size: 0.875rem !important;
+                    line-height: 1 !important;
+                    box-shadow: none !important;
+                    outline: none !important;
+                    transition: all 0.2s;
+                    margin: 0 !important;
+                }
+                .dark .fc .fc-button {
+                    background-color: #1e1e1e !important;
+                    border-color: #333 !important;
+                    color: #94a3b8 !important;
+                }
+
+                /* Fix Grouping: Attached Borders */
+                .fc .fc-button-group > .fc-button {
+                    border-radius: 0 !important;
+                }
+                .fc .fc-button-group > .fc-button:not(:first-child) {
+                    margin-left: -1px !important;
+                }
+                .fc .fc-button-group > .fc-button:first-child {
+                    border-top-left-radius: 0.5rem !important;
+                    border-bottom-left-radius: 0.5rem !important;
+                }
+                .fc .fc-button-group > .fc-button:last-child {
+                    border-top-right-radius: 0.5rem !important;
+                    border-bottom-right-radius: 0.5rem !important;
+                }
+
+                /* Icon Buttons (Prev/Next) - Explicit Size */
+                .fc .fc-prev-button, .fc .fc-next-button {
+                    width: 2.25rem !important;
+                    padding: 0 !important;
+                }
+                .fc .fc-icon {
+                    font-size: 1.25em !important;
+                    vertical-align: middle;
+                    display: flex !important;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                /* Hover & Active States */
+                .fc .fc-button:hover {
+                    background-color: #f8fafc !important;
+                    color: #1e293b !important;
+                    border-color: #cbd5e1 !important;
+                    z-index: 5;
+                }
+                .dark .fc .fc-button:hover {
+                    background-color: #262626 !important;
+                    color: #e5e5e5 !important;
+                    border-color: #525252 !important;
+                }
+                .fc .fc-button-primary:not(:disabled).fc-button-active,
+                .fc .fc-button-primary:not(:disabled):active {
+                    background-color: #eff6ff !important;
+                    border-color: #3b82f6 !important;
+                    color: #2563eb !important;
+                    box-shadow: none;
+                    z-index: 6;
+                }
+                .dark .fc .fc-button-primary:not(:disabled).fc-button-active,
+                .dark .fc .fc-button-primary:not(:disabled):active {
+                    background-color: rgba(59, 130, 246, 0.15) !important;
+                    border-color: #3b82f6 !important;
+                    color: #60a5fa !important;
+                }
+                .fc .fc-button:focus,
+                .fc .fc-button-primary:focus {
+                    box-shadow: none !important;
+                }
+
+                /* Header Spacing */
+                .fc-header-toolbar {
+                    gap: 1rem;
+                    margin-bottom: 1.5rem !important;
+                    display: flex;
+                    align-items: center;
+                }
+                .fc-toolbar-title {
+                    font-size: 1.5rem !important;
+                    font-weight: 800 !important;
+                    line-height: 1.2;
+                }
             `}</style>
 
             {/* --- Zen Mode (Full Calendar) --- */}
             {isZenMode && (
-                <div className="fixed inset-0 z-50 bg-white dark:bg-[#1e1e1e] flex flex-col p-6 animate-in fade-in zoom-in duration-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                <CalendarIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div className="fixed inset-0 z-50 bg-slate-50/95 dark:bg-[#0f172a]/95 backdrop-blur-sm flex flex-col p-8 animate-in fade-in zoom-in duration-300">
+                    <div className="max-w-7xl mx-auto w-full h-full flex flex-col gap-6">
+                        {/* Zen Mode Header with Primary Actions */}
+                        <div className="flex justify-between items-center">
+                            <div className="flex flex-col gap-0.5">
+                                <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Schedule</h1>
+                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Manage your workspace timeline</p>
                             </div>
-                            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Workspace Calendar</h1>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => handleDateClick({ dateStr: new Date().toISOString().split('T')[0], date: new Date(), allDay: true })}
+                                    className="h-10 px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-2 active:scale-95"
+                                >
+                                    <Plus className="w-4 h-4" strokeWidth={2.5} /> <span className="hidden sm:inline">New Event</span>
+                                </button>
+                                <div className="w-[1px] h-8 bg-slate-200 dark:bg-[#333] mx-1" />
+                                <button
+                                    onClick={() => setIsZenMode(false)}
+                                    className="h-10 px-4 rounded-lg bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#333] hover:bg-slate-50 dark:hover:bg-[#262626] text-slate-600 dark:text-slate-300 transition-all font-semibold text-sm shadow-sm hover:shadow flex items-center gap-2"
+                                >
+                                    <Minimize2 className="w-4 h-4" /> <span>Exit Focus</span>
+                                </button>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => setIsZenMode(false)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-[#333] hover:bg-slate-200 dark:hover:bg-[#444] transition-colors font-medium text-sm"
-                        >
-                            <Minimize2 className="w-4 h-4" /> Exit Focus
-                        </button>
-                    </div>
 
-                    <div className="flex-1 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-slate-200 dark:border-[#333] p-4 overflow-hidden">
-                        <FullCalendar
-                            ref={zenCalendarRef}
-                            plugins={[dayGridPlugin, interactionPlugin]}
-                            initialView="dayGridMonth"
-                            headerToolbar={{
-                                left: 'prev,next today',
-                                center: 'title',
-                                right: 'dayGridMonth,dayGridWeek'
-                            }}
-                            events={events}
-                            dateClick={handleDateClick}
-                            eventClick={handleEventClick}
-                            eventDrop={handleEventDrop}
-                            eventResize={handleEventDrop}
-                            editable={true}
-                            selectable={true}
-                            droppable={true}
-                            height="100%"
-                            eventClassNames="cursor-pointer font-medium text-xs rounded shadow-sm border-0"
-                        />
+                        <div className="flex-1 bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-xl border border-slate-200 dark:border-[#333] p-6 overflow-hidden relative">
+                            <FullCalendar
+                                ref={zenCalendarRef}
+                                plugins={[dayGridPlugin, interactionPlugin]}
+                                initialView="dayGridMonth"
+                                headerToolbar={{
+                                    left: 'prev,next today',
+                                    center: 'title',
+                                    right: 'dayGridMonth,dayGridWeek,listWeek'
+                                }}
+                                events={events}
+                                dateClick={handleDateClick}
+                                eventClick={handleEventClick}
+                                eventDrop={handleEventDrop}
+                                eventResize={handleEventDrop}
+                                editable={true}
+                                selectable={true}
+                                droppable={true}
+                                height="100%"
+                                eventClassNames="cursor-pointer font-medium text-xs rounded-md shadow-sm border-0 my-0.5 px-1 py-0.5 transition-transform hover:scale-[1.02]"
+                            />
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* --- Sidebar Mode (List View) --- */}
             <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Custom Toolbar */}
-                <div className="shrink-0 p-4 border-b border-gray-100 dark:border-[#333] flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200 tracking-tight">Today's Agenda</span>
-                    <div className="flex gap-2">
+                {/* Custom Toolbar - Optimized for spacing and touch targets */}
+                <div className="shrink-0 p-3 border-b border-gray-100 dark:border-[#333] flex items-center justify-between bg-white/50 dark:bg-[#1e1e1e]/50 backdrop-blur-sm sticky top-0 z-10">
+                    <span className="text-xs font-extra-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 pl-1">Agenda</span>
+                    <div className="flex items-center gap-1">
                         <button
                             onClick={() => handleDateClick({ dateStr: new Date().toISOString().split('T')[0], date: new Date(), allDay: true })}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#333] hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
                             title="Add Event"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-5 h-5" strokeWidth={2.5} />
                         </button>
                         <button
                             onClick={() => setIsZenMode(true)}
-                            className="p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-[#333] rounded transition-colors"
-                            title="Open Full Calendar"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#333] hover:text-purple-600 dark:hover:text-purple-400 transition-all active:scale-95"
+                            title="Enter Focus Mode"
                         >
-                            <Maximize2 className="w-4 h-4" />
+                            <Maximize2 className="w-4 h-4" strokeWidth={2.5} />
                         </button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto custom-scrollbar p-2">
+                <div className="flex-1 overflow-auto custom-scrollbar p-2 sidebar-calendar">
                     <FullCalendar
                         ref={calendarRef}
                         plugins={[listPlugin, interactionPlugin]}
-                        initialView="listDay"
+                        initialView="listMonth"
                         headerToolbar={false} // Use concise look
                         events={events}
                         eventClick={handleEventClick}
@@ -418,26 +541,33 @@ export const CalendarPane: React.FC = () => {
                         noEventsContent={() => (
                             <div className="flex flex-col items-center justify-center py-10 opacity-50 gap-2">
                                 <CalendarIcon className="w-10 h-10 text-slate-300" />
-                                <span className="text-xs text-slate-400">No events today</span>
+                                <span className="text-xs text-slate-400">No events this month</span>
                             </div>
                         )}
                         eventContent={(arg) => (
-                            <div className="flex flex-col py-1 min-w-0">
-                                <div className="font-semibold truncate text-slate-700 dark:text-slate-200">{arg.event.title}</div>
-                                {!arg.event.allDay && (
-                                    <div className="text-[10px] text-slate-400">
-                                        {arg.event.start?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        {arg.event.end && ` - ${arg.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                            <div className="flex items-center gap-3 py-2 px-2 min-w-0 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all cursor-pointer group border border-transparent hover:border-slate-100 dark:hover:border-white/5">
+                                <div
+                                    className="w-1 h-8 rounded-full shrink-0 shadow-sm"
+                                    style={{ backgroundColor: arg.event.backgroundColor }}
+                                />
+                                <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+                                    <div className="font-semibold truncate text-slate-700 dark:text-slate-200 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        {arg.event.title}
                                     </div>
-                                )}
+                                    <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
+                                        {!arg.event.allDay ? (
+                                            <>
+                                                <span className="tracking-tight">{arg.event.start?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                {arg.event.end && <span className="opacity-50">-</span>}
+                                                {arg.event.end && <span className="tracking-tight">{arg.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                                            </>
+                                        ) : (
+                                            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-wider">All Day</span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
-                        views={{
-                            listDay: {
-                                buttonText: 'list',
-                                duration: { days: 3 } // Show next 3 days to fill space
-                            }
-                        }}
                     />
                 </div>
             </div>
