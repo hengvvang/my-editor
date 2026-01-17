@@ -361,6 +361,20 @@ function App() {
                                 onCreateFolder={createFolder}
                                 onDeleteItem={deleteItem}
                                 activeGroupFiles={activeGroupFiles}
+                                onOpenCalendar={() => {
+                                    // Open default calendar
+                                    const calendarPath = "untitled:Schedule.cal";
+                                    // Check if already open in active group or anywhere?
+                                    // Simple logic: If not exists, create with empty default. Then open.
+                                    if (!documents[calendarPath]) {
+                                        const initialContent = JSON.stringify({
+                                            initialView: 'dayGridMonth',
+                                            events: []
+                                        }, null, 2);
+                                        createVirtualDocument(calendarPath, initialContent, "Schedule");
+                                    }
+                                    openTab(calendarPath, activeGroupId || groups[0]?.id);
+                                }}
                                 onQuickTyping={(dictId, chapter, config, forceNew = false) => {
                                     const group = groups.find(g => g.id === activeGroupId);
 

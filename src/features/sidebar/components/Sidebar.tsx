@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool, Calendar } from "lucide-react";
 import { FileEntry } from "../../../shared/types";
 import { SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./SearchPane";
@@ -8,14 +8,16 @@ import { OutlinePane } from "./OutlinePane";
 import { WorkspacesPane } from "./WorkspacesPane";
 import { TypingPane } from "./TypingPane";
 import { CanvasPane, CanvasConfig } from "./CanvasPane";
+import { CalendarPane } from "./CalendarPane";
 import appLogo from "../../../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
-    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas') => void;
+    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar';
+    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar') => void;
     onQuickTyping?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
     onQuickDraw?: (config: CanvasConfig) => void;
+    onOpenCalendar?: () => void;
     rootDir: string | null;
     rootFiles: FileEntry[];
     currentPath: string | null;
@@ -66,6 +68,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
     activeGroupFiles = [],
     onQuickTyping,
     onQuickDraw,
+    onOpenCalendar
 }) => {
 
     if (!isOpen) return null;
@@ -80,6 +83,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                 {activeSideTab === 'workspaces' && "WORKSPACES"}
                 {activeSideTab === 'typing' && "TYPING"}
                 {activeSideTab === 'canvas' && "CANVAS"}
+                {activeSideTab === 'calendar' && "CALENDAR"}
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}
@@ -124,6 +128,14 @@ const SidebarBase: React.FC<SidebarProps> = ({
                         title="Canvas"
                     >
                         <PenTool size={20} className="transition-transform duration-300" />
+                    </button>
+
+                    <button
+                        onClick={() => onActiveSideTabChange('calendar')}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'calendar' ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        title="Calendar"
+                    >
+                        <Calendar size={20} className="transition-transform duration-300" />
                     </button>
 
                     <button
@@ -192,6 +204,12 @@ const SidebarBase: React.FC<SidebarProps> = ({
                         <CanvasPane
                             onStartDrawing={onQuickDraw}
                             isCanvasActive={!!currentPath && currentPath.includes('drawing-')}
+                        />
+                    )}
+
+                    {activeSideTab === 'calendar' && (
+                        <CalendarPane
+                            onOpenCalendar={onOpenCalendar}
                         />
                     )}
                 </div>
