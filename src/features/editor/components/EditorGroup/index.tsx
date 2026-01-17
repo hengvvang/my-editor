@@ -4,7 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, ImperativePanelHandle, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { latexLivePreview } from "../../utils/codemirror-latex";
 
 import { Tab } from "../../types";
@@ -34,15 +34,230 @@ import { selectionHighlightExtension } from "../../utils/selectionHighlight";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
-// --- Resizer Component ---
-const ResizeHandle: React.FC<{ className?: string }> = ({ className = '' }) => (
-    <PanelResizeHandle
-        className={`group relative w-2 bg-transparent flex justify-center items-center transition-colors focus:outline-none outline-none ${className}`}
-    >
-        {/* Visual Line */}
-        <div className="w-[1px] h-full bg-slate-200 group-hover:bg-blue-400 group-active:bg-blue-600 transition-colors" />
-    </PanelResizeHandle>
-);
+// --- Ghost Resizer Component ---
+const GhostResizeHandle: React.FC<{
+    className?: string;
+    onResizeEnd: (percent: number) => void;
+    orientation?: 'horizontal' | 'vertical'; // Should be 'vertical' for horizontal split (left/right)
+    containerRef?: React.RefObject<HTMLDivElement>;
+    minPercent?: number;
+    maxPercent?: number;
+}> = ({ className = '', onResizeEnd, containerRef, minPercent = 20, maxPercent = 80 }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [isAtLimit, setIsAtLimit] = useState(false);
+    const [ghostLeft, setGhostLeft] = useState(0);
+    const startRef = useRef<{ containerLeft: number, containerWidth: number } | null>(null);
+
+    const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        // Find the specific container for THIS handle
+        // We prefer explicit ref, otherwise find closest group or parent
+        let container = containerRef?.current;
+        if (!container) {
+            // Try explicit ID first if we are in a known structure, or fallback to parent (panel group container)
+            container = e.currentTarget.parentElement as HTMLDivElement;
+            if (!container || !container.classList.contains('flex-1') && !container.getAttribute('data-panel-group-direction')) {
+                // Fallback to closest search if parent isn't the group
+                container = e.currentTarget.closest('[data-panel-group-direction="horizontal"]') as HTMLDivElement;
+            }
+        }
+
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+
+        startRef.current = {
+            containerLeft: rect.left,
+            containerWidth: rect.width
+        };
+
+        // Use FIXED coordinates for the ghost line to avoid layout quirks
+        setGhostLeft(e.clientX);
+        setIsAtLimit(false);
+        setIsDragging(true);
+        e.preventDefault();
+        e.stopPropagation();
+    }, [containerRef]);
+
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!startRef.current) return;
+            const { containerLeft, containerWidth } = startRef.current;
+
+            // Constrain within container bounds (with percentage limits)
+            let newX = e.clientX;
+            const minX = containerLeft + (containerWidth * (minPercent / 100));
+            const maxX = containerLeft + (containerWidth * (maxPercent / 100));
+
+            let atLimit = false;
+            if (newX <= minX) { newX = minX; atLimit = true; }
+            else if (newX >= maxX) { newX = maxX; atLimit = true; }
+
+            setIsAtLimit(atLimit);
+            setGhostLeft(newX);
+        };
+
+        const handleMouseUp = (e: MouseEvent) => {
+            setIsDragging(false);
+            if (startRef.current) {
+                const { containerWidth, containerLeft } = startRef.current;
+                const minPx = containerWidth * (minPercent / 100);
+                const maxPx = containerWidth * (maxPercent / 100);
+
+                // Final calculation using the last valid position
+                let finalX = e.clientX;
+                // Clamp again just in case (ensure we respect the same limits)
+                if (finalX < containerLeft + minPx) finalX = containerLeft + minPx;
+                if (finalX > containerLeft + maxPx) finalX = containerLeft + maxPx;
+
+                // Calculate percentage relative to container
+                const relX = finalX - containerLeft;
+                const percent = (relX / containerWidth) * 100;
+
+                onResizeEnd(percent);
+            }
+            startRef.current = null;
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+    }, [isDragging, onResizeEnd, minPercent, maxPercent]);
+
+    return (
+        <>
+            {/* The Visual Handler (Static) */}
+            <div
+                onMouseDown={handleMouseDown}
+                className={`group relative w-2 bg-transparent flex justify-center items-center transition-colors focus:outline-none outline-none cursor-col-resize z-50 shrink-0 ${className}`}
+            >
+                <div className="w-[1px] h-full bg-slate-200 group-hover:bg-blue-400 active:bg-blue-600 transition-colors pointer-events-none" />
+            </div>
+
+            {/* The Ghost Line (Fixed Overlay) */}
+            {isDragging && (
+                <div
+                    className={`fixed top-0 bottom-0 w-[1px] border-l-2 border-dashed z-[9999] pointer-events-none ${isAtLimit ? 'border-red-500' : 'border-blue-500'}`}
+                    style={{ left: ghostLeft }}
+                />
+            )}
+        </>
+    );
+};
+
+// --- Minimap Ghost Resizer ---
+const MinimapGhostHandle: React.FC<{
+    currentWidth: number;
+    onResizeEnd: (newWidth: number) => void;
+}> = ({ currentWidth, onResizeEnd }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [isAtLimit, setIsAtLimit] = useState(false);
+    const [ghostRight, setGhostRight] = useState(0); // Position from right edge of screen/container
+    const startRef = useRef<{ startX: number, startWidth: number } | null>(null);
+
+    const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        startRef.current = {
+            startX: e.clientX,
+            startWidth: currentWidth
+        };
+        // Initial visual position
+        setGhostRight(currentWidth);
+        setIsAtLimit(false);
+        setIsDragging(true);
+        e.preventDefault();
+        e.stopPropagation();
+    }, [currentWidth]);
+
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!startRef.current) return;
+            const { startX, startWidth } = startRef.current;
+
+            // Calculate delta (drag left increases width)
+            // Left is negative delta X
+            const delta = startX - e.clientX;
+            let newWidth = startWidth + delta;
+
+            let atLimit = false;
+            // Clamp
+            if (newWidth <= 50) {
+                newWidth = 50;
+                atLimit = true;
+                // Re-anchor to prevent dead zone (stickiness)
+                startRef.current = { startX: e.clientX, startWidth: 50 };
+            }
+            else if (newWidth >= 300) {
+                newWidth = 300;
+                atLimit = true;
+                // Re-anchor
+                startRef.current = { startX: e.clientX, startWidth: 300 };
+            }
+
+            setIsAtLimit(atLimit);
+            setGhostRight(newWidth);
+        };
+
+        const handleMouseUp = (e: MouseEvent) => {
+            setIsDragging(false);
+            if (startRef.current) {
+                const { startX, startWidth } = startRef.current;
+                const delta = startX - e.clientX;
+                let newWidth = startWidth + delta;
+
+                if (newWidth < 50) newWidth = 50;
+                if (newWidth > 300) newWidth = 300;
+
+                onResizeEnd(newWidth);
+            }
+            startRef.current = null;
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+    }, [isDragging, onResizeEnd]);
+
+    return (
+        <>
+            <div
+                className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 flex justify-center"
+                onMouseDown={handleMouseDown}
+            >
+                {/* Visual indicator on hover/active */}
+                <div className="w-[1px] h-full bg-transparent hover:bg-blue-400" />
+            </div>
+
+            {isDragging && (
+                <div
+                    className={`fixed top-0 bottom-0 w-[1px] border-l-2 border-dashed z-[9999] pointer-events-none ${isAtLimit ? 'border-red-500' : 'border-blue-500'}`}
+                    style={{
+                        right: ghostRight
+                    }}
+                />
+            )}
+        </>
+    );
+};
 
 interface EditorGroupProps {
     groupId: string;
@@ -113,35 +328,10 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const setMinimapWidth = useCallback((val: number) => viewStateManager.setViewState(groupId, { minimapWidth: val }), [viewStateManager, groupId]);
     const toggleSyncScroll = useCallback(() => viewStateManager.setViewState(groupId, { isSyncScrollEnabled: !isSyncScrollEnabled }), [viewStateManager, groupId, isSyncScrollEnabled]);
 
-    // --- Panel Size Handlers ---
-    const handlePanelResize = useCallback((sizes: number[]) => {
-        // sizes array order: [editor, preview?, codesnap?]
-        // Note: react-resizable-panels calls onLayout with the NEW sizes after resize.
-        // We just need to persist them to our state.
-
-        const updates: Partial<typeof viewState> = {};
-
-        // The first panel is ALWAYS the editor
-        if (sizes.length > 0) {
-            updates.editorSize = sizes[0];
-        }
-
-        let currentIdx = 1;
-
-        // If preview is open, it takes the next slot
-        if (showSplitPreview && currentIdx < sizes.length) {
-            updates.previewSize = sizes[currentIdx];
-            currentIdx++;
-        }
-
-        // If codesnap is open, it takes the next slot
-        if (showCodeSnap && currentIdx < sizes.length) {
-            updates.codeSnapSize = sizes[currentIdx];
-            currentIdx++;
-        }
-
-        viewStateManager.setViewState(groupId, updates);
-    }, [viewStateManager, groupId, showSplitPreview, showCodeSnap]);
+    // --- Panel Size Handlers (Legacy / Sync updates if needed, but we rely on drag end now) ---
+    // Kept to update state if programmatic resize happens via library? No, we disabled onLayout.
+    // So this is effectively unused unless we re-enable it for edge cases.
+    // const handlePanelResize = useCallback((sizes: number[]) => { ... }, []);
 
     // --- Content Rendering State ---
     const editorViewRef = useRef<EditorView | null>(null);
@@ -149,6 +339,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const isScrollingRef = useRef<'editor' | 'preview' | null>(null);
     const [snapCode, setSnapCode] = useState<string>('');
     const [toolbarPosition, setToolbarPosition] = useState<'top' | 'bottom'>('top');
+    const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
 
     // --- Derived State (Moved Up for dependencies) ---
     const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'typing' | 'text' => {
@@ -623,11 +814,26 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
                         {/* Main Content Area with Resizable Panels */}
                         <div className="flex-1 min-w-0 flex min-h-0 relative">
+                            {/* Ghost Overlay - positioned relative to THIS container */}
+                            {/* We need to pass a callback to receive the ghost element from the handle or uplift state.
+                                Actually, if GhostResizeHandle renders the ghost line, it needs to be absolute
+                                relative to `flex-1 min-w-0 flex min-h-0 relative` div.
+
+                                The GhostResizeHandle is deeply nested inside PanelGroup.
+                                If PanelGroup has `display: flex`, absolute children might be relative to panel?
+                                No, PanelGroup adds styles.
+
+                                Let's uplift the drag state to EditorGroup to render the line at top level of this container.
+                            */}
+
                             <PanelGroup
+                                ref={panelGroupRef}
                                 direction="horizontal"
-                                onLayout={handlePanelResize}
+                                // We don't use onLayout for state updates anymore to prevent lag
+                                // onLayout={handlePanelResize}
                                 className="flex-1"
-                                autoSaveId={`group-${groupId}-layout`}
+                                autoSaveId={`group-${groupId}-layout-v2`}
+                                id={`panel-group-${groupId}`}
                             >
                                 {/* Editor Panel */}
                                 <Panel
@@ -671,7 +877,54 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 {/* Preview Panel */}
                                 {showSplitPreview && (
                                     <>
-                                        <ResizeHandle />
+                                        <GhostResizeHandle
+                                            minPercent={20}
+                                            maxPercent={showCodeSnap ? (85 - codeSnapSize) : 85}
+                                            onResizeEnd={(percent) => {
+                                                // Percent is relative to container width
+                                                // We need to map this to new sizes for panels
+                                                // Assuming editor is left (order 1), preview (order 2)
+
+                                                const newEditorSize = percent;
+
+                                                if (showCodeSnap) {
+                                                    // 3 Panels: Editor | Preview | CodeSnap
+                                                    // We are resizing Editor<->Preview
+                                                    // CodeSnap should stay same size ideally, or we squeeze Preview?
+                                                    // Layout: [Editor, Preview, CodeSnap]
+
+                                                    const currentSnap = codeSnapSize;
+                                                    // Ensure we don't swallow CodeSnap
+                                                    // Remaining for preview = 100 - editor - snap
+                                                    let newPreview = 100 - newEditorSize - currentSnap;
+
+                                                    // If preview gets too small, we might need to squeeze CodeSnap or simple clamp editor?
+                                                    // GhostHandle handles usage clamping via min/maxPercent, but we should double check constraints.
+                                                    if (newPreview < 0) newPreview = 0;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        editorSize: newEditorSize,
+                                                        previewSize: newPreview,
+                                                        codeSnapSize: currentSnap
+                                                    });
+
+                                                    panelGroupRef.current?.setLayout([newEditorSize, newPreview, currentSnap]);
+
+                                                } else {
+                                                    // 2 Panels: Editor | Preview
+                                                    const newPreviewSize = 100 - percent;
+
+                                                    // Update State
+                                                    viewStateManager.setViewState(groupId, {
+                                                        editorSize: newEditorSize,
+                                                        previewSize: newPreviewSize
+                                                    });
+
+                                                    // Force Layout Update
+                                                    panelGroupRef.current?.setLayout([newEditorSize, newPreviewSize]);
+                                                }
+                                            }}
+                                        />
                                         <Panel
                                             defaultSize={previewSize}
                                             minSize={15}
@@ -690,7 +943,49 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 {/* CodeSnap Panel */}
                                 {showCodeSnap && (
                                     <>
-                                        <ResizeHandle />
+                                        <GhostResizeHandle
+                                            minPercent={showSplitPreview ? (editorSize + 15) : 20}
+                                            maxPercent={85}
+                                            onResizeEnd={(percent) => {
+                                                // Handle 3 panes case: Editor | Preview | CodeSnap
+                                                // If Preview is closed: Editor | CodeSnap
+
+                                                if (!showSplitPreview) {
+                                                    const newEditorSize = percent;
+                                                    const newSnapSize = 100 - percent;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        editorSize: newEditorSize,
+                                                        codeSnapSize: newSnapSize
+                                                    });
+                                                    panelGroupRef.current?.setLayout([newEditorSize, newSnapSize]);
+                                                } else {
+                                                    // 3 Panels: Editor(1) | Preview(2) | CodeSnap(3)
+                                                    // This handle is between Preview and CodeSnap
+                                                    // Percent is absolute from left
+
+                                                    // We keep Editor size constant? Or proportional?
+                                                    // GhostHandle calculates percent from LEFT of CONTAINER.
+
+                                                    // Current sizes
+                                                    const currentEditor = editorSize;
+
+                                                    // New Total Left = Editor + Preview = percent
+                                                    // So Preview = percent - editor
+                                                    let newPreview = percent - currentEditor;
+                                                    if (newPreview < 0) newPreview = 10; // min clamp
+
+                                                    const newSnap = 100 - percent;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        previewSize: newPreview,
+                                                        codeSnapSize: newSnap
+                                                    });
+
+                                                    panelGroupRef.current?.setLayout([currentEditor, newPreview, newSnap]);
+                                                }
+                                            }}
+                                        />
                                         <Panel
                                             defaultSize={codeSnapSize}
                                             minSize={15}
@@ -745,32 +1040,10 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                     className="shrink-0 border-l border-slate-200 bg-slate-50/30 h-full relative"
                                     style={{ width: `${minimapWidth}px` }}
                                 >
-                                    {/* Minimap Resize Handle (manual for fixed-width minimap) */}
-                                    <div
-                                        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            const startX = e.clientX;
-                                            const startWidth = minimapWidth;
-
-                                            const onMouseMove = (moveEvent: MouseEvent) => {
-                                                const delta = startX - moveEvent.clientX;
-                                                const newWidth = Math.max(50, Math.min(300, startWidth + delta));
-                                                setMinimapWidth(newWidth);
-                                            };
-
-                                            const onMouseUp = () => {
-                                                document.removeEventListener('mousemove', onMouseMove);
-                                                document.removeEventListener('mouseup', onMouseUp);
-                                                document.body.style.cursor = '';
-                                                document.body.style.userSelect = '';
-                                            };
-
-                                            document.addEventListener('mousemove', onMouseMove);
-                                            document.addEventListener('mouseup', onMouseUp);
-                                            document.body.style.cursor = 'col-resize';
-                                            document.body.style.userSelect = 'none';
-                                        }}
+                                    {/* Minimap Resize Handle */}
+                                    <MinimapGhostHandle
+                                        currentWidth={minimapWidth}
+                                        onResizeEnd={setMinimapWidth}
                                     />
                                     <MinimapView content={content} scrollContainerId={`scroll-${groupId}`} />
                                 </div>
