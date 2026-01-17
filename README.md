@@ -81,6 +81,20 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   Intuitive icon-based scope switching.
     *   Real-time regex highlighting.
 
+### 🌍 Global Focus Tools
+*   **Interactive World Clock**:
+    *   **3D Globe**: Real-time interactive earth view powered by Three.js.
+    *   **Day/Night Cycle**: Toggle between **REAL** (Real-time sun position & shadows reflecting actual day/night) and **Fixed** (Bright static lighting) modes.
+    *   **Flip Clock**: Retro-style flip clock animation with responsive scaling.
+*   **Focus Timer**:
+    *   **Zen Mode**: One-click immersion mode featuring a full-screen **24-Timezone Flat Map**.
+        *   *Adaptive Background*: Uses map blending (Multiply/Screen) to match Light/Dark themes.
+        *   *Zero Distraction*: Minimalist "Exit Focus" macro-interaction.
+    *   **Pomodoro Integration**:
+        *   Quick Start presets (25m, 45m).
+        *   Custom duration support.
+        *   **Persistent State**: Timer continues running seamlessly even when switching sidebar tabs.
+
 ### ⚡ Power User Tools
 *   **CodeSnap**: Built-in tool to create beautiful, shareable screenshots.
     *   *Selection-Aware*: Automatically captures only your **selected text** for precise control, or defaults to the whole file if nothing is selected.

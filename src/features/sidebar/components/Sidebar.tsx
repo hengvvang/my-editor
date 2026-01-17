@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool, Calendar } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool, Calendar, Globe2 } from "lucide-react";
 import { FileEntry } from "../../../shared/types";
 import { SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./SearchPane";
@@ -9,12 +9,13 @@ import { WorkspacesPane } from "./WorkspacesPane";
 import { TypingPane } from "./TypingPane";
 import { CanvasPane, CanvasConfig } from "./CanvasPane";
 import { CalendarPane } from "./CalendarPane";
+import { WorldClockPane } from "./WorldClockPane/WorldClockPane";
 import appLogo from "../../../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
-    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar') => void;
+    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock';
+    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock') => void;
     onQuickTyping?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
     onQuickDraw?: (config: CanvasConfig) => void;
     onOpenCalendar?: () => void;
@@ -139,6 +140,14 @@ const SidebarBase: React.FC<SidebarProps> = ({
                     </button>
 
                     <button
+                        onClick={() => onActiveSideTabChange('world-clock')}
+                        className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'world-clock' ? 'bg-white shadow-sm text-purple-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                        title="World Clock"
+                    >
+                        <Globe2 size={20} className="transition-transform duration-300" />
+                    </button>
+
+                    <button
                         onClick={() => onActiveSideTabChange('workspaces')}
                         className={`p-2.5 rounded-2xl transition-all active:scale-95 duration-200 ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         title="Workspaces"
@@ -212,6 +221,10 @@ const SidebarBase: React.FC<SidebarProps> = ({
                             onOpenCalendar={onOpenCalendar}
                         />
                     )}
+
+                    <div style={{ display: activeSideTab === 'world-clock' ? 'block' : 'none', height: '100%' }}>
+                        <WorldClockPane />
+                    </div>
                 </div>
             </div>
 

@@ -25,6 +25,7 @@ const LatexPreview = React.lazy(() => import("./previews/LatexPreview").then(m =
 const GenericPreview = React.lazy(() => import("./previews/GenericPreview").then(m => ({ default: m.GenericPreview })));
 const ExcalidrawEditor = React.lazy(() => import("./previews/ExcalidrawEditor").then(m => ({ default: m.ExcalidrawEditor })));
 const QwertyLearner = React.lazy(() => import("../../../tools/QwertyLearner/QwertyLearner").then(m => ({ default: m.QwertyLearner })));
+const FlipClock = React.lazy(() => import("../../../tools/FlipClock/FlipClock"));
 import { CalendarEditor } from './previews/CalendarEditor';
 
 import { EditorTabs } from "./EditorTabs";
@@ -223,13 +224,14 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
 
     // --- Derived State (Moved Up for dependencies) ---
-    const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'typing' | 'calendar' | 'text' => {
+    const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'typing' | 'calendar' | 'flipclock' | 'text' => {
         if (!path) return 'text';
         if (path.endsWith('.typ')) return 'typst';
         if (path.endsWith('.md')) return 'markdown';
         if (path.endsWith('.mmd') || path.endsWith('.mermaid')) return 'mermaid';
         if (path.endsWith('.excalidraw') || path.endsWith('.excalidraw.json')) return 'excalidraw';
         if (path.endsWith('.cal') || path.endsWith('.calendar.json')) return 'calendar';
+        if (path.endsWith('.flip') || path.endsWith('.clock')) return 'flipclock';
         if (path.endsWith('.tex') || path.endsWith('.latex')) return 'latex';
         if (path.includes('typing-practice')) return 'typing';
         return 'text';
@@ -681,6 +683,12 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                         onChange={onContentChange}
                         theme="light"
                     />
+                </div>
+            ) : docType === 'flipclock' ? (
+                <div className="flex-1 relative bg-zinc-900 overflow-hidden shadow-sm border-t border-slate-200/50">
+                    <React.Suspense fallback={<LoadingFallback />}>
+                        <FlipClock content={content} />
+                    </React.Suspense>
                 </div>
             ) : docType === 'typing' ? (
                 <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50">
