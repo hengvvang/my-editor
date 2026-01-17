@@ -1,6 +1,6 @@
 # Typoly
 
-A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid**, and **LaTeX** built with efficiency and aesthetics in mind.
+A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid**, **LaTeX**, and **Excalidraw** whiteboards built with efficiency and aesthetics in mind.
 
 ![Editor Screenshot](https://via.placeholder.com/800x450?text=Typoly+Preview)
 
@@ -100,7 +100,10 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   **Mermaid Support**: Native support for `.mmd` / `.mermaid` files with live diagram rendering and error reporting.
     *   *Native Dark Mode*: Forces native dark theme rendering in dark mode for crisp, high-contrast diagrams.
 *   **Excalidraw Integration**:
-    *   **Native Whiteboard**: Full-featured [Excalidraw](https://excalidraw.com/) editor embedded directly in the workspace. Support for `.excalidraw` files.
+    *   **Native Whiteboard**: Full-featured [Excalidraw](https://excalidraw.com/) editor embedded directly in the workspace `(.excalidraw)`.
+    *   **Dedicated Sidebar Pane**: New **Canvas Control** sidebar to manage whiteboard settings locally.
+        *   *One-Click Settings*: Toggle **Grid Mode**, switch **Light/Dark Theme**, and adjust **Background Color** instantly.
+        *   *Smart Sync*: "Update Settings" button intelligently applies changes to your active drawing without reloading, or click "New" to start fresh.
     *   **Offline Ready**: All assets (fonts, scripts) are bundled locally — no internet connection required.
     *   **Quick Draw**: Instantly launch a new whiteboard via the **Pen Tool** in the tab bar.
     *   **Virtual Documents**: Drawings start as lightweight "Untitled" files in memory and prompt for save location only when you're ready.
