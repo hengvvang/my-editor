@@ -68,8 +68,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
     onOpenFileAtLine,
     activeGroupFiles = [],
     onQuickTyping,
-    onQuickDraw,
-    onOpenCalendar
+    onQuickDraw
 }) => {
 
     if (!isOpen) return null;
@@ -217,9 +216,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                     )}
 
                     {activeSideTab === 'calendar' && (
-                        <CalendarPane
-                            onOpenCalendar={onOpenCalendar}
-                        />
+                        <CalendarPane />
                     )}
 
                     <div style={{ display: activeSideTab === 'world-clock' ? 'block' : 'none', height: '100%' }}>
