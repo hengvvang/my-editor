@@ -17,13 +17,14 @@ import { EditorViewStateManager } from "../../hooks/useEditorViewState";
 import { save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
-import { TypstPreview } from "./previews/TypstPreview";
-import { MermaidPreview } from "./previews/MermaidPreview";
-import { MarkdownPreview } from "./previews/MarkdownPreview";
-import { LatexPreview } from "./previews/LatexPreview";
-import { GenericPreview } from "./previews/GenericPreview";
-import { ExcalidrawEditor } from "./previews/ExcalidrawEditor";
-import { QwertyLearner } from "../../../tools/QwertyLearner/QwertyLearner";
+// Lazy loading heavy components
+const TypstPreview = React.lazy(() => import("./previews/TypstPreview").then(m => ({ default: m.TypstPreview })));
+const MermaidPreview = React.lazy(() => import("./previews/MermaidPreview").then(m => ({ default: m.MermaidPreview })));
+const MarkdownPreview = React.lazy(() => import("./previews/MarkdownPreview").then(m => ({ default: m.MarkdownPreview })));
+const LatexPreview = React.lazy(() => import("./previews/LatexPreview").then(m => ({ default: m.LatexPreview })));
+const GenericPreview = React.lazy(() => import("./previews/GenericPreview").then(m => ({ default: m.GenericPreview })));
+const ExcalidrawEditor = React.lazy(() => import("./previews/ExcalidrawEditor").then(m => ({ default: m.ExcalidrawEditor })));
+const QwertyLearner = React.lazy(() => import("../../../tools/QwertyLearner/QwertyLearner").then(m => ({ default: m.QwertyLearner })));
 
 import { EditorTabs } from "./EditorTabs";
 import { EditorBreadcrumbs } from "./EditorBreadcrumbs";
@@ -65,6 +66,15 @@ interface EditorGroupProps {
     onQuickDraw?: () => void;
     onQuickTyping?: () => void;
 }
+
+const LoadingFallback = () => (
+    <div className="flex items-center justify-center h-full text-slate-400">
+        <div className="flex flex-col items-center gap-2">
+            <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+            <span className="text-sm">Loading component...</span>
+        </div>
+    </div>
+);
 
 export const EditorGroup: React.FC<EditorGroupProps> = ({
     groupId,
@@ -511,24 +521,28 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 </div>
             ) : docType === 'excalidraw' ? (
                 <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50">
-                    <ExcalidrawEditor
-                        content={content}
-                        onChange={onContentChange}
-                        theme="light"
-                    />
+                    <React.Suspense fallback={<LoadingFallback />}>
+                        <ExcalidrawEditor
+                            content={content}
+                            onChange={onContentChange}
+                            theme="light"
+                        />
+                    </React.Suspense>
                 </div>
             ) : docType === 'typing' ? (
                 <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50">
-                    {(() => {
-                        let props = {};
-                        try {
-                            props = JSON.parse(content || '{}');
-                        } catch (e) {
-                            // Support legacy string content or invalid JSON
-                            console.warn('Invalid typing config', e);
-                        }
-                        return <QwertyLearner {...props} />;
-                    })()}
+                    <React.Suspense fallback={<LoadingFallback />}>
+                        {(() => {
+                            let props = {};
+                            try {
+                                props = JSON.parse(content || '{}');
+                            } catch (e) {
+                                // Support legacy string content or invalid JSON
+                                console.warn('Invalid typing config', e);
+                            }
+                            return <QwertyLearner {...props} />;
+                        })()}
+                    </React.Suspense>
                 </div>
             ) : (
                 <div className="flex-1 relative bg-white overflow-hidden shadow-sm border-t border-slate-200/50" id={`scroll-${groupId}`}>
@@ -593,7 +607,9 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                             order={2}
                                         >
                                             <div id={`group-${groupId}-preview-container`} className="h-full overflow-hidden border-l border-slate-200 bg-white">
-                                                {renderPreviewContent()}
+                                                <React.Suspense fallback={<LoadingFallback />}>
+                                                    {renderPreviewContent()}
+                                                </React.Suspense>
                                             </div>
                                         </Panel>
                                     </>
