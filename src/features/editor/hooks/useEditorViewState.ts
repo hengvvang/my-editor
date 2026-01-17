@@ -31,7 +31,7 @@ const defaultViewState: EditorViewState = {
     editorSize: 50,
     previewSize: 25,
     codeSnapSize: 25,
-    isSyncScrollEnabled: true, // Enabled by default
+    isSyncScrollEnabled: false, // Disabled by default
 };
 
 type ViewStateMap = Record<string, EditorViewState>;

@@ -12,9 +12,10 @@ interface Props {
     onExportPdf?: () => void;
     showActions?: boolean;
     scale?: number;
+    onUpdate?: () => void;
 }
 
-export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf, showActions = true, scale: externalScale }) => {
+export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName, onRef, isSyncScroll, onToggleSyncScroll, onExportPdf, showActions = true, scale: externalScale, onUpdate }) => {
     const [html, setHtml] = useState<string>('');
     const [internalScale, setInternalScale] = useState(1);
 
@@ -36,18 +37,21 @@ export const MarkdownPreview: React.FC<Props> = ({ content, className, fileName,
     const handleReset = () => setScale(1);
 
     useEffect(() => {
-        // Dynamic debounce based on content length to prevent freezing on large files
-        const length = content.length;
-        const delay = length > 100000 ? 800 : (length > 20000 ? 300 : 100);
+        // Reduced latency for better responsiveness
+        // 100ms is usually a good balance for typing vs rendering
+        const delay = content.length > 50000 ? 300 : 80;
 
         const timer = setTimeout(() => {
             invoke('markdown_render', { text: content }).then((res) => {
-                // Backend sanitization via ammonia is used now, no need for DOMPurify here
                 setHtml(res as string);
+                if (onUpdate) {
+                    // Small timeout to allow DOM to paint
+                    setTimeout(onUpdate, 0);
+                }
             });
         }, delay);
         return () => clearTimeout(timer);
-    }, [content]);
+    }, [content, onUpdate]);
 
     return (
         <div className={`relative group h-full overflow-hidden ${className || ''}`}>

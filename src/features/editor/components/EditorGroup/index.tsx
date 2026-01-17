@@ -150,64 +150,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     const [snapCode, setSnapCode] = useState<string>('');
     const [toolbarPosition, setToolbarPosition] = useState<'top' | 'bottom'>('top');
 
-    // --- Sync Scroll Logic ---
-    useEffect(() => {
-        if (!isSyncScrollEnabled) return;
-
-        const editorScroller = editorViewRef.current?.scrollDOM;
-        const previewScroller = previewScrollRef.current; // This is set by the active preview component
-
-        if (!editorScroller || !previewScroller) return;
-
-        const syncPreview = () => {
-            if (isScrollingRef.current === 'preview') return;
-            isScrollingRef.current = 'editor';
-
-            const percentage = editorScroller.scrollTop / (editorScroller.scrollHeight - editorScroller.clientHeight);
-
-            // Allow small margin of error near bottom
-            if (percentage > 0.99) {
-                previewScroller.scrollTop = previewScroller.scrollHeight;
-            } else {
-                previewScroller.scrollTop = percentage * (previewScroller.scrollHeight - previewScroller.clientHeight);
-            }
-
-            // Simple debounce to unlock
-            setTimeout(() => {
-                if (isScrollingRef.current === 'editor') isScrollingRef.current = null;
-            }, 50);
-        };
-
-        const syncEditor = () => {
-            if (isScrollingRef.current === 'editor') return;
-            isScrollingRef.current = 'preview';
-
-            const percentage = previewScroller.scrollTop / (previewScroller.scrollHeight - previewScroller.clientHeight);
-
-            if (percentage > 0.99) {
-                editorScroller.scrollTop = editorScroller.scrollHeight;
-            } else {
-                editorScroller.scrollTop = percentage * (editorScroller.scrollHeight - editorScroller.clientHeight);
-            }
-
-            setTimeout(() => {
-                if (isScrollingRef.current === 'preview') isScrollingRef.current = null;
-            }, 50);
-        };
-
-        editorScroller.addEventListener('scroll', syncPreview);
-        previewScroller.addEventListener('scroll', syncEditor);
-
-        // Immediate sync when enabled or layout changes
-        syncPreview();
-
-        return () => {
-            editorScroller.removeEventListener('scroll', syncPreview);
-            previewScroller.removeEventListener('scroll', syncEditor);
-        };
-    }, [isSyncScrollEnabled, activePath, showSplitPreview]); // Re-attach when file changes or preview opens
-
-    // --- Derived State ---
+    // --- Derived State (Moved Up for dependencies) ---
     const getDocType = useCallback((path: string | null): 'markdown' | 'typst' | 'mermaid' | 'latex' | 'excalidraw' | 'typing' | 'text' => {
         if (!path) return 'text';
         if (path.endsWith('.typ')) return 'typst';
@@ -220,6 +163,129 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     }, []);
 
     const docType = getDocType(activePath);
+
+    // --- Sync Scroll Logic ---
+    const handleSyncPreview = useCallback(() => {
+        if (!isSyncScrollEnabled) return;
+
+        const editorScroller = editorViewRef.current?.scrollDOM;
+        const previewScroller = previewScrollRef.current;
+        if (!editorScroller || !previewScroller || isScrollingRef.current === 'preview') return;
+
+        isScrollingRef.current = 'editor';
+
+        if (docType === 'markdown') {
+            const view = editorViewRef.current;
+            if (view) {
+                // Get the line number at the top of the viewport
+                const scrollTop = editorScroller.scrollTop;
+                // Add half viewport height to center correlation or use 0 for top-sync. VS Code uses top.
+                const lineBlock = view.lineBlockAtHeight(scrollTop);
+                const lineNum = view.state.doc.lineAt(lineBlock.from).number;
+
+                // Find closest element in preview
+                const elements = previewScroller.querySelectorAll('[data-sourcepos]');
+                let bestElement: HTMLElement | null = null;
+
+                // Simple linear search is fast enough for most docs.
+                // For massive docs, we might want to optimize, but DOM access is the bottleneck anyway.
+                for (let i = 0; i < elements.length; i++) {
+                    const el = elements[i] as HTMLElement;
+                    const parts = el.dataset.sourcepos?.split(':');
+                    if (parts && parseInt(parts[0]) >= lineNum) {
+                        bestElement = el;
+                        break;
+                    }
+                }
+
+                if (bestElement) {
+                    // Scroll to element with some padding
+                    previewScroller.scrollTo({ top: bestElement.offsetTop - 20, behavior: 'auto' });
+                }
+            } else {
+                // Fallback if view not ready (rare)
+            }
+        } else {
+            // Percentage-based fallback for other types
+            const percentage = editorScroller.scrollTop / (editorScroller.scrollHeight - editorScroller.clientHeight);
+            if (percentage > 0.99) {
+                previewScroller.scrollTop = previewScroller.scrollHeight;
+            } else {
+                previewScroller.scrollTop = percentage * (previewScroller.scrollHeight - previewScroller.clientHeight);
+            }
+        }
+
+        setTimeout(() => { if (isScrollingRef.current === 'editor') isScrollingRef.current = null; }, 100);
+    }, [isSyncScrollEnabled, docType]);
+
+    const handleSyncEditor = useCallback(() => {
+        if (!isSyncScrollEnabled) return;
+
+        const editorScroller = editorViewRef.current?.scrollDOM;
+        const previewScroller = previewScrollRef.current;
+        if (!editorScroller || !previewScroller || isScrollingRef.current === 'editor') return;
+
+        isScrollingRef.current = 'preview';
+
+        if (docType === 'markdown') {
+            const scrollTop = previewScroller.scrollTop;
+            // Find element at this scroll position
+            // Using elementFromPoint is risky because it relies on layout.
+            // Better to iterate children and find the one crossing scrollTop.
+            // Or find the first element with offsetTop > scrollTop.
+            const elements = previewScroller.querySelectorAll('[data-sourcepos]');
+            let bestLine = 1;
+
+            for (let i = 0; i < elements.length; i++) {
+                const el = elements[i] as HTMLElement;
+                if (el.offsetTop + el.offsetHeight > scrollTop) {
+                    // This element is likely visible
+                    const parts = el.dataset.sourcepos?.split(':');
+                    if (parts) {
+                        bestLine = parseInt(parts[0]);
+                        break;
+                    }
+                }
+            }
+
+            const view = editorViewRef.current;
+            if (view && bestLine > 1) {
+                const lineInfo = view.state.doc.line(Math.min(bestLine, view.state.doc.lines));
+                // Scroll editor to this line
+                const block = view.lineBlockAt(lineInfo.from);
+                editorScroller.scrollTo({ top: block.top, behavior: 'auto' });
+            }
+
+        } else {
+            const percentage = previewScroller.scrollTop / (previewScroller.scrollHeight - previewScroller.clientHeight);
+            if (percentage > 0.99) {
+                editorScroller.scrollTop = editorScroller.scrollHeight;
+            } else {
+                editorScroller.scrollTop = percentage * (editorScroller.scrollHeight - editorScroller.clientHeight);
+            }
+        }
+
+        setTimeout(() => { if (isScrollingRef.current === 'preview') isScrollingRef.current = null; }, 100);
+    }, [isSyncScrollEnabled, docType]);
+
+    useEffect(() => {
+        const editorScroller = editorViewRef.current?.scrollDOM;
+        const previewScroller = previewScrollRef.current;
+
+        if (!editorScroller || !previewScroller) return;
+
+        editorScroller.addEventListener('scroll', handleSyncPreview);
+        previewScroller.addEventListener('scroll', handleSyncEditor);
+
+        // Initial sync
+        handleSyncPreview();
+
+        return () => {
+            editorScroller.removeEventListener('scroll', handleSyncPreview);
+            previewScroller.removeEventListener('scroll', handleSyncEditor);
+        };
+    }, [handleSyncPreview, handleSyncEditor, showSplitPreview]);
+
     const languageName = getLanguageInfo(activePath).name;
 
     // --- Memoized CodeMirror Extensions (Critical Performance Optimization) ---
@@ -406,6 +472,12 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         };
 
         if (docType === 'typst') return <TypstPreview filePath={activePath} className="h-full overflow-auto" {...commonProps} />;
+        if (docType === 'mermaid' || activePath?.endsWith('.mmd')) return <MermaidPreview idPrefix={groupId} {...commonProps} />;
+        if (docType === 'latex') return <LatexPreview {...commonProps} />;
+        if (docType === 'markdown') return <MarkdownPreview className="h-full" fileName={activePath?.split(/[/\\]/).pop()} {...commonProps} onUpdate={handleSyncPreview} />;
+
+        // Generic Source Preview
+        return <GenericPreview filePath={activePath} {...commonProps} />;
         if (docType === 'mermaid' || activePath?.endsWith('.mmd')) return <MermaidPreview idPrefix={groupId} {...commonProps} />;
         if (docType === 'latex') return <LatexPreview {...commonProps} />;
         if (docType === 'markdown') return <MarkdownPreview className="h-full" fileName={activePath?.split(/[/\\]/).pop()} {...commonProps} />;
