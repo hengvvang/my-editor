@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileText, X, Columns, SplitSquareHorizontal, SplitSquareVertical, Lock, Camera, Save, PenTool, Keyboard } from "lucide-react";
-import { Tab } from "../types";
+import { Tab } from "../../types";
 
 interface EditorTabsProps {
     tabs: Tab[];

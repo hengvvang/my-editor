@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useTyping } from './hooks/useTyping';
 import { RotateCcw, Trophy, Target, Zap, SkipForward, SkipBack, Loader2, Volume2, Eye, EyeOff, Languages } from 'lucide-react';
 import type { Word } from './types';

@@ -4,7 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { Panel, PanelGroup, ImperativePanelHandle, ImperativePanelGroupHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { latexLivePreview } from "../../utils/codemirror-latex";
 
 import { Tab } from "../../types";

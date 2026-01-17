@@ -6,7 +6,7 @@ export function useEditorGroups() {
      // Initial State: Single Group
     const [layout, setLayout] = useState<LayoutNode>({ id: '1', type: 'group', tabs: [], activePath: null, isReadOnly: false });
     const [activeGroupId, setActiveGroupIdState] = useState('1');
-    const [isPending, startTransition] = useTransition();
+    const [_isPending, startTransition] = useTransition();
 
     const setActiveGroupId = useCallback((id: string) => {
         startTransition(() => {
