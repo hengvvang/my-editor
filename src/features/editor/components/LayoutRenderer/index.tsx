@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { LayoutNode, GroupState } from "../../types";
-import { GhostResizeHandle } from "../GhostResizeHandle";
+import { GhostResizeHandle } from "../../../../shared/components/GhostResizeHandle";
 
 interface LayoutRendererProps {
     node: LayoutNode;

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { Menu, Minus, Square, X } from "lucide-react";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
+import { TitleBar } from "./layout/TitleBar";
 import { LayoutRenderer } from "./features/editor/components/LayoutRenderer";
 import { EditorGroup } from "./features/editor/components/EditorGroup";
-import { GhostResizeHandle } from "./features/editor/components/GhostResizeHandle";
+import { GhostResizeHandle } from "./shared/components/GhostResizeHandle";
 import { Sidebar } from "./features/sidebar/components/Sidebar";
 import { Tab, GroupState } from "./features/editor/types";
-import "./styles.css";
-import "./print.css";
+import "./styles/index.css";
+import "./styles/print.css";
 
 import { useDocuments } from "./features/documents/hooks/useDocuments";
 import { useEditorGroups } from "./features/editor/hooks/useEditorGroups";
@@ -498,89 +498,18 @@ function App() {
                 <Panel defaultSize={80} minSize={40} id="content">
                     <div className="flex-1 flex flex-col min-w-0 h-full bg-white">
                         {/* Top Title Bar / Controls */}
-                        <div className="h-[35px] border-b border-slate-200 flex items-center justify-between px-2 shrink-0 bg-white z-10">
-                            {/* Left: Menu & Filename */}
-                            <div className="flex items-center gap-2 z-20 min-w-0 shrink-0">
-                                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 hover:bg-slate-100 rounded text-slate-500"><Menu size={16} /></button>
-                                <div className="text-xs font-medium text-slate-600 select-none ml-1 truncate max-w-[300px]" title={groups.find(g => g.id === activeGroupId)?.activePath || "Typoly"}>
-                                    {groups.find(g => g.id === activeGroupId)?.activePath?.split(/[\\/]/).pop() || "Typoly"}
-                                </div>
-                            </div>
-
-                            {/* Center: Drag Region */}
-                            <div className="flex-1 h-full mx-2" data-tauri-drag-region />
-
-                            {/* Right: Workspaces & Controls */}
-                            <div className="flex items-center gap-3 z-50 shrink-0">
-                                {/* Active Workspaces Shortcuts */}
-                                {workspaces.filter(w => w.active).length > 0 && (
-                                    <div className="flex items-center gap-1.5" data-tauri-drag-region>
-                                        {workspaces.filter(w => w.active).map(ws => (
-                                            <div key={ws.path} className="relative group">
-                                                <button
-                                                    onClick={() => loadWorkspace(ws.path)}
-                                                    onContextMenu={(e) => {
-                                                        e.preventDefault();
-                                                        toggleActiveWorkspace && toggleActiveWorkspace(ws.path, e);
-                                                    }}
-                                                    className={`
-                                                flex items-center justify-center min-w-[32px] px-2 h-6 rounded text-[10px] font-bold transition-all relative
-                                                ${ws.path === rootDir
-                                                            ? 'bg-green-100 text-green-700 ring-1 ring-green-300 shadow-sm'
-                                                            : 'bg-white text-green-600 border border-green-200 hover:bg-green-50 hover:border-green-300 hover:shadow-sm'
-                                                        }
-                                            `}
-                                                    title={`Switch to: ${ws.name}\n${ws.path}\nRight-click to deactivate`}
-                                                >
-                                                    {ws.name.slice(0, 1).toUpperCase()}
-                                                    {/* Status Dot */}
-                                                    {ws.path === rootDir && (
-                                                        <div className="absolute -top-[1px] -right-[1px] w-1.5 h-1.5 bg-green-500 rounded-full border border-white" />
-                                                    )}
-                                                </button>
-
-                                                {/* Unstar / Deactivate Button (appears on hover) */}
-                                                <button
-                                                    onClick={(e) => toggleActiveWorkspace && toggleActiveWorkspace(ws.path, e)}
-                                                    className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-slate-200 hover:bg-red-500 text-slate-500 hover:text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm cursor-pointer"
-                                                    title="Deactivate Workspace"
-                                                >
-                                                    <X size={8} strokeWidth={3} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-
-                                <div className="flex items-center gap-1">
-                                    <button onClick={() => appWindow.minimize()} className="p-2 hover:bg-slate-100 rounded cursor-pointer"><Minus size={14} /></button>
-                                    <button
-                                        onClick={async () => {
-                                            if (isMaximized) {
-                                                await appWindow.unmaximize();
-                                            } else {
-                                                await appWindow.maximize();
-                                            }
-                                            // State will be updated by onResized event
-                                        }}
-                                        className="p-2 hover:bg-slate-100 rounded cursor-pointer"
-                                        title={isMaximized ? "Restore" : "Maximize"}
-                                    >
-                                        {isMaximized ? (
-                                            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1">
-                                                <path d="M3.5 3.5V1.5H10.5V8.5H8.5" />
-                                                <rect x="1.5" y="3.5" width="7" height="7" />
-                                            </svg>
-                                        ) : (
-                                            <Square size={12} />
-                                        )}
-                                    </button>
-                                    <button onClick={handleCloseApp} className="p-2 hover:bg-red-500 hover:text-white rounded cursor-pointer"><X size={14} /></button>
-                                </div>
-                            </div>
-                        </div>
+                        <TitleBar
+                            sidebarOpen={sidebarOpen}
+                            setSidebarOpen={setSidebarOpen}
+                            activeGroupId={activeGroupId}
+                            groups={groups}
+                            workspaces={workspaces}
+                            rootDir={rootDir}
+                            loadWorkspace={loadWorkspace}
+                            toggleActiveWorkspace={toggleActiveWorkspace}
+                            isMaximized={isMaximized}
+                            onCloseApp={handleCloseApp}
+                        />
 
                         {/* Editors Container */}
                         <div className="flex-1 flex overflow-hidden" ref={groupsContainerRef}>

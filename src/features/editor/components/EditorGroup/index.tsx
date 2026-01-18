@@ -33,7 +33,7 @@ import { EditorBreadcrumbs } from "./EditorBreadcrumbs";
 import { EditorEmptyState } from "./EditorEmptyState";
 import { GlobalFontStyles } from "./GlobalFontStyles";
 import { selectionHighlightExtension } from "../../utils/selectionHighlight";
-import { GhostResizeHandle } from "../GhostResizeHandle";
+import { GhostResizeHandle } from "../../../../shared/components/GhostResizeHandle";
 
 const hybridTheme = syntaxHighlighting(hybridHighlightStyle);
 
