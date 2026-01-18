@@ -122,11 +122,10 @@ const MinimapGhostHandle: React.FC<{
     return (
         <>
             <div
-                className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-600 transition-colors z-50 flex justify-center"
+                className="absolute left-0 top-0 bottom-0 w-[12px] -ml-[6px] cursor-col-resize z-50 flex justify-center items-center group outline-none"
                 onMouseDown={handleMouseDown}
             >
-                {/* Visual indicator on hover/active */}
-                <div className="w-[1px] h-full bg-transparent hover:bg-blue-400" />
+                <div className={`w-[1px] h-full transition-colors pointer-events-none ${isDragging ? 'bg-blue-600' : 'bg-slate-200 group-hover:bg-blue-400'}`} />
             </div>
 
             {isDragging && (

@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
 import { TitleBar } from "./layout/TitleBar";
 import { LayoutRenderer } from "./features/editor/components/LayoutRenderer";
 import { EditorGroup } from "./features/editor/components/EditorGroup";
-import { GhostResizeHandle } from "./shared/components/GhostResizeHandle";
 import { Sidebar } from "./features/sidebar/components/Sidebar";
 import { Tab, GroupState } from "./features/editor/types";
 import "./styles/index.css";
@@ -173,7 +171,45 @@ function App() {
 
     const groupsContainerRef = useRef<HTMLDivElement>(null);
     const appContainerRef = useRef<HTMLDivElement>(null);
-    const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
+
+    // Sidebar Manual Resizing with Ghost Effect
+    const [sidebarWidth, setSidebarWidth] = useState(260);
+    const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
+    const [ghostX, setGhostX] = useState(260);
+
+    const handleSidebarResizeStart = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsDraggingSidebar(true);
+        setGhostX(e.clientX);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    };
+
+    useEffect(() => {
+        if (!isDraggingSidebar) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            // Constrain width between 200 and 600
+            const newX = Math.max(200, Math.min(e.clientX, 600));
+            setGhostX(newX);
+        };
+
+        const handleMouseUp = (e: MouseEvent) => {
+            setIsDraggingSidebar(false);
+            const finalX = Math.max(200, Math.min(e.clientX, 600));
+            setSidebarWidth(finalX);
+
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDraggingSidebar]);
 
     // Handle Split Resizing - Deprecated in favor of recursive internal resizing
     // useLayoutResizing(resizingGroupIndex, setResizingGroupIndex, groups, setGroups, groupsContainerRef);
@@ -336,194 +372,199 @@ function App() {
 
     return (
         <div ref={appContainerRef} className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
-            <PanelGroup ref={panelGroupRef} direction="horizontal" autoSaveId="main-layout">
-                {/* Sidebar Panel */}
-                {sidebarOpen && (
-                    <>
-                        <Panel defaultSize={20} minSize={15} maxSize={40} id="sidebar">
-                            <Sidebar
-                                isOpen={sidebarOpen}
-                                activeSideTab={activeSideTab}
-                                onActiveSideTabChange={setActiveSideTab}
-                                rootDir={rootDir}
-                                rootFiles={rootFiles}
-                                currentPath={getOpenFilePath()}
-                                onOpenFile={loadFile}
-                                onOpenFileAtLine={openFileAtLine}
-                                onOpenFolder={openFolder}
-                                outline={outline}
-                                search={search}
-                                workspaces={workspaces}
-                                onSwitchWorkspace={loadWorkspace}
-                                onRemoveWorkspace={removeWorkspace}
-                                onTogglePinWorkspace={togglePinWorkspace}
-                                onToggleActiveWorkspace={toggleActiveWorkspace}
-                                onCreateFile={createFile}
-                                onCreateFolder={createFolder}
-                                onDeleteItem={deleteItem}
-                                activeGroupFiles={activeGroupFiles}
-                                onOpenCalendar={() => {
-                                    // Open default calendar
-                                    const calendarPath = "untitled:Schedule.cal";
-                                    // Check if already open in active group or anywhere?
-                                    // Simple logic: If not exists, create with empty default. Then open.
-                                    if (!documents[calendarPath]) {
-                                        const initialContent = JSON.stringify({
-                                            initialView: 'dayGridMonth',
-                                            events: []
-                                        }, null, 2);
-                                        createVirtualDocument(calendarPath, initialContent, "Schedule");
-                                    }
-                                    openTab(calendarPath, activeGroupId || groups[0]?.id);
-                                }}
-                                onQuickTyping={(dictId, chapter, config, forceNew = false) => {
-                                    const group = groups.find(g => g.id === activeGroupId);
-
-                                    // If not forcing new, check if we can update current
-                                    if (!forceNew && group?.activePath?.includes('typing-practice')) {
-                                        const newContent = JSON.stringify({
-                                            dictId,
-                                            chapter,
-                                            config
-                                        }, null, 2);
-                                        updateDoc(group.activePath, { content: newContent });
-                                        return;
-                                    }
-
-                                    // Create new (default behavior)
-                                    const timestamp = new Date().getTime();
-                                    const virtualPath = `untitled:typing-practice-${timestamp}`;
+            {/* Manual Flex Layout */}
+            {/* Sidebar Pane */}
+            {sidebarOpen && (
+                <div
+                    className="relative flex-shrink-0 h-full border-r border-slate-200"
+                    style={{ width: `${sidebarWidth}px` }}
+                >
+                    <div className="h-full w-full overflow-hidden">
+                        <Sidebar
+                            isOpen={sidebarOpen}
+                            activeSideTab={activeSideTab}
+                            onActiveSideTabChange={setActiveSideTab}
+                            rootDir={rootDir}
+                            rootFiles={rootFiles}
+                            currentPath={getOpenFilePath()}
+                            onOpenFile={loadFile}
+                            onOpenFileAtLine={openFileAtLine}
+                            onOpenFolder={openFolder}
+                            outline={outline}
+                            search={search}
+                            workspaces={workspaces}
+                            onSwitchWorkspace={loadWorkspace}
+                            onRemoveWorkspace={removeWorkspace}
+                            onTogglePinWorkspace={togglePinWorkspace}
+                            onToggleActiveWorkspace={toggleActiveWorkspace}
+                            onCreateFile={createFile}
+                            onCreateFolder={createFolder}
+                            onDeleteItem={deleteItem}
+                            activeGroupFiles={activeGroupFiles}
+                            onOpenCalendar={() => {
+                                // Open default calendar
+                                const calendarPath = "untitled:Schedule.cal";
+                                // Check if already open in active group or anywhere?
+                                // Simple logic: If not exists, create with empty default. Then open.
+                                if (!documents[calendarPath]) {
                                     const initialContent = JSON.stringify({
+                                        initialView: 'dayGridMonth',
+                                        events: []
+                                    }, null, 2);
+                                    createVirtualDocument(calendarPath, initialContent, "Schedule");
+                                }
+                                openTab(calendarPath, activeGroupId || groups[0]?.id);
+                            }}
+                            onQuickTyping={(dictId, chapter, config, forceNew = false) => {
+                                const group = groups.find(g => g.id === activeGroupId);
+
+                                // If not forcing new, check if we can update current
+                                if (!forceNew && group?.activePath?.includes('typing-practice')) {
+                                    const newContent = JSON.stringify({
                                         dictId,
                                         chapter,
                                         config
                                     }, null, 2);
-                                    createVirtualDocument(virtualPath, initialContent, "Typing Practice");
+                                    updateDoc(group.activePath, { content: newContent });
+                                    return;
+                                }
 
-                                    // Ensure we open in the active group
-                                    if (group) {
-                                        // If we are updating logic but forced new, openTab will switch to it
-                                        openTab(virtualPath);
-                                    }
-                                }}
-                                onQuickDraw={(config) => {
-                                    console.log("App: onQuickDraw called with config", config);
+                                // Create new (default behavior)
+                                const timestamp = new Date().getTime();
+                                const virtualPath = `untitled:typing-practice-${timestamp}`;
+                                const initialContent = JSON.stringify({
+                                    dictId,
+                                    chapter,
+                                    config
+                                }, null, 2);
+                                createVirtualDocument(virtualPath, initialContent, "Typing Practice");
 
-                                    // Check if we are updating existing active drawing
-                                    // We need to type cast config to access 'forceNew' until we update types formally
-                                    const forceNew = (config as any).forceNew;
+                                // Ensure we open in the active group
+                                if (group) {
+                                    // If we are updating logic but forced new, openTab will switch to it
+                                    openTab(virtualPath);
+                                }
+                            }}
+                            onQuickDraw={(config) => {
+                                console.log("App: onQuickDraw called with config", config);
 
-                                    // Find active group and path
-                                    let targetGroup = activeGroupId ? groups.find(g => g.id === activeGroupId) : groups[0];
-                                    if (!targetGroup && groups.length > 0) targetGroup = groups[0];
+                                // Check if we are updating existing active drawing
+                                // We need to type cast config to access 'forceNew' until we update types formally
+                                const forceNew = (config as any).forceNew;
 
-                                    const activePath = targetGroup?.activePath;
+                                // Find active group and path
+                                let targetGroup = activeGroupId ? groups.find(g => g.id === activeGroupId) : groups[0];
+                                if (!targetGroup && groups.length > 0) targetGroup = groups[0];
 
-                                    // If we are active (viewing a drawing) and NOT forcing new, let's update settings
-                                    if (!forceNew && activePath && activePath.endsWith('.excalidraw')) {
-                                        console.log("App: Updating existing drawing settings...", activePath);
-                                        const doc = documents[activePath];
-                                        if (doc) {
-                                            try {
-                                                const currentJson = JSON.parse(doc.content);
-                                                // Update only appState settings
-                                                const newAppState = {
-                                                    ...currentJson.appState,
-                                                    viewBackgroundColor: config?.background || "#ffffff",
-                                                    gridSize: config?.grid ? 20 : null,
-                                                    gridModeEnabled: !!config?.grid,
-                                                    theme: config?.theme || "light"
-                                                };
+                                const activePath = targetGroup?.activePath;
 
-                                                const newContent = JSON.stringify({
-                                                    ...currentJson,
-                                                    appState: newAppState
-                                                }, null, 2);
+                                // If we are active (viewing a drawing) and NOT forcing new, let's update settings
+                                if (!forceNew && activePath && activePath.endsWith('.excalidraw')) {
+                                    console.log("App: Updating existing drawing settings...", activePath);
+                                    const doc = documents[activePath];
+                                    if (doc) {
+                                        try {
+                                            const currentJson = JSON.parse(doc.content);
+                                            // Update only appState settings
+                                            const newAppState = {
+                                                ...currentJson.appState,
+                                                viewBackgroundColor: config?.background || "#ffffff",
+                                                gridSize: config?.grid ? 20 : null,
+                                                gridModeEnabled: !!config?.grid,
+                                                theme: config?.theme || "light"
+                                            };
 
-                                                updateDoc(activePath, { content: newContent, isDirty: true });
-                                                return; // Done updating
-                                            } catch (e) {
-                                                console.error("App: Failed to parse/update existing drawing", e);
-                                            }
+                                            const newContent = JSON.stringify({
+                                                ...currentJson,
+                                                appState: newAppState
+                                            }, null, 2);
+
+                                            updateDoc(activePath, { content: newContent, isDirty: true });
+                                            return; // Done updating
+                                        } catch (e) {
+                                            console.error("App: Failed to parse/update existing drawing", e);
                                         }
                                     }
+                                }
 
-                                    const timestamp = new Date().getTime();
-                                    const virtualPath = `untitled:drawing-${timestamp}.excalidraw`;
+                                const timestamp = new Date().getTime();
+                                const virtualPath = `untitled:drawing-${timestamp}.excalidraw`;
 
-                                    const initialContent = JSON.stringify({
-                                        type: "excalidraw",
-                                        version: 2,
-                                        source: "typoly",
-                                        elements: [],
-                                        appState: {
-                                            viewBackgroundColor: config?.background || "#ffffff",
-                                            gridSize: config?.grid ? 20 : null,
-                                            gridModeEnabled: !!config?.grid,
-                                            theme: config?.theme || "light"
-                                        },
-                                        files: {}
-                                    }, null, 2);
+                                const initialContent = JSON.stringify({
+                                    type: "excalidraw",
+                                    version: 2,
+                                    source: "typoly",
+                                    elements: [],
+                                    appState: {
+                                        viewBackgroundColor: config?.background || "#ffffff",
+                                        gridSize: config?.grid ? 20 : null,
+                                        gridModeEnabled: !!config?.grid,
+                                        theme: config?.theme || "light"
+                                    },
+                                    files: {}
+                                }, null, 2);
 
-                                    createVirtualDocument(virtualPath, initialContent, "Untitled Drawing");
+                                createVirtualDocument(virtualPath, initialContent, "Untitled Drawing");
 
-                                    // Robust group ID finding
-                                    if (targetGroup) {
-                                        console.log("App: Opening tab in group", targetGroup.id);
-                                        // Slight delay to ensure virtual doc state might ideally settle (though not strictly required for tab creation)
-                                        setTimeout(() => {
-                                            openTab(virtualPath, targetGroup!.id);
-                                        }, 0);
-                                    } else {
-                                        console.error("App: No active group found to open drawing");
-                                    }
-                                }}
-                            />
-                        </Panel>
-                        <GhostResizeHandle
-                            containerRef={appContainerRef}
-                            orientation="horizontal"
-                            minPercent={15}
-                            maxPercent={40}
-                            onResizeEnd={(val) => {
-                                if (panelGroupRef.current) {
-                                    panelGroupRef.current.setLayout([val, 100 - val]);
+                                // Robust group ID finding
+                                if (targetGroup) {
+                                    console.log("App: Opening tab in group", targetGroup.id);
+                                    // Slight delay to ensure virtual doc state might ideally settle (though not strictly required for tab creation)
+                                    setTimeout(() => {
+                                        openTab(virtualPath, targetGroup!.id);
+                                    }, 0);
+                                } else {
+                                    console.error("App: No active group found to open drawing");
                                 }
                             }}
                         />
-                    </>
-                )}
-
-                {/* Content Area Panel */}
-                <Panel defaultSize={80} minSize={40} id="content">
-                    <div className="flex-1 flex flex-col min-w-0 h-full bg-white">
-                        {/* Top Title Bar / Controls */}
-                        <TitleBar
-                            sidebarOpen={sidebarOpen}
-                            setSidebarOpen={setSidebarOpen}
-                            activeGroupId={activeGroupId}
-                            groups={groups}
-                            workspaces={workspaces}
-                            rootDir={rootDir}
-                            loadWorkspace={loadWorkspace}
-                            toggleActiveWorkspace={toggleActiveWorkspace}
-                            isMaximized={isMaximized}
-                            onCloseApp={handleCloseApp}
-                        />
-
-                        {/* Editors Container */}
-                        <div className="flex-1 flex overflow-hidden" ref={groupsContainerRef}>
-                            <LayoutRenderer
-                                node={layout}
-                                index={0}
-                                path={[]}
-                                renderGroup={renderNodeGroup}
-                                resizeSplit={resizeSplit}
-                            />
-                        </div>
                     </div>
-                </Panel>
-            </PanelGroup>
+
+                    {/* Drag Handle Overlay - Matching GhostResizeHandle Style */}
+                    <div
+                        className="absolute top-0 right-0 bottom-0 w-[12px] cursor-col-resize z-50 flex justify-center items-center group transition-colors outline-none"
+                        style={{ right: '-6px' }}
+                        onMouseDown={handleSidebarResizeStart}
+                    >
+                        {/* Visual Line: 1px wide, slate-200 by default, changes on hover/active */}
+                        <div className={`w-[1px] h-full transition-colors pointer-events-none ${isDraggingSidebar ? 'bg-blue-600' : 'bg-slate-200 group-hover:bg-blue-400'}`} />
+                    </div>
+
+                    {/* Ghost Divider Line */}
+                    {isDraggingSidebar && (
+                        <div
+                            className="fixed top-0 bottom-0 w-[1px] border-l-2 border-blue-500 border-dashed z-[9999] pointer-events-none"
+                            style={{ left: ghostX }}
+                        />
+                    )}
+                </div>
+            )}
+            <div className="flex-1 flex flex-col min-w-0 h-full bg-white relative overflow-hidden">
+                {/* Top Title Bar / Controls */}
+                <TitleBar
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                    activeGroupId={activeGroupId}
+                    groups={groups}
+                    workspaces={workspaces}
+                    rootDir={rootDir}
+                    loadWorkspace={loadWorkspace}
+                    toggleActiveWorkspace={toggleActiveWorkspace}
+                    isMaximized={isMaximized}
+                    onCloseApp={handleCloseApp}
+                />
+
+                {/* Editors Container */}
+                <div className="flex-1 flex overflow-hidden" ref={groupsContainerRef}>
+                    <LayoutRenderer
+                        node={layout}
+                        index={0}
+                        path={[]}
+                        renderGroup={renderNodeGroup}
+                        resizeSplit={resizeSplit}
+                    />
+                </div>
+            </div>
         </div>
     );
 }
