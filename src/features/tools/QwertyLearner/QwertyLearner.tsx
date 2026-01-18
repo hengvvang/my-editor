@@ -249,7 +249,7 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
                                 </div>
 
                                 {config.showPhonetic && (currentWord?.usphone || currentWord?.ukphone) && (
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 relative z-20">
                                         <div className="text-3xl font-mono text-slate-500 font-medium">/{currentWord?.usphone || currentWord?.ukphone}/</div>
                                         <button
                                             onClick={(e) => {

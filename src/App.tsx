@@ -172,6 +172,7 @@ function App() {
     }, [shouldShowSidebar, setSidebarOpen, setShouldShowSidebar]);
 
     const groupsContainerRef = useRef<HTMLDivElement>(null);
+    const appContainerRef = useRef<HTMLDivElement>(null);
     const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
 
     // Handle Split Resizing - Deprecated in favor of recursive internal resizing
@@ -334,7 +335,7 @@ function App() {
         [groups, activeGroupId]);
 
     return (
-        <div ref={groupsContainerRef} className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
+        <div ref={appContainerRef} className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
             <PanelGroup ref={panelGroupRef} direction="horizontal" autoSaveId="main-layout">
                 {/* Sidebar Panel */}
                 {sidebarOpen && (
@@ -480,7 +481,7 @@ function App() {
                             />
                         </Panel>
                         <GhostResizeHandle
-                            containerRef={groupsContainerRef}
+                            containerRef={appContainerRef}
                             orientation="horizontal"
                             minPercent={15}
                             maxPercent={40}
