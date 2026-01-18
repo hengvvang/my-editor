@@ -29,10 +29,15 @@ interface ControlItemProps {
 }
 
 const ControlItem: React.FC<ControlItemProps> = ({ icon: Icon, label, value, min, max, step = 1, onChange }) => (
-    <div className="flex items-center gap-2 px-1.5 group cursor-pointer">
-        <Icon size={14} className="text-slate-400" />
-        <div className="flex flex-col w-16 sm:w-20 gap-0.5">
-            <span className="text-[9px] uppercase font-bold text-slate-400 leading-none">{label}</span>
+    <div className="flex items-center gap-3 px-2 py-1.5 group select-none transition-colors hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg">
+        <div className="flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shadow-sm">
+            <Icon size={15} />
+        </div>
+        <div className="flex flex-col w-28 sm:w-36 gap-1.5">
+            <div className="flex items-center justify-between leading-none">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">{label}</span>
+                <span className="text-[10px] font-mono font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-center min-w-[32px]">{value}</span>
+            </div>
             <input
                 type="range"
                 min={min}
@@ -40,7 +45,26 @@ const ControlItem: React.FC<ControlItemProps> = ({ icon: Icon, label, value, min
                 step={step}
                 value={value}
                 onChange={onChange}
-                className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="
+                    w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer
+                    focus:outline-none
+                    [&::-webkit-slider-thumb]:appearance-none
+                    [&::-webkit-slider-thumb]:w-3.5
+                    [&::-webkit-slider-thumb]:h-3.5
+                    [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:bg-blue-600
+                    [&::-webkit-slider-thumb]:shadow-md
+                    [&::-webkit-slider-thumb]:hover:scale-110
+                    [&::-webkit-slider-thumb]:transition-transform
+                    [&::-moz-range-thumb]:w-3.5
+                    [&::-moz-range-thumb]:h-3.5
+                    [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:bg-blue-600
+                    [&::-moz-range-thumb]:border-none
+                    [&::-moz-range-thumb]:shadow-md
+                    [&::-moz-range-thumb]:hover:scale-110
+                    [&::-moz-range-thumb]:transition-transform
+                "
             />
         </div>
     </div>
@@ -253,16 +277,19 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                         onChange={handleFontSizeChange}
                     />
 
-                    <div className="w-[1px] h-4 bg-slate-200 dark:bg-white/10 mx-1" />
+                    <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/10 mx-2" />
 
                     {/* Reset Control */}
-                    <div className="flex items-center px-1.5 group cursor-pointer" title="Reset All Settings">
+                    <div className="flex items-center px-1">
                         <button
                             onClick={resetDimensions}
-                            className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-blue-600 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 px-2 py-1.5 rounded-md transition-colors"
+                            className="flex flex-col items-center justify-center gap-1 w-12 h-full py-1 rounded-lg text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                            title="Reset All Settings"
                         >
-                            <RotateCcw size={12} />
-                            <span>Reset</span>
+                            <div className="p-1 rounded-md bg-slate-100 dark:bg-white/5 group-hover:bg-white">
+                                <RotateCcw size={14} />
+                            </div>
+                            <span className="text-[9px] font-bold uppercase tracking-wide">Reset</span>
                         </button>
                     </div>
                 </div>
