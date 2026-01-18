@@ -103,6 +103,7 @@ export const SidebarItem = ({
                         ? 'bg-[#0090f1] text-white'
                         : (isFocused ? 'bg-[#0090f1]/20' : 'hover:bg-[#f0f0f0] text-[#424242]')
                     }
+                    relative
                 `}
                 style={{ paddingLeft: `${level * 10}px` }}
                 onClick={(e) => {
@@ -112,6 +113,15 @@ export const SidebarItem = ({
                     else handleExpand(e);
                 }}
             >
+                {/* Indentation Lines */}
+                {[...Array(level)].map((_, i) => (
+                    <div
+                        key={i}
+                        className={`absolute top-0 bottom-0 w-[1px] transition-colors ${isSelected ? 'bg-white/30' : 'bg-slate-200'}`}
+                        style={{ left: `${(i * 10) + 8}px` }}
+                    />
+                ))}
+
                 <span className={`shrink-0 flex items-center justify-center w-[16px] h-full transition-transform duration-100 ${entry.is_dir && expanded ? 'rotate-90' : ''}`}
                     onClick={(e) => {
                         e.stopPropagation(); // Only toggle expand, don't focus/select row if just clicking arrow
