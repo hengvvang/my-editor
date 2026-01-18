@@ -97,11 +97,11 @@ export const SidebarItem = ({
         <div>
             <div
                 className={`
-                    group flex items-center gap-0.5 pr-2 cursor-pointer text-[13px] select-none transition-none
+                    group flex items-center gap-0.5 pr-2 cursor-pointer text-[13px] select-none transition-colors duration-100
                     ${rowHeight}
                     ${isSelected
-                        ? 'bg-[#0090f1] text-white'
-                        : (isFocused ? 'bg-[#0090f1]/20' : 'hover:bg-[#f0f0f0] text-[#424242]')
+                        ? 'bg-blue-50 text-blue-700 font-medium'
+                        : (isFocused ? 'bg-slate-100 text-slate-700' : 'hover:bg-slate-50 text-slate-600')
                     }
                     relative
                 `}
@@ -113,11 +113,16 @@ export const SidebarItem = ({
                     else handleExpand(e);
                 }}
             >
+                {/* Active Indicator Line */}
+                {isSelected && (
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-blue-500 rounded-r-sm z-10" />
+                )}
+
                 {/* Indentation Lines */}
                 {[...Array(level)].map((_, i) => (
                     <div
                         key={i}
-                        className={`absolute top-0 bottom-0 w-[1px] transition-colors ${isSelected ? 'bg-white/30' : 'bg-slate-200'}`}
+                        className={`absolute top-0 bottom-0 w-[1px] transition-colors ${isSelected ? 'bg-blue-200/60' : 'bg-slate-200'}`}
                         style={{ left: `${(i * 10) + 8}px` }}
                     />
                 ))}
@@ -128,14 +133,14 @@ export const SidebarItem = ({
                         if (entry.is_dir) handleExpand(e);
                     }}
                 >
-                    {entry.is_dir && <ChevronRight size={14} className={`${isSelected ? 'text-white' : 'text-[#424242]'}`} />}
+                    {entry.is_dir && <ChevronRight size={14} className={`transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-600'}`} />}
                 </span>
 
                 <div className="shrink-0 flex items-center justify-center w-[18px] mr-1">
                     {entry.is_dir ? (
-                        <Folder size={16} className={`${expanded ? (isSelected ? 'text-white' : 'text-[#0090f1]') : (isSelected ? 'text-white' : 'text-[#dcb67a]')}`} fill="currentColor" />
+                        <Folder size={16} className={`${expanded ? (isSelected ? 'text-blue-500' : 'text-blue-400') : (isSelected ? 'text-blue-500' : 'text-amber-400/80')}`} fill="currentColor" />
                     ) : (
-                        <FileText size={15} className={`${isSelected ? 'text-white' : 'text-[#757575]'}`} />
+                        <FileText size={15} className={`${isSelected ? 'text-blue-500' : 'text-slate-400'}`} />
                     )}
                 </div>
 

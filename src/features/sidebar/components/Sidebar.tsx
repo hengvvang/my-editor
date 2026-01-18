@@ -93,70 +93,62 @@ const SidebarBase: React.FC<SidebarProps> = ({
             {/* 2. Main Body: Left Tabs + Right Pane */}
             <div className="flex-1 flex min-h-0">
                 {/* Left Side: Tabs (Activity Bar inside) */}
-                <div className="w-[40px] flex flex-col items-center py-2 gap-2 bg-slate-100/50 border-r border-slate-200 shrink-0">
-                    <button
-                        onClick={() => onActiveSideTabChange('explorer')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'explorer' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Explorer"
-                    >
-                        <Files size={20} className="transition-transform duration-300" />
-                    </button>
-                    <button
-                        onClick={() => onActiveSideTabChange('search')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'search' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Search"
-                    >
-                        <Search size={20} className="transition-transform duration-300" />
-                    </button>
-                    <button
-                        onClick={() => onActiveSideTabChange('outline')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'outline' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Outline"
-                    >
-                        <ListTree size={20} className="transition-transform duration-300" />
-                    </button>
+                <div className="w-[40px] flex flex-col py-2 gap-1 bg-slate-50 border-r border-slate-200 shrink-0">
+                    {[
+                        { id: 'explorer', Icon: Files, label: 'Explorer' },
+                        { id: 'search', Icon: Search, label: 'Search' },
+                        { id: 'outline', Icon: ListTree, label: 'Outline' },
+                    ].map(({ id, Icon, label }) => {
+                        const isActive = activeSideTab === id;
+                        return (
+                            <button
+                                key={id}
+                                onClick={() => onActiveSideTabChange(id as any)}
+                                className={`relative w-full h-[42px] flex items-center justify-center transition-colors duration-200 group mb-1
+                                    ${isActive
+                                        ? 'text-slate-900'
+                                        : 'text-slate-400 hover:text-slate-600'
+                                    }
+                                `}
+                                title={label}
+                            >
+                                {isActive && (
+                                    <div className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-sm bg-slate-900" />
+                                )}
+                                <Icon size={22} strokeWidth={1.5} className={`transition-transform duration-300 ${isActive ? 'scale-100' : 'scale-90 group-hover:scale-100'}`} />
+                            </button>
+                        );
+                    })}
 
                     <div className="flex-1" />
 
-                    <button
-                        onClick={() => onActiveSideTabChange('typing')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'typing' ? 'bg-white shadow-sm text-green-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Typing Practice"
-                    >
-                        <Keyboard size={20} className="transition-transform duration-300" />
-                    </button>
-
-                    <button
-                        onClick={() => onActiveSideTabChange('canvas')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'canvas' ? 'bg-white shadow-sm text-orange-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Canvas"
-                    >
-                        <PenTool size={20} className="transition-transform duration-300" />
-                    </button>
-
-                    <button
-                        onClick={() => onActiveSideTabChange('calendar')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'calendar' ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Calendar"
-                    >
-                        <Calendar size={20} className="transition-transform duration-300" />
-                    </button>
-
-                    <button
-                        onClick={() => onActiveSideTabChange('world-clock')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'world-clock' ? 'bg-white shadow-sm text-purple-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="World Clock"
-                    >
-                        <Globe2 size={20} className="transition-transform duration-300" />
-                    </button>
-
-                    <button
-                        onClick={() => onActiveSideTabChange('workspaces')}
-                        className={`p-1.5 rounded-xl transition-all active:scale-95 duration-200 ${activeSideTab === 'workspaces' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                        title="Workspaces"
-                    >
-                        <FolderKanban size={20} className="transition-transform duration-300" />
-                    </button>
+                    {[
+                        { id: 'typing', Icon: Keyboard, label: 'Typing Practice' },
+                        { id: 'canvas', Icon: PenTool, label: 'Canvas' },
+                        { id: 'calendar', Icon: Calendar, label: 'Calendar' },
+                        { id: 'world-clock', Icon: Globe2, label: 'World Clock' },
+                        { id: 'workspaces', Icon: FolderKanban, label: 'Workspaces' },
+                    ].map(({ id, Icon, label }) => {
+                        const isActive = activeSideTab === id;
+                        return (
+                            <button
+                                key={id}
+                                onClick={() => onActiveSideTabChange(id as any)}
+                                className={`relative w-full h-[42px] flex items-center justify-center transition-colors duration-200 group mb-1
+                                    ${isActive
+                                        ? 'text-slate-900'
+                                        : 'text-slate-400 hover:text-slate-600'
+                                    }
+                                `}
+                                title={label}
+                            >
+                                {isActive && (
+                                    <div className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-sm bg-slate-900" />
+                                )}
+                                <Icon size={22} strokeWidth={1.5} className={`transition-transform duration-300 ${isActive ? 'scale-100' : 'scale-90 group-hover:scale-100'}`} />
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Right Side: Window / Panel Content */}
