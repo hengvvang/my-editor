@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, memo, useLayoutEffect } from 'react';
+import React, { useEffect, useRef, useState, memo, useLayoutEffect, useCallback } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import { cities, City } from './cities';
@@ -220,63 +220,76 @@ export const WorldClockPane: React.FC = () => {
     // Responsive: Measure the container size
     const { ref: containerRef, width: containerWidth, height: containerHeight } = useElementSize<HTMLDivElement>();
 
-    // --- Globe Logic ---
+    // --- Globe Logic Separated ---
+    const updateGlobeLights = useCallback(() => {
+        if (!globeRef.current) return;
+        const globe = globeRef.current;
+        const scene = globe.scene();
+
+        // Clean Lights
+        const lightsToRemove: THREE.Object3D[] = [];
+        scene.traverse((obj: THREE.Object3D) => {
+            if (obj instanceof THREE.Light) lightsToRemove.push(obj);
+        });
+        lightsToRemove.forEach(l => scene.remove(l));
+
+        // Lighting Setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, globeTheme === 'day' ? 0.6 : 0.05);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, globeTheme === 'day' ? 1.0 : 2.0);
+        scene.add(sunLight);
+
+        // "Night" theme is actually "Realistic Mode" (Day texture with realistic Lighting)
+        // "Day" theme is "Static Mode" (Day texture with fixed bright lighting)
+        if (globeTheme === 'night') {
+            const updateSun = () => {
+                const now = new Date();
+                const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60;
+                let sunLng = 180 - (utcHours * 15);
+                const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+                const sunLat = 23.44 * Math.sin((2 * Math.PI * (dayOfYear - 81)) / 365);
+
+                const r = 100;
+                const phi = (90 - sunLat) * (Math.PI / 180);
+                const theta = (sunLng + 90) * (Math.PI / 180);
+                const x = -r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.cos(phi);
+                const z = r * Math.sin(phi) * Math.sin(theta);
+                sunLight.position.set(x, y, z);
+            };
+            updateSun();
+            if (sunIntervalRef.current) clearInterval(sunIntervalRef.current);
+            sunIntervalRef.current = setInterval(updateSun, 60000);
+        } else {
+            sunLight.position.set(50, 50, 50);
+            if (sunIntervalRef.current) clearInterval(sunIntervalRef.current);
+        }
+    }, [globeTheme]);
+
+    const updateGlobePosition = useCallback((duration: number = 1000) => {
+        if (!globeRef.current || isZenMode) return;
+        globeRef.current.pointOfView({ lat: selectedCity.lat, lng: selectedCity.lng, altitude: 7.0 }, duration);
+    }, [selectedCity, isZenMode]);
+
+    // Effect for Lights
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (!globeRef.current) return;
-            const globe = globeRef.current;
-            const scene = globe.scene();
+        // Debounce slightly to ensure scene is ready or just run it
+        const timer = setTimeout(updateGlobeLights, 100);
+        return () => clearTimeout(timer);
+    }, [updateGlobeLights]);
 
-            // Clean Lights
-            const lightsToRemove: THREE.Object3D[] = [];
-            scene.traverse((obj: THREE.Object3D) => {
-                if (obj instanceof THREE.Light) lightsToRemove.push(obj);
-            });
-            lightsToRemove.forEach(l => scene.remove(l));
+    // Effect for Position
+    useEffect(() => {
+        updateGlobePosition(1000);
+    }, [updateGlobePosition]);
 
-            // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, globeTheme === 'day' ? 0.6 : 0.05);
-            scene.add(ambientLight);
-
-            const sunLight = new THREE.DirectionalLight(0xffffff, globeTheme === 'day' ? 1.0 : 2.0);
-            scene.add(sunLight);
-
-            // "Night" theme is actually "Realistic Mode" (Day texture with realistic Lighting)
-            // "Day" theme is "Static Mode" (Day texture with fixed bright lighting)
-            if (globeTheme === 'night') {
-                const updateSun = () => {
-                    const now = new Date();
-                    const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60;
-                    let sunLng = 180 - (utcHours * 15);
-                    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
-                    const sunLat = 23.44 * Math.sin((2 * Math.PI * (dayOfYear - 81)) / 365);
-
-                    const r = 100;
-                    const phi = (90 - sunLat) * (Math.PI / 180);
-                    const theta = (sunLng + 90) * (Math.PI / 180);
-                    const x = -r * Math.sin(phi) * Math.cos(theta);
-                    const y = r * Math.cos(phi);
-                    const z = r * Math.sin(phi) * Math.sin(theta);
-                    sunLight.position.set(x, y, z);
-                };
-                updateSun();
-                sunIntervalRef.current = setInterval(updateSun, 60000);
-            } else {
-
-                sunLight.position.set(50, 50, 50);
-                if (sunIntervalRef.current) clearInterval(sunIntervalRef.current);
-            }
-
-            if (!isZenMode) {
-                globe.pointOfView({ lat: selectedCity.lat, lng: selectedCity.lng, altitude: 2.5 }, 1000);
-            }
-        }, 300);
-
+    // Cleanup interval on unmount
+    useEffect(() => {
         return () => {
-            clearTimeout(timer);
             if (sunIntervalRef.current) clearInterval(sunIntervalRef.current);
         };
-    }, [globeTheme]);  // Re-run when theme changes
+    }, []);
 
     // Auto-resize / Keep visible logic is handled by Flexbox 'flex-1' and 'min-h-0'
 
@@ -364,6 +377,10 @@ export const WorldClockPane: React.FC = () => {
                         {containerWidth > 0 && (
                             <Globe
                                 ref={globeRef}
+                                onGlobeReady={() => {
+                                    updateGlobeLights();
+                                    updateGlobePosition(0);
+                                }}
                                 globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
                                 bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
                                 backgroundColor="rgba(0,0,0,0)"
