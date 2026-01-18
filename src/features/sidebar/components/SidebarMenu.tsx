@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom';
 import {
     Menu, ChevronsLeft, FilePlus, FolderPlus, Settings, LogOut,
     Command, Copy, Scissors, Clipboard, Undo, Redo, Check,
-    Info, RefreshCw, Power, Keyboard, Monitor
+    Info, RefreshCw, Power, Keyboard, Monitor, Github
 } from 'lucide-react';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Window } from '@tauri-apps/api/window';
+import { getName, getVersion, getTauriVersion } from '@tauri-apps/api/app';
+import { open } from '@tauri-apps/plugin-shell';
 import { useSettings } from '../../settings/store/SettingsContext';
 
 const appWindow = getCurrentWebviewWindow();
@@ -18,45 +20,108 @@ type MenuItemType =
     | { type: 'submenu', label: string, icon?: any, items: MenuItemType[] };
 
 const AboutPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const [info, setInfo] = useState({ name: 'Typoly', version: 'Fetching...', tauri: '', arc: '' });
+
+    useEffect(() => {
+        const init = async () => {
+            try {
+                const name = await getName();
+                const version = await getVersion();
+                const tauri = await getTauriVersion();
+                setInfo({ name, version, tauri, arc: 'x86_64' });
+            } catch (e) { console.error(e); }
+        };
+        init();
+    }, []);
+
     return createPortal(
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
             <div
-                className="bg-white/90 backdrop-blur-2xl p-8 rounded-3xl shadow-2xl border border-white/60 max-w-sm w-full text-center relative overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+                className="group relative w-[360px] h-[500px] rounded-[24px] p-1 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
                 onClick={e => e.stopPropagation()}
+                style={{ perspective: '1000px' }}
             >
-                {/* Decorative background gradient */}
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+                {/* Rainbow/Holographic Border Gradient */}
+                <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-[#ff0000] via-[#00ff00] to-[#0000ff] opacity-50 blur-xl group-hover:opacity-75 transition-opacity duration-500 animate-[spin_4s_linear_infinite]" />
 
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white shadow-xl shadow-blue-500/25 transform rotate-3 hover:rotate-6 transition-transform duration-500">
-                    <span className="text-4xl font-bold font-serif italic tracking-tighter">T</span>
-                </div>
+                {/* 2nd Layer Border */}
+                <div className="absolute inset-[2px] rounded-[22px] bg-slate-900 z-0" />
 
-                <h2 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Typoly</h2>
-                <p className="text-slate-500 font-medium mb-8">Refined Typing Experience</p>
+                {/* Card Content Container */}
+                <div className="relative h-full w-full bg-slate-900/40 backdrop-blur-xl rounded-[22px] border border-white/10 overflow-hidden flex flex-col items-center justify-between py-10 z-10 text-white">
 
-                <div className="bg-slate-50/80 rounded-xl p-4 mb-8 border border-slate-100 text-sm">
-                    <div className="flex justify-between py-1 border-b border-slate-200/60 pb-2 mb-2">
-                        <span className="text-slate-400">Version</span>
-                        <span className="text-slate-700 font-mono">0.1.0-beta</span>
+                    {/* Grid Pattern Background */}
+                    <div className="absolute inset-0 z-0 opacity-[0.08] pointer-events-none"
+                        style={{
+                            backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)',
+                            backgroundSize: '24px 24px'
+                        }}
+                    />
+
+                    {/* Diagonal Glare Sweep Animation - Modified for "Slow In, Fast Out" */}
+                    <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-[22px]">
+                        <div className="absolute -top-[50%] -left-[50%] w-[35%] h-[200%] bg-gradient-to-r from-transparent via-white/50 to-transparent transform-gpu rotate-45 animate-[shimmer_3s_infinite]" style={{ animationTimingFunction: 'cubic-bezier(0.7, 0, 1, 1)' }} />
                     </div>
-                    <div className="flex justify-between py-1">
-                        <span className="text-slate-400">Build</span>
-                        <span className="text-slate-700 font-mono">2024.01</span>
+
+                    {/* Content Top */}
+                    <div className="flex flex-col items-center w-full z-30">
+                        {/* Logo Box with Foil Effect */}
+                        <div className="relative w-24 h-24 mb-6 group-hover:scale-105 transition-transform duration-300">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 via-purple-500 to-pink-500 rounded-2xl blur-md opacity-60 animate-pulse" />
+                            <div className="relative w-full h-full bg-slate-900 rounded-2xl border border-white/10 flex items-center justify-center shadow-inner overflow-hidden">
+                                <img src="/logo.png" alt="Typoly Logo" className="w-16 h-16 object-contain relative z-10 drop-shadow-lg" />
+                                {/* Subtle internal glow for the image */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 mix-blend-overlay" />
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h2 className="text-3xl font-extrabold tracking-tight mb-4 flex items-center gap-2 text-white drop-shadow-md">
+                            {info.name}
+                        </h2>
                     </div>
-                </div>
 
-                <div className="text-xs text-slate-400 mb-8 font-medium">
-                    © 2024 HengVvang. All rights reserved.
-                </div>
+                    {/* Stats / Info Grid */}
+                    <div className="w-full px-6 z-30 space-y-3">
+                        <div className="flex justify-between items-center py-2 border-b border-white/5 group-hover:border-white/20 transition-colors">
+                            <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Version</span>
+                            <span className="font-mono text-cyan-300 text-sm drop-shadow-[0_0_8px_rgba(103,232,249,0.5)]">{info.version}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5 group-hover:border-white/20 transition-colors">
+                            <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Tauri Core</span>
+                            <span className="font-mono text-purple-300 text-sm">{info.tauri}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5 group-hover:border-white/20 transition-colors">
+                            <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Dev</span>
+                            <span className="font-mono text-pink-300 text-sm">HengVvang</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5 group-hover:border-white/20 transition-colors cursor-pointer hover:bg-white/5 px-1 rounded -mx-1" onClick={() => open('https://github.com/HengVvang/typoly')}>
+                            <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                                <Github size={12} />
+                                Repository
+                            </span>
+                            <span className="font-mono text-blue-300 text-xs underline decoration-blue-300/30 hover:decoration-blue-300">github.com</span>
+                        </div>
+                    </div>
 
-                <button
-                    onClick={onClose}
-                    className="w-full bg-slate-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-slate-900/10"
-                >
-                    Close
-                </button>
+                    {/* Action Button */}
+                    <button
+                        onClick={onClose}
+                        className="mt-4 px-8 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/50 hover:scale-105 active:scale-95 transition-all z-30"
+                    >
+                        Close
+                    </button>
+
+                    {/* Decorative Holographic Overlay */}
+                    <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent via-white to-transparent pointer-events-none mix-blend-overlay" />
+                </div>
             </div>
+            <style>{`
+                @keyframes shimmer {
+                    0% { transform: translateX(-200%) translateY(-50%) rotate(45deg); }
+                    100% { transform: translateX(800%) translateY(50%) rotate(45deg); }
+                }
+            `}</style>
         </div>,
         document.body
     );
@@ -176,42 +241,6 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
 
     // --- Render Components ---
 
-    const MenuDropdown = ({ items }: { items: MenuItemType[] }) => (
-        <div className="absolute top-full left-0 min-w-[240px] bg-white/90 backdrop-blur-xl border border-white/40 rounded-xl shadow-2xl shadow-slate-900/10 py-1 z-50 flex flex-col mt-1 animate-in fade-in zoom-in-95 slide-in-from-top-0.5 duration-200 ease-out ring-1 ring-slate-900/5 select-none">
-            {items.map((item, idx) => {
-                if (item.type === 'separator') {
-                    return <div key={idx} className="my-1 border-t border-slate-200/60 mx-3" />;
-                }
-                if (item.type === 'item') {
-                    return (
-                        <button
-                            key={idx}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                item.action?.();
-                                if (item.action) closeAll();
-                            }}
-                            className="w-full text-left px-2 py-1.5 hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md hover:shadow-blue-500/20 flex items-center gap-2 group relative text-[12px] font-medium text-slate-700 mx-1 rounded-lg transition-all duration-100"
-                            style={{ width: 'calc(100% - 8px)' }}
-                        >
-                            <span className="w-4 flex items-center justify-center shrink-0">
-                                {item.icon && <item.icon size={13} strokeWidth={2} className="text-slate-400 group-hover:text-blue-50 transition-colors" />}
-                                {item.checked && !item.icon && <Check size={13} className="text-blue-600 group-hover:text-white" />}
-                            </span>
-                            <span className="flex-1 truncate leading-none pt-0.5 tracking-tight">{item.label}</span>
-                            {item.shortcut && (
-                                <span className="ml-auto pl-3 text-[10px] text-slate-400 group-hover:text-blue-100 font-sans font-medium tracking-wide opacity-80 group-hover:opacity-100 transition-opacity">
-                                    {item.shortcut}
-                                </span>
-                            )}
-                        </button>
-                    );
-                }
-                return null;
-            })}
-        </div>
-    );
-
     return (
         <div className={`relative flex items-center h-full ${compact ? 'px-1' : 'w-[40px] justify-center'}`} ref={containerRef}>
             {/* About Panel Modal */}
@@ -245,6 +274,7 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
                             <div className="relative h-full flex items-center">
                                 <button
                                     onMouseEnter={() => setActiveCategory(category)}
+                                    // onClick now also just toggles the category active state or does nothing if hover handles it
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setActiveCategory(activeCategory === category ? null : category);
@@ -258,7 +288,10 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
                                 </button>
                                 {/* Dropdown */}
                                 {activeCategory === category && (
-                                    <MenuDropdown items={MENU_STRUCTURE[category]} />
+                                    <MenuDropdown
+                                        items={MENU_STRUCTURE[category]}
+                                        onClose={closeAll}
+                                    />
                                 )}
                             </div>
                         </React.Fragment>
@@ -269,3 +302,43 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
         </div>
     );
 };
+
+// --- Extracted MenuDropdown to prevent re-creation lag ---
+const MenuDropdown = ({ items, onClose }: { items: MenuItemType[], onClose: () => void }) => (
+    <div className="absolute top-full left-0 min-w-[240px] bg-white/95 backdrop-blur-xl border border-white/40 rounded-xl shadow-2xl shadow-slate-900/10 py-1 z-50 flex flex-col mt-1 animate-in fade-in zoom-in-95 slide-in-from-top-0.5 duration-150 ease-out ring-1 ring-slate-900/5 select-none origin-top-left">
+        {items.map((item, idx) => {
+            if (item.type === 'separator') {
+                return <div key={idx} className="my-1 border-t border-slate-200/60 mx-3" />;
+            }
+            if (item.type === 'item') {
+                return (
+                    <button
+                        key={idx}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            // Optional: slight delay or just execute
+                            if (item.action) {
+                                item.action();
+                                onClose();
+                            }
+                        }}
+                        className="w-full text-left px-2 py-1.5 hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md hover:shadow-blue-500/20 flex items-center gap-2 group relative text-[12px] font-medium text-slate-700 mx-1 rounded-lg transition-all duration-75"
+                        style={{ width: 'calc(100% - 8px)' }}
+                    >
+                        <span className="w-4 flex items-center justify-center shrink-0">
+                            {item.icon && <item.icon size={13} strokeWidth={2} className="text-slate-400 group-hover:text-blue-50 transition-colors" />}
+                            {item.checked && !item.icon && <Check size={13} className="text-blue-600 group-hover:text-white" />}
+                        </span>
+                        <span className="flex-1 truncate leading-none pt-0.5 tracking-tight">{item.label}</span>
+                        {item.shortcut && (
+                            <span className="ml-auto pl-3 text-[10px] text-slate-400 group-hover:text-blue-100 font-sans font-medium tracking-wide opacity-80 group-hover:opacity-100 transition-opacity">
+                                {item.shortcut}
+                            </span>
+                        )}
+                    </button>
+                );
+            }
+            return null;
+        })}
+    </div>
+);
