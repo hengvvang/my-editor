@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Window } from '@tauri-apps/api/window';
+import { useSettings } from '../../settings/store/SettingsContext';
 
 const appWindow = getCurrentWebviewWindow();
 
@@ -62,6 +63,7 @@ const AboutPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+    const { setSettingsOpen } = useSettings();
     // Top-level state: Is the Menu Bar visible?
     const [isMenuBarOpen, setIsMenuBarOpen] = useState(false);
     // Active Category (File, Edit, etc) - if not null, that dropdown is open
@@ -132,7 +134,7 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
         Typoly: [
             { type: 'item', label: 'About Typoly', icon: Info, action: () => setShowAbout(true) },
             { type: 'separator' },
-            { type: 'item', label: 'Preferences...', icon: Settings, shortcut: 'Ctrl+,' },
+            { type: 'item', label: 'Preferences...', icon: Settings, shortcut: 'Ctrl+,', action: () => setSettingsOpen(true) },
             { type: 'item', label: 'Check for Updates...', icon: RefreshCw },
             { type: 'separator' },
             { type: 'item', label: 'Quit Typoly', icon: Power, shortcut: 'Ctrl+Q', action: () => appWindow.close() }
@@ -158,7 +160,7 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
             { type: 'item', label: 'Command Palette...', icon: Command, shortcut: 'Ctrl+Shift+P' },
             { type: 'separator' },
             { type: 'item', label: 'Editor Layout', icon: Monitor },
-            { type: 'item', label: 'Appearance', icon: Settings, action: () => { } },
+            { type: 'item', label: 'Appearance', icon: Settings, action: () => setSettingsOpen(true) },
             { type: 'separator' },
             { type: 'item', label: 'Zoom In', shortcut: 'Ctrl+=' },
             { type: 'item', label: 'Zoom Out', shortcut: 'Ctrl+-' },

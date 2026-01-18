@@ -16,6 +16,7 @@ import { CodeSnap } from "../CodeSnap";
 import { EditorViewStateManager } from "../../hooks/useEditorViewState";
 import { save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
+import { useSettings } from "../../../settings/store/SettingsContext";
 
 // Lazy loading heavy components
 const TypstPreview = React.lazy(() => import("./previews/TypstPreview").then(m => ({ default: m.TypstPreview })));
@@ -193,19 +194,33 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     onQuickDraw,
     onQuickTyping
 }) => {
+    // --- Settings ---
+    const { settings, updateSettings } = useSettings();
+
     // --- Theme ---
     const scheme = colorSchemes[groupIndex % colorSchemes.length];
 
     // --- View State from Manager (persistent across layout changes) ---
     const viewState = viewStateManager.getViewState(groupId);
-    const { isSourceMode, showSplitPreview, isVimMode, useMonospace, showLineNumbers, showMinimap, minimapWidth, showCodeSnap, editorSize, previewSize, codeSnapSize, isSyncScrollEnabled } = viewState;
+    const { isSourceMode, showSplitPreview, isVimMode, useMonospace, minimapWidth, showCodeSnap, editorSize, previewSize, codeSnapSize, isSyncScrollEnabled } = viewState;
+
+    // Derived from Global Settings
+    const showMinimap = settings.editor.showMinimap;
+    const showLineNumbers = settings.editor.lineNumbers;
+    // const relativeLineNumbers = settings.editor.relativeLineNumbers; // Not used yet
+    const wordWrap = settings.editor.wordWrap;
+    const fontSize = settings.editor.fontSize;
+    const fontFamily = settings.editor.fontFamily;
 
     // --- Setters for View State ---
     const setIsSourceMode = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { isSourceMode: val }), [viewStateManager, groupId]);
     const setIsVimMode = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { isVimMode: val }), [viewStateManager, groupId]);
     const setUseMonospace = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { useMonospace: val }), [viewStateManager, groupId]);
-    const setShowLineNumbers = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showLineNumbers: val }), [viewStateManager, groupId]);
-    const setShowMinimap = useCallback((val: boolean) => viewStateManager.setViewState(groupId, { showMinimap: val }), [viewStateManager, groupId]);
+
+    // Updated to use Global Settings
+    const setShowLineNumbers = useCallback((val: boolean) => updateSettings('editor', { lineNumbers: val }), [updateSettings]);
+    const setShowMinimap = useCallback((val: boolean) => updateSettings('editor', { showMinimap: val }), [updateSettings]);
+
     const setMinimapWidth = useCallback((val: number) => viewStateManager.setViewState(groupId, { minimapWidth: val }), [viewStateManager, groupId]);
     const toggleSyncScroll = useCallback(() => viewStateManager.setViewState(groupId, { isSyncScrollEnabled: !isSyncScrollEnabled }), [viewStateManager, groupId, isSyncScrollEnabled]);
 
@@ -512,7 +527,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             // Ctrl+Shift+M - Toggle Minimap
             if (isMod && isShift && e.key.toLowerCase() === 'm') {
                 e.preventDefault();
-                handleToggleMinimap();
+                setShowMinimap(!showMinimap);
                 return;
             }
 
@@ -746,7 +761,19 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                         <CodeMirror
                                             value={content}
                                             height="100%"
-                                            extensions={editorExtensions}
+                                            extensions={[
+                                                ...editorExtensions,
+                                                ...(wordWrap ? [EditorView.lineWrapping] : []),
+                                                EditorView.theme({
+                                                    "&": {
+                                                        fontSize: `${fontSize}px`,
+                                                        fontFamily: fontFamily
+                                                    },
+                                                    ".cm-scroller": {
+                                                        fontFamily: fontFamily
+                                                    }
+                                                })
+                                            ]}
                                             onChange={onContentChange}
                                             theme="light"
                                             readOnly={isReadOnly}

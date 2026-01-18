@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Play, BookOpen, Volume2, VolumeX, Repeat, Shuffle, Eye, Settings, Type, RefreshCw, Plus } from 'lucide-react';
 import { dictionaries } from '../../../tools/QwertyLearner/config/dictionary';
+import { useSettings } from '../../../settings/store/SettingsContext';
 
 interface TypingPaneProps {
     onStartPractice?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
@@ -27,15 +28,16 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const TypingPane: React.FC<TypingPaneProps> = ({ onStartPractice, isTypingActive }) => {
+    const { settings } = useSettings();
     const [selectedDict, setSelectedDict] = useState('cet4');
     const [selectedChapter, setSelectedChapter] = useState(0);
     const [config, setConfig] = useState({
         showTranslation: true,
         showPhonetic: false,
-        keySoundEnabled: false,
-        hintSoundEnabled: true,
-        correctSoundEnabled: true,
-        wrongSoundEnabled: true,
+        keySoundEnabled: settings.typing.soundEnabled,
+        hintSoundEnabled: settings.typing.soundEnabled,
+        correctSoundEnabled: settings.typing.soundEnabled,
+        wrongSoundEnabled: settings.typing.soundEnabled,
         pronunciationEnabled: false,
         loopTimes: 1,
         randomEnabled: false,

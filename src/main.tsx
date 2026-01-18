@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { SettingsProvider } from "./features/settings/store/SettingsContext";
 import "./styles/index.css";
 
 // Error Boundary for debugging white screen
@@ -36,7 +37,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
         <ErrorBoundary>
-            <App />
+            <SettingsProvider>
+                <App />
+            </SettingsProvider>
         </ErrorBoundary>
     </React.StrictMode>,
 );

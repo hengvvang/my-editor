@@ -18,6 +18,7 @@ import { useSidebar } from "./features/sidebar/hooks/useSidebar";
 import { useOutline } from "./features/sidebar/components/OutlinePane/useOutline";
 import { useSearch } from "./features/sidebar/components/SearchPane/useSearch";
 import { useEditorViewState } from "./features/editor/hooks/useEditorViewState";
+import { SettingsDialog } from "./features/settings/components/SettingsDialog";
 
 
 const appWindow = getCurrentWebviewWindow()
@@ -540,6 +541,7 @@ function App() {
                 </div>
             )}
             <div className="flex-1 flex flex-col min-w-0 h-full bg-white relative overflow-hidden">
+                <SettingsDialog />
                 {/* Top Title Bar / Controls */}
                 <TitleBar
                     sidebarOpen={sidebarOpen}
