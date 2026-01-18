@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, X, Minus, Square } from 'lucide-react';
+import { X, Minus, Square, PanelLeft } from 'lucide-react';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { SidebarMenu } from '../features/sidebar/components/SidebarMenu';
 import { GroupState } from '../features/editor/types';
 import { Workspace } from '../features/sidebar/types';
 
@@ -48,12 +49,13 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     return (
         <div className="h-[35px] border-b border-slate-200 flex items-center justify-between px-2 shrink-0 bg-white z-10 select-none">
             {/* Left: Menu & Filename */}
-            <div className="flex items-center gap-2 z-20 min-w-0 shrink-0">
+            <div className="flex items-center gap-1 z-20 min-w-0 shrink-0">
+                {!sidebarOpen && <SidebarMenu compact />}
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
                     className="p-1.5 hover:bg-slate-100 rounded text-slate-500 transition-colors"
                 >
-                    <Menu size={16} />
+                    <PanelLeft size={16} />
                 </button>
                 <div
                     className="text-xs font-medium text-slate-600 select-none ml-1 truncate max-w-[300px]"

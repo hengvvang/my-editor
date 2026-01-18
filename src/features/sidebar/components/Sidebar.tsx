@@ -10,6 +10,7 @@ import { TypingPane } from "./TypingPane";
 import { CanvasPane, CanvasConfig } from "./CanvasPane";
 import { CalendarPane } from "./CalendarPane";
 import { WorldClockPane } from "./WorldClockPane/WorldClockPane";
+import { SidebarMenu } from "./SidebarMenu";
 import appLogo from "../../../assets/logo.png";
 
 export interface SidebarProps {
@@ -76,14 +77,17 @@ const SidebarBase: React.FC<SidebarProps> = ({
     return (
         <div className="flex flex-col h-full w-full border-r border-slate-200 bg-slate-50/80 backdrop-blur-md">
             {/* 1. Header ("EXPLORER" / "SEARCH" / "OUTLINE") */}
-            <div className="h-[40px] flex items-center px-4 font-bold text-slate-500 text-[11px] tracking-widest uppercase bg-slate-50/50 border-b border-slate-200 shrink-0 select-none" data-tauri-drag-region>
-                {activeSideTab === 'explorer' && "EXPLORER"}
-                {activeSideTab === 'search' && "SEARCH"}
-                {activeSideTab === 'outline' && "OUTLINE"}
-                {activeSideTab === 'workspaces' && "WORKSPACES"}
-                {activeSideTab === 'typing' && "TYPING"}
-                {activeSideTab === 'canvas' && "CANVAS"}
-                {activeSideTab === 'calendar' && "CALENDAR"}
+            <div className="h-[35px] flex items-center pr-4 bg-slate-50/50 border-b border-slate-200 shrink-0 select-none">
+                <SidebarMenu />
+                <div className="flex-1 h-full flex items-center font-bold text-slate-500 text-[11px] tracking-widest uppercase pl-1" data-tauri-drag-region>
+                    {activeSideTab === 'explorer' && "EXPLORER"}
+                    {activeSideTab === 'search' && "SEARCH"}
+                    {activeSideTab === 'outline' && "OUTLINE"}
+                    {activeSideTab === 'workspaces' && "WORKSPACES"}
+                    {activeSideTab === 'typing' && "TYPING"}
+                    {activeSideTab === 'canvas' && "CANVAS"}
+                    {activeSideTab === 'calendar' && "CALENDAR"}
+                </div>
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}

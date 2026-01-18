@@ -117,8 +117,8 @@ export const GhostResizeHandle: React.FC<{
             {/* The Visual Handler (Static) */}
             <div
                 onMouseDown={handleMouseDown}
-                className={`group relative flex justify-center items-center transition-colors focus:outline-none outline-none z-50 shrink-0 ${className}
-                    ${orientation === 'horizontal' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize w-full'}`}
+                className={`group relative flex justify-center items-center transition-colors focus:outline-none outline-none z-[100] shrink-0 ${className}
+                    ${orientation === 'horizontal' ? 'w-3 -ml-1.5 -mr-1.5 cursor-col-resize' : 'h-3 -mt-1.5 -mb-1.5 cursor-row-resize w-full'}`}
             >
                 <div className={`bg-slate-200 group-hover:bg-blue-400 active:bg-blue-600 transition-colors pointer-events-none
                     ${orientation === 'horizontal' ? 'w-[1px] h-full' : 'h-[1px] w-full'}`} />
