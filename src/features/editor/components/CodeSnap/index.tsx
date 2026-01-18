@@ -302,64 +302,74 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                     style={{ backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
                 />
 
-                {/* The Capture Container (Centered) */}
-                <div className="origin-center transition-transform duration-100 ease-out m-auto">
-                    <div
-                        ref={ref}
-                        className="snap-container relative rounded-xl flex items-center justify-center transition-all duration-300 ease-out origin-center shadow-sm"
-                        style={{
-                            padding: `${deferredPadding * 8}px`,
-                            backgroundColor: isDark ? '#1e1e1e' : '#e2e8f0', // The "Export Background"
-                        }}
-                    >
-                        <style>{snapFontStyles}</style>
-                        {/* The Editor Window */}
-                        <div
-                            className={`rounded-lg shadow-2xl overflow-hidden border ring-1 transition-colors duration-200 flex flex-col ${isDark
-                                ? 'bg-[#282a36] border-white/10 ring-white/5 shadow-black/50'
-                                : 'bg-white border-slate-200/60 ring-slate-900/5'
-                                }`}
-                            style={{ width: `${deferredWidth}px`, minHeight: `${deferredMinHeight}px` }}
-                        >
-                            {/* Status Bar / Window Controls */}
-                            <div className={`flex items-center justify-between px-4 py-3 border-b transition-colors duration-200 shrink-0 ${isDark ? 'bg-[#282a36] border-white/5' : 'bg-white border-slate-100'
-                                }`}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] shadow-sm" />
-                                    <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] shadow-sm" />
-                                    <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] shadow-sm" />
-                                </div>
-                                {fileName && (
-                                    <div className={`text-xs font-mono font-medium opacity-60 ml-4 truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
-                                        {fileName}
-                                    </div>
-                                )}
-                                <div className="flex-1" />
-                            </div>
-
-                            {/* Code Area */}
-                            <div
-                                className={`p-6 transition-colors duration-200 min-h-[120px] flex-1 ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}
-                                style={{ fontSize: `${deferredFontSize}px` }}
-                            >
-                                {mode === 'code' ? (
-                                    <CodeMirror
-                                        value={code}
-                                        theme={isDark ? hybridTheme : "light"}
-                                        extensions={editorExtensions}
-                                        basicSetup={basicSetup}
-                                    />
-                                ) : (
-                                    <div className={`min-h-[100px] min-w-[200px] rounded ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}>
-                                        {renderPreview ? renderPreview(code, isDark, 1) : <div className="p-4 text-center text-slate-400">Preview not available</div>}
-                                    </div>
-                                )}
-                            </div>
+                {!code ? (
+                    <div className="m-auto flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-4">
+                            <Code2 size={32} className="opacity-50" />
                         </div>
-
-                        {/* Watermark (Removed) */}
+                        <h3 className="text-sm font-semibold mb-1">No Code Selected</h3>
+                        <p className="text-xs opacity-70 max-w-[200px]">Select some text in the editor to generate a snapshot.</p>
                     </div>
-                </div>
+                ) : (
+                    /* The Capture Container (Centered) */
+                    <div className="origin-center transition-transform duration-100 ease-out m-auto">
+                        <div
+                            ref={ref}
+                            className="snap-container relative rounded-xl flex items-center justify-center transition-all duration-300 ease-out origin-center shadow-sm"
+                            style={{
+                                padding: `${deferredPadding * 8}px`,
+                                backgroundColor: isDark ? '#1e1e1e' : '#e2e8f0', // The "Export Background"
+                            }}
+                        >
+                            <style>{snapFontStyles}</style>
+                            {/* The Editor Window */}
+                            <div
+                                className={`rounded-lg shadow-2xl overflow-hidden border ring-1 transition-colors duration-200 flex flex-col ${isDark
+                                    ? 'bg-[#282a36] border-white/10 ring-white/5 shadow-black/50'
+                                    : 'bg-white border-slate-200/60 ring-slate-900/5'
+                                    }`}
+                                style={{ width: `${deferredWidth}px`, minHeight: `${deferredMinHeight}px` }}
+                            >
+                                {/* Status Bar / Window Controls */}
+                                <div className={`flex items-center justify-between px-4 py-3 border-b transition-colors duration-200 shrink-0 ${isDark ? 'bg-[#282a36] border-white/5' : 'bg-white border-slate-100'
+                                    }`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] shadow-sm" />
+                                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] shadow-sm" />
+                                        <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] shadow-sm" />
+                                    </div>
+                                    {fileName && (
+                                        <div className={`text-xs font-mono font-medium opacity-60 ml-4 truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                                            {fileName}
+                                        </div>
+                                    )}
+                                    <div className="flex-1" />
+                                </div>
+
+                                {/* Code Area */}
+                                <div
+                                    className={`p-6 transition-colors duration-200 flex-1 ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}
+                                    style={{ fontSize: `${deferredFontSize}px` }}
+                                >
+                                    {mode === 'code' ? (
+                                        <CodeMirror
+                                            value={code}
+                                            theme={isDark ? hybridTheme : "light"}
+                                            extensions={editorExtensions}
+                                            basicSetup={basicSetup}
+                                        />
+                                    ) : (
+                                        <div className={`min-h-[100px] min-w-[200px] rounded ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}>
+                                            {renderPreview ? renderPreview(code, isDark, 1) : <div className="p-4 text-center text-slate-400">Preview not available</div>}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Watermark (Removed) */}
+                        </div>
+                    </div>
+                )}
             </div>
 
 
