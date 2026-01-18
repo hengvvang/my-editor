@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Menu, ChevronsLeft, FilePlus, FolderPlus, Settings, LogOut, Command, Copy, Scissors, Clipboard, Undo, Redo, Check } from 'lucide-react';
+import {
+    Menu, ChevronsLeft, FilePlus, FolderPlus, Settings, LogOut,
+    Command, Copy, Scissors, Clipboard, Undo, Redo, Check,
+    Info, RefreshCw, Power, Keyboard, Monitor
+} from 'lucide-react';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Window } from '@tauri-apps/api/window';
 
@@ -12,11 +16,57 @@ type MenuItemType =
     | { type: 'separator' }
     | { type: 'submenu', label: string, icon?: any, items: MenuItemType[] };
 
+const AboutPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    return createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose}>
+            <div
+                className="bg-white/90 backdrop-blur-2xl p-8 rounded-3xl shadow-2xl border border-white/60 max-w-sm w-full text-center relative overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Decorative background gradient */}
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white shadow-xl shadow-blue-500/25 transform rotate-3 hover:rotate-6 transition-transform duration-500">
+                    <span className="text-4xl font-bold font-serif italic tracking-tighter">T</span>
+                </div>
+
+                <h2 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Typoly</h2>
+                <p className="text-slate-500 font-medium mb-8">Refined Typing Experience</p>
+
+                <div className="bg-slate-50/80 rounded-xl p-4 mb-8 border border-slate-100 text-sm">
+                    <div className="flex justify-between py-1 border-b border-slate-200/60 pb-2 mb-2">
+                        <span className="text-slate-400">Version</span>
+                        <span className="text-slate-700 font-mono">0.1.0-beta</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                        <span className="text-slate-400">Build</span>
+                        <span className="text-slate-700 font-mono">2024.01</span>
+                    </div>
+                </div>
+
+                <div className="text-xs text-slate-400 mb-8 font-medium">
+                    © 2024 HengVvang. All rights reserved.
+                </div>
+
+                <button
+                    onClick={onClose}
+                    className="w-full bg-slate-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-slate-900/10"
+                >
+                    Close
+                </button>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
     // Top-level state: Is the Menu Bar visible?
     const [isMenuBarOpen, setIsMenuBarOpen] = useState(false);
     // Active Category (File, Edit, etc) - if not null, that dropdown is open
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
+    const [showAbout, setShowAbout] = useState(false);
 
     const [menuPosition, setMenuPosition] = useState<{ top: number, left: number, height: number }>({ top: 0, left: 0, height: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -79,6 +129,14 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
     // --- Menu Definitions ---
 
     const MENU_STRUCTURE: Record<string, MenuItemType[]> = {
+        Typoly: [
+            { type: 'item', label: 'About Typoly', icon: Info, action: () => setShowAbout(true) },
+            { type: 'separator' },
+            { type: 'item', label: 'Preferences...', icon: Settings, shortcut: 'Ctrl+,' },
+            { type: 'item', label: 'Check for Updates...', icon: RefreshCw },
+            { type: 'separator' },
+            { type: 'item', label: 'Quit Typoly', icon: Power, shortcut: 'Ctrl+Q', action: () => appWindow.close() }
+        ],
         File: [
             { type: 'item', label: 'New Window', icon: FilePlus, shortcut: 'Ctrl+Shift+N', action: handleNewWindow },
             { type: 'item', label: 'Open Folder...', icon: FolderPlus, shortcut: 'Ctrl+O' },
@@ -99,16 +157,18 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
         View: [
             { type: 'item', label: 'Command Palette...', icon: Command, shortcut: 'Ctrl+Shift+P' },
             { type: 'separator' },
-            { type: 'item', label: 'Appearance', icon: Settings, action: () => { } }, // Example submenu placeholder
+            { type: 'item', label: 'Editor Layout', icon: Monitor },
+            { type: 'item', label: 'Appearance', icon: Settings, action: () => { } },
+            { type: 'separator' },
             { type: 'item', label: 'Zoom In', shortcut: 'Ctrl+=' },
             { type: 'item', label: 'Zoom Out', shortcut: 'Ctrl+-' },
             { type: 'item', label: 'Reset Zoom', shortcut: 'Ctrl+0' },
         ],
         Help: [
-            { type: 'item', label: 'Documentation' },
-            { type: 'item', label: 'Release Notes' },
+            { type: 'item', label: 'Documentation', icon: FilePlus },
+            { type: 'item', label: 'Keyboard Shortcuts', icon: Keyboard },
             { type: 'separator' },
-            { type: 'item', label: 'About Typoly' },
+            { type: 'item', label: 'About Typoly', icon: Info, action: () => setShowAbout(true) },
         ]
     };
 
@@ -152,14 +212,17 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
 
     return (
         <div className={`relative flex items-center h-full ${compact ? 'px-1' : 'w-[40px] justify-center'}`} ref={containerRef}>
+            {/* About Panel Modal */}
+            {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
+
             {/* Hamburger Button */}
             <button
                 ref={buttonRef}
                 onClick={handleToggle}
-                className={`p-1.5 rounded-sm transition-colors ${isMenuBarOpen ? 'bg-slate-200 text-slate-800' : 'hover:bg-slate-200/50 text-slate-500'} ${compact ? '' : 'mx-1'}`}
+                className={`p-1.5 rounded transition-colors ${isMenuBarOpen ? 'bg-slate-200 text-slate-800' : 'hover:bg-slate-100 text-slate-500'}`}
                 title={isMenuBarOpen ? "Close Menu" : "Application Menu"}
             >
-                {isMenuBarOpen ? <ChevronsLeft size={compact ? 16 : 20} /> : <Menu size={compact ? 16 : 20} />}
+                {isMenuBarOpen ? <ChevronsLeft size={16} /> : <Menu size={16} />}
             </button>
 
             {/* Menu Bar Overlay - PORTAL */}
@@ -174,7 +237,7 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
                         minWidth: '200px'
                     }}
                 >
-                    {['File', 'Edit', 'View', 'Help'].map((category, index) => (
+                    {['Typoly', 'File', 'Edit', 'View', 'Help'].map((category, index) => (
                         <React.Fragment key={category}>
                             {index > 0 && <div className="w-[1px] h-3 bg-slate-200 mx-0.5" />}
                             <div className="relative h-full flex items-center">
