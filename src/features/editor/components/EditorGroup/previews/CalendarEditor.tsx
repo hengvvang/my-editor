@@ -1,4 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
+import { useResponsiveScale } from '../../../../../shared/hooks/useResponsiveScale';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -28,6 +29,11 @@ interface CalendarData {
 }
 
 export const CalendarEditor: React.FC<CalendarEditorProps> = ({ content, onChange, theme = 'light' }) => {
+    const { containerRef, contentStyle } = useResponsiveScale({
+        baseWidth: 1000,
+        baseHeight: 800,
+        limitToOne: false
+    });
     const calendarRef = useRef<FullCalendar>(null);
     const lastSavedData = useRef<string>(content);
 
@@ -171,8 +177,12 @@ export const CalendarEditor: React.FC<CalendarEditorProps> = ({ content, onChang
 
 
     return (
-        <div className={`h-full w-full bg-white dark:bg-slate-900 p-2 overflow-hidden calendar-wrapper relative ${theme === 'dark' ? 'fc-dark-mode' : ''}`}>
-            <style>{`
+        <div ref={containerRef} className={`h-full w-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'fc-dark-mode' : ''}`}>
+            <div
+                style={contentStyle}
+                className="calendar-wrapper relative bg-white dark:bg-slate-900 p-2"
+            >
+                <style>{`
                 /* Minimal override for Typoly's aesthetic */
                 :root {
                     --fc-border-color: #e2e8f0;
@@ -217,26 +227,27 @@ export const CalendarEditor: React.FC<CalendarEditorProps> = ({ content, onChang
                 .fc-event-main { padding: 2px 4px; font-size: 0.85rem; font-weight: 500; }
             `}</style>
 
-            <FullCalendar
-                ref={calendarRef}
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-                }}
-                initialView={initialData.initialView}
-                editable={true}
-                selectable={true}
-                selectMirror={true}
-                dayMaxEvents={true}
-                weekends={true}
-                events={events}
-                select={handleDateSelect}
-                eventClick={handleEventClick}
-                eventChange={handleEventChange} // Handles resize/drop
-                height="100%"
-            />
+                <FullCalendar
+                    ref={calendarRef}
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+                    headerToolbar={{
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                    }}
+                    initialView={initialData.initialView}
+                    editable={true}
+                    selectable={true}
+                    selectMirror={true}
+                    dayMaxEvents={true}
+                    weekends={true}
+                    events={events}
+                    select={handleDateSelect}
+                    eventClick={handleEventClick}
+                    eventChange={handleEventChange} // Handles resize/drop
+                    height="100%"
+                />
+            </div>
 
             <CalendarEventModal
                 isOpen={isModalOpen}

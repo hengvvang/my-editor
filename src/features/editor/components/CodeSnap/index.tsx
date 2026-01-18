@@ -162,6 +162,14 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
             font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
             font-variant-ligatures: active;
         }
+        /* Prevent CodeMirror from forcing a taller-than-content editor */
+        .snap-container .cm-editor,
+        .snap-container .cm-scroller {
+            height: auto !important;
+        }
+        .snap-container .cm-content {
+            padding-bottom: 0 !important;
+        }
     `;
 
     const editorExtensions = useMemo(() => [
@@ -328,7 +336,9 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
                                     ? 'bg-[#282a36] border-white/10 ring-white/5 shadow-black/50'
                                     : 'bg-white border-slate-200/60 ring-slate-900/5'
                                     }`}
-                                style={{ width: `${deferredWidth}px`, minHeight: `${deferredMinHeight}px` }}
+                                style={{
+                                    width: `${deferredWidth}px`
+                                }}
                             >
                                 {/* Status Bar / Window Controls */}
                                 <div className={`flex items-center justify-between px-4 py-3 border-b transition-colors duration-200 shrink-0 ${isDark ? 'bg-[#282a36] border-white/5' : 'bg-white border-slate-100'
@@ -348,8 +358,11 @@ export const CodeSnap: React.FC<CodeSnapProps> = ({ code, fileName, renderPrevie
 
                                 {/* Code Area */}
                                 <div
-                                    className={`p-6 transition-colors duration-200 flex-1 ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}
-                                    style={{ fontSize: `${deferredFontSize}px` }}
+                                    className={`p-6 transition-colors duration-200 ${isDark ? 'bg-[#282a36] text-gray-300' : 'bg-white text-slate-800'}`}
+                                    style={{
+                                        fontSize: `${deferredFontSize}px`,
+                                        paddingBottom: `${24 + deferredMinHeight}px`
+                                    }}
                                 >
                                     {mode === 'code' ? (
                                         <CodeMirror

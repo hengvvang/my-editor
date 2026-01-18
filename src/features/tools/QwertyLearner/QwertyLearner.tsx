@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTyping } from './hooks/useTyping';
+import { useResponsiveScale } from '../../../shared/hooks/useResponsiveScale';
 import { RotateCcw, Trophy, Target, Zap, SkipForward, SkipBack, Loader2, Volume2, Eye, EyeOff, Languages } from 'lucide-react';
 import type { Word } from './types';
 import { defaultTypingConfig, WORDS_PER_CHAPTER } from './config/typing';
@@ -18,44 +19,12 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
     const [isRevealed, setIsRevealed] = useState(false);
     const [readDisplayMode, setReadDisplayMode] = useState<'all' | 'hide-trans' | 'hide-word'>('all');
 
-    // Scale logic using callback ref for reliability
-    const [scale, setScale] = useState(1);
-    const observerRef = useRef<ResizeObserver | null>(null);
-
-    const containerRef = useCallback((node: HTMLDivElement | null) => {
-        // Cleanup previous observer
-        if (observerRef.current) {
-            observerRef.current.disconnect();
-            observerRef.current = null;
-        }
-
-        if (node) {
-            const updateScale = () => {
-                const { clientWidth, clientHeight } = node;
-                // If container is hidden or not ready
-                if (clientWidth === 0 || clientHeight === 0) return;
-
-                const baseWidth = 1000;
-                const baseHeight = 800;
-
-                const s = Math.min(
-                    clientWidth / baseWidth < 1 ? clientWidth / baseWidth : 1,
-                    clientHeight / baseHeight < 1 ? clientHeight / baseHeight : 1
-                );
-                setScale(s);
-            };
-
-            const observer = new ResizeObserver(() => {
-                requestAnimationFrame(updateScale);
-            });
-
-            observer.observe(node);
-            observerRef.current = observer;
-
-            // Initial calculation
-            updateScale();
-        }
-    }, []);
+    // Scale logic
+    const { containerRef, contentStyle } = useResponsiveScale({
+        baseWidth: 1000,
+        baseHeight: 800,
+        limitToOne: true
+    });
 
     const { state, currentWord, reset, skipWord, prevWord } = useTyping(words, config);
 
@@ -127,12 +96,7 @@ export function QwertyLearner({ dictId = 'cet4', chapter = 0, config: userConfig
         <div ref={containerRef} className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
             <div
                 className="relative flex flex-col items-center justify-between bg-white/0 transition-transform duration-200 ease-out origin-center"
-                style={{
-                    width: 1000,
-                    height: 800,
-                    transform: `scale(${scale})`,
-                    flexShrink: 0
-                }}
+                style={contentStyle}
             >
                 {/* Top Bar Area */}
                 <div className="w-full p-6 flex justify-between items-start z-20 pointer-events-none">

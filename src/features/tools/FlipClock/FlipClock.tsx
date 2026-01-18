@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useResponsiveScale } from '../../../shared/hooks/useResponsiveScale';
 // @ts-ignore
 import { flipClock, clock, counter } from './dist/FlipClock.js';
 import './dist/flipclock.css';
@@ -10,6 +11,11 @@ interface FlipClockProps {
 export const FlipClockTool: React.FC<FlipClockProps> = ({ content }) => {
     const parentRef = useRef<HTMLDivElement>(null);
     const instanceRef = useRef<any>(null);
+    const { containerRef, contentStyle } = useResponsiveScale({
+        baseWidth: 600,
+        baseHeight: 300,
+        limitToOne: false
+    });
 
     useEffect(() => {
         if (!parentRef.current) return;
@@ -56,10 +62,9 @@ export const FlipClockTool: React.FC<FlipClockProps> = ({ content }) => {
     }, [content]);
 
     return (
-        <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] overflow-hidden relative select-none">
-            <div ref={parentRef} className="flip-clock-wrapper scale-[1.5]" />
-        </div>
-    );
-};
-
-export default FlipClockTool;
+        <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-[#1a1a1a] overflow-hidden relative select-none">
+            <div
+                ref={parentRef}
+                className="flip-clock-wrapper"
+                style={contentStyle}
+                export default FlipClockTool;
