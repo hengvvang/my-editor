@@ -152,7 +152,21 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
     *   **Customizable**: Toggle translation hints and sound effects from the sidebar settings panel.
     *   **Quick Access**: Launch practice sessions via sidebar or tab bar keyboard icon.
 *   **LaTeX Support**: Native `.tex` editing with **KaTeX** powered real-time preview and live-editor math widgets.
-*   **Vim Mode**: Integrated Vim keybindings for keyboard warriors.
+*   **Enhanced Vim Mode**:
+    *   **Visual Enhancements**:
+        *   *Glassmorphism UI*: Modern, frosted-glass overlay for EasyMotion hints and status bars.
+        *   *Status Bar*: High-contrast bar showing current mode with "Black & White" aesthetic.
+    *   **Smart Navigation**:
+        *   *Prefix Handling*: Intelligent collision detection for hints (e.g., distinguishing `a` vs `af`). Use **Enter** to confirm the shorter prefix instantly.
+        *   *Dynamic Guidelines*: Visual cues and helper text appear automatically when ambiguous commands are detected.
+*   **Workspace Security**:
+    *   **App Lock**: Integrated lock screen to protect your sensitive work.
+    *   **Modern Auth UI**:
+        *   *Setup*: Diagonal split design (Black/White) with grid patterns for secure password creation.
+        *   *Unlock*: Sleek transparent capsule interface with backdrop blur.
+    *   **Safety Features**:
+        *   *Password Reset*: Administrative controls available via context menu (Right-click **Lock Icon** in Titlebar) to reset credentials.
+        *   *Persistent State*: Security settings persist across sessions via local storage.
 *   **Minimap**: Visual overview of your document with active line and selection indicators.
 *   **Outline View**: Auto-generated table of contents for quick navigation.
 

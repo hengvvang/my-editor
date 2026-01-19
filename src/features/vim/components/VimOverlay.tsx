@@ -17,19 +17,31 @@ export const VimOverlay: React.FC = () => {
                 return (
                     <div
                         key={hint.id}
-                        className="absolute bg-yellow-300 border border-yellow-600 text-black font-bold text-[10px] px-1 shadow-sm rounded-sm uppercase flex items-center justify-center pointer-events-auto transition-opacity"
+                        className="absolute z-[10001] group flex items-center justify-center min-w-[22px] h-[22px] px-1.5
+                        bg-slate-900/95 backdrop-blur-sm
+                        border border-white/20 ring-1 ring-black/5
+                        shadow-[0_4px_12px_-2px_rgba(0,0,0,0.4)]
+                        rounded-md
+                        cursor-pointer animate-in zoom-in-75 duration-150 ease-out"
                         style={{
                             top: hint.rect.top,
                             left: hint.rect.left,
-                            // Adjust position to not cover the exact top-left corner content if possible,
-                            // usually slightly offset out or just overlay.
-                            // Sticking to overlay top-left for standard Vimium feel using translate.
-                            transform: 'translate(0, 0)',
-                            zIndex: 10001
+                            transform: 'translate(-20%, -20%)', // Slightly center over target
                         }}
                     >
-                        <span className="text-gray-400 font-mono">{inputBuffer}</span>
-                        <span className="font-mono">{hint.id.slice(inputBuffer.length)}</span>
+                        <div className="flex items-center justify-center font-mono text-[12px] leading-none select-none">
+                            {/* Dimmed already typed chars */}
+                            {inputBuffer && (
+                                <span className="text-slate-500 font-medium mr-[1px]">{inputBuffer}</span>
+                            )}
+                            {/* Remaining chars */}
+                            <span className="text-white font-bold bg-gradient-to-b from-white to-slate-200 bg-clip-text text-transparent filter drop-shadow-sm">
+                                {hint.id.slice(inputBuffer.length)}
+                            </span>
+                        </div>
+
+                        {/* Decorative glow effect */}
+                        <div className="absolute inset-0 rounded-md ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
                     </div>
                 );
             })}

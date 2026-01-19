@@ -87,6 +87,14 @@ export const VimProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
 
         if (mode === 'HINT') {
+            if (key === 'Enter') {
+                const exactMatch = hints.find(h => h.id === inputBuffer);
+                if (exactMatch) {
+                    executeHint(exactMatch);
+                }
+                return;
+            }
+
             const char = key.toLowerCase();
             const nextBuffer = inputBuffer + char;
             const exactMatch = hints.find(h => h.id === nextBuffer);
