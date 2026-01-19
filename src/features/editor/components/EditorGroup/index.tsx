@@ -1038,28 +1038,33 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
                                                 const newEditorSize = percent;
 
-                                                if (showCodeSnap) {
-                                                    // 3 Panels: Editor | Preview | CodeSnap
-                                                    // We are resizing Editor<->Preview
-                                                    // CodeSnap should stay same size ideally, or we squeeze Preview?
-                                                    // Layout: [Editor, Preview, CodeSnap]
+                                                if (showCodeSnap || showTranslate) {
+                                                    // Multi-panel logic: Editor | Preview | [CodeSnap] | [Translate]
 
-                                                    const currentSnap = codeSnapSize;
-                                                    // Ensure we don't swallow CodeSnap
-                                                    // Remaining for preview = 100 - editor - snap
-                                                    let newPreview = 100 - newEditorSize - currentSnap;
+                                                    const currentSnap = showCodeSnap ? codeSnapSize : 0;
+                                                    const currentTranslate = showTranslate ? translateSize : 0;
 
-                                                    // If preview gets too small, we might need to squeeze CodeSnap or simple clamp editor?
-                                                    // GhostHandle handles usage clamping via min/maxPercent, but we should double check constraints.
-                                                    if (newPreview < 0) newPreview = 0;
+                                                    // Remaining space for Preview
+                                                    // Total = 100
+                                                    // Editor = newEditorSize
+                                                    // Others fixed: currentSnap, currentTranslate
+                                                    // Preview = 100 - Editor - Snap - Translate
+                                                    let newPreview = 100 - newEditorSize - currentSnap - currentTranslate;
+
+                                                    // Safety clamp
+                                                    if (newPreview < 5) newPreview = 5;
 
                                                     viewStateManager.setViewState(groupId, {
                                                         editorSize: newEditorSize,
-                                                        previewSize: newPreview,
-                                                        codeSnapSize: currentSnap
+                                                        previewSize: newPreview
                                                     });
 
-                                                    panelGroupRef.current?.setLayout([newEditorSize, newPreview, currentSnap]);
+                                                    // Rebuild layout array based on visibility
+                                                    const layout = [newEditorSize, newPreview];
+                                                    if (showCodeSnap) layout.push(currentSnap);
+                                                    if (showTranslate) layout.push(currentTranslate);
+
+                                                    panelGroupRef.current?.setLayout(layout);
 
                                                 } else {
                                                     // 2 Panels: Editor | Preview
@@ -1096,44 +1101,59 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                     <>
                                         <GhostResizeHandle
                                             minPercent={showSplitPreview ? (editorSize + 15) : 20}
-                                            maxPercent={85}
+                                            maxPercent={showTranslate ? (100 - translateSize - 15) : 85}
                                             onResizeEnd={(percent) => {
-                                                // Handle 3 panes case: Editor | Preview | CodeSnap
-                                                // If Preview is closed: Editor | CodeSnap
+                                                // Handle 3+ panes case: Editor | Preview | CodeSnap | [Translate]
+                                                // This handle is *to the left* of CodeSnap.
 
-                                                if (!showSplitPreview) {
-                                                    const newEditorSize = percent;
-                                                    const newSnapSize = 100 - percent;
+                                                if (showSplitPreview) {
+                                                    // Layout order: Editor(1) | Preview(2) | CodeSnap(3)
+                                                    // Handle sits between Preview and CodeSnap.
+                                                    // 'percent' is the absolute position of this handle.
 
-                                                    viewStateManager.setViewState(groupId, {
-                                                        editorSize: newEditorSize,
-                                                        codeSnapSize: newSnapSize
-                                                    });
-                                                    panelGroupRef.current?.setLayout([newEditorSize, newSnapSize]);
-                                                } else {
-                                                    // 3 Panels: Editor(1) | Preview(2) | CodeSnap(3)
-                                                    // This handle is between Preview and CodeSnap
-                                                    // Percent is absolute from left
-
-                                                    // We keep Editor size constant? Or proportional?
-                                                    // GhostHandle calculates percent from LEFT of CONTAINER.
-
-                                                    // Current sizes
                                                     const currentEditor = editorSize;
 
-                                                    // New Total Left = Editor + Preview = percent
-                                                    // So Preview = percent - editor
+                                                    // Calculate new Preview Size
+                                                    // Preview starts at 'currentEditor' and ends at 'percent'
                                                     let newPreview = percent - currentEditor;
-                                                    if (newPreview < 0) newPreview = 10; // min clamp
+                                                    if (newPreview < 10) newPreview = 10;
 
-                                                    const newSnap = 100 - percent;
+                                                    // Calculate new CodeSnap Size
+                                                    // CodeSnap starts at 'percent'.
+                                                    // If Translate is open, it ends before Translate.
+                                                    // If Translate closed, it ends at 100.
+                                                    const currentTranslate = showTranslate ? translateSize : 0;
+                                                    let newCodeSnap = 100 - percent - currentTranslate;
+                                                    if (newCodeSnap < 10) newCodeSnap = 10;
 
                                                     viewStateManager.setViewState(groupId, {
                                                         previewSize: newPreview,
-                                                        codeSnapSize: newSnap
+                                                        codeSnapSize: newCodeSnap
                                                     });
 
-                                                    panelGroupRef.current?.setLayout([currentEditor, newPreview, newSnap]);
+                                                    const layout = [currentEditor, newPreview, newCodeSnap];
+                                                    if (showTranslate) layout.push(currentTranslate);
+                                                    panelGroupRef.current?.setLayout(layout);
+
+                                                } else {
+                                                    // Layout order: Editor(1) | CodeSnap(2)
+                                                    // Handle sits between Editor and CodeSnap.
+
+                                                    // New Editor Size = percent
+                                                    let newEditor = percent;
+
+                                                    // New CodeSnap Size
+                                                    const currentTranslate = showTranslate ? translateSize : 0;
+                                                    let newCodeSnap = 100 - percent - currentTranslate;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        editorSize: newEditor,
+                                                        codeSnapSize: newCodeSnap
+                                                    });
+
+                                                    const layout = [newEditor, newCodeSnap];
+                                                    if (showTranslate) layout.push(currentTranslate);
+                                                    panelGroupRef.current?.setLayout(layout);
                                                 }
                                             }}
                                         />
@@ -1188,24 +1208,46 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                 {showTranslate && (
                                     <>
                                         <GhostResizeHandle
-                                            minPercent={showSplitPreview ? (editorSize + 15) : 20}
+                                            minPercent={(showSplitPreview || showCodeSnap) ? 40 : 20}
                                             maxPercent={85}
                                             onResizeEnd={(percent) => {
-                                                if (!showSplitPreview) {
-                                                    const newEditorSize = percent;
-                                                    const newTranslateSize = 100 - percent;
+                                                // Handle 4 panes: Editor | Preview | CodeSnap | Translate
+                                                // Or any subset ending in Translate
+
+                                                const currentEditor = editorSize;
+                                                const currentPreview = showSplitPreview ? previewSize : 0;
+                                                const currentCodeSnap = showCodeSnap ? codeSnapSize : 0;
+
+                                                // The handle is at position 'percent' (absolute from left)
+                                                // New Translate Size
+                                                const newTranslate = 100 - percent;
+
+                                                // We need to adjust the panel immediately to the left of Translate
+                                                if (showCodeSnap) {
+                                                    // Left neighbor is CodeSnap
+                                                    // CodeSnap Layout position starts at: Editor + Preview
+                                                    const startOfCodeSnap = currentEditor + currentPreview;
+                                                    let newCodeSnap = percent - startOfCodeSnap;
+                                                    if (newCodeSnap < 10) {
+                                                        newCodeSnap = 10;
+                                                        // Clamp translate if needed? or let it push?
+                                                    }
 
                                                     viewStateManager.setViewState(groupId, {
-                                                        editorSize: newEditorSize,
-                                                        translateSize: newTranslateSize
+                                                        codeSnapSize: newCodeSnap,
+                                                        translateSize: newTranslate
                                                     });
-                                                    panelGroupRef.current?.setLayout([newEditorSize, newTranslateSize]);
-                                                } else {
-                                                    const currentEditor = editorSize;
-                                                    let newPreview = percent - currentEditor;
-                                                    if (newPreview < 0) newPreview = 10;
 
-                                                    const newTranslate = 100 - percent;
+                                                    const layout = [currentEditor];
+                                                    if (showSplitPreview) layout.push(currentPreview);
+                                                    layout.push(newCodeSnap, newTranslate);
+                                                    panelGroupRef.current?.setLayout(layout);
+
+                                                } else if (showSplitPreview) {
+                                                    // Left neighbor is Preview (CodeSnap hidden)
+                                                    const startOfPreview = currentEditor;
+                                                    let newPreview = percent - startOfPreview;
+                                                    if (newPreview < 10) newPreview = 10;
 
                                                     viewStateManager.setViewState(groupId, {
                                                         previewSize: newPreview,
@@ -1213,6 +1255,16 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                     });
 
                                                     panelGroupRef.current?.setLayout([currentEditor, newPreview, newTranslate]);
+
+                                                } else {
+                                                    // Left neighbor is Editor (Preview & CodeSnap hidden)
+                                                    const newEditor = percent;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        editorSize: newEditor,
+                                                        translateSize: newTranslate
+                                                    });
+                                                    panelGroupRef.current?.setLayout([newEditor, newTranslate]);
                                                 }
                                             }}
                                         />
@@ -1220,7 +1272,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                             defaultSize={translateSize}
                                             minSize={15}
                                             id="translate"
-                                            order={showSplitPreview ? 3 : 2}
+                                            order={(showSplitPreview && showCodeSnap) ? 4 : (showSplitPreview || showCodeSnap ? 3 : 2)}
                                         >
                                             <div className="h-full overflow-hidden border-l border-slate-200 bg-white">
                                                 <React.Suspense fallback={<div className="flex items-center justify-center h-full text-slate-400">Loading...</div>}>
