@@ -60,6 +60,19 @@ function App() {
     const documentsRef = useRef(documents);
     useEffect(() => { documentsRef.current = documents; }, [documents]);
 
+    // Store the getSelection callback from the active editor group
+    const getSelectionRef = useRef<(() => string) | null>(null);
+
+    // Callback to register getSelection from EditorGroup
+    const handleRegisterGetSelection = useCallback((getSelection: () => string) => {
+        getSelectionRef.current = getSelection;
+    }, []);
+
+    // Get selection from active editor for sidebar translate panel
+    const handleGetEditorSelection = useCallback((): string => {
+        return getSelectionRef.current?.() || '';
+    }, []);
+
     // Explicit close handler for the UI button
     const handleCloseApp = useCallback(async () => {
         try {
@@ -265,6 +278,14 @@ function App() {
         return group?.activePath || null;
     }
 
+    // Get current document content for translation
+    function getCurrentDocumentText(): string {
+        const currentPath = getOpenFilePath();
+        if (!currentPath) return '';
+        const doc = documents[currentPath];
+        return doc?.content || '';
+    }
+
     // --- Custom Save Logic for Untitled Files ---
     const handleSave = async (path: string, groupId: string) => {
         if (path.startsWith("untitled:")) {
@@ -379,6 +400,7 @@ function App() {
                     rootDir={rootDir}
                     onOpenFile={(path) => loadFile(path)}
                     viewStateManager={viewStateManager}
+                    onRegisterGetSelection={handleRegisterGetSelection}
                     onQuickDraw={() => {
                         const timestamp = new Date().getTime();
                         const virtualPath = `untitled:drawing-${timestamp}.excalidraw`;
@@ -432,6 +454,7 @@ function App() {
                             rootDir={rootDir}
                             rootFiles={rootFiles}
                             currentPath={getOpenFilePath()}
+                            currentDocumentText={getCurrentDocumentText()}
                             onOpenFile={loadFile}
                             onOpenFileAtLine={openFileAtLine}
                             onOpenFolder={openFolder}
@@ -446,6 +469,7 @@ function App() {
                             onCreateFolder={createFolder}
                             onDeleteItem={deleteItem}
                             activeGroupFiles={activeGroupFiles}
+                            onGetSelection={handleGetEditorSelection}
                             onOpenCalendar={() => {
                                 // Open default calendar
                                 const calendarPath = "untitled:Schedule.cal";

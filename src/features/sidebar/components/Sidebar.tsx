@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool, Calendar, Globe2 } from "lucide-react";
+import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool, Calendar, Globe2, Languages } from "lucide-react";
 import { FileEntry } from "../../../shared/types";
 import { SearchResult, SearchScope } from "../types";
 import { SearchPane } from "./SearchPane";
@@ -11,18 +11,20 @@ import { CanvasPane, CanvasConfig } from "./CanvasPane";
 import { CalendarPane } from "./CalendarPane";
 import { WorldClockPane } from "./WorldClockPane/WorldClockPane";
 import { SidebarMenu } from "./SidebarMenu";
+import { TranslatePanel } from "../../translate";
 import appLogo from "../../../assets/logo.png";
 
 export interface SidebarProps {
     isOpen: boolean;
-    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock') => void;
+    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock' | 'translate';
+    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock' | 'translate') => void;
     onQuickTyping?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
     onQuickDraw?: (config: CanvasConfig) => void;
     onOpenCalendar?: () => void;
     rootDir: string | null;
     rootFiles: FileEntry[];
     currentPath: string | null;
+    currentDocumentText?: string; // For translation
     onOpenFile: (path: string) => void;
     onOpenFileAtLine?: (path: string, line: number) => void;
     onOpenFolder: () => void;
@@ -35,6 +37,8 @@ export interface SidebarProps {
     onCreateFile?: (parentPath: string | null, name: string) => Promise<boolean>;
     onCreateFolder?: (parentPath: string | null, name: string) => Promise<boolean>;
     onDeleteItem?: (path: string) => Promise<boolean>;
+    onInsertTranslation?: (text: string) => void; // Insert translated text to editor
+    onGetSelection?: () => string; // Get current selection from editor
     search?: {
         query: string;
         setQuery: (q: string) => void;
@@ -54,6 +58,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
     rootDir,
     rootFiles,
     currentPath,
+    currentDocumentText = '',
     onOpenFile,
     onOpenFolder,
     outline,
@@ -65,6 +70,8 @@ const SidebarBase: React.FC<SidebarProps> = ({
     onCreateFile,
     onCreateFolder,
     onDeleteItem,
+    onInsertTranslation,
+    onGetSelection,
     search,
     onOpenFileAtLine,
     activeGroupFiles = [],
@@ -87,6 +94,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                     {activeSideTab === 'typing' && "TYPING"}
                     {activeSideTab === 'canvas' && "CANVAS"}
                     {activeSideTab === 'calendar' && "CALENDAR"}
+                    {activeSideTab === 'translate' && "TRANSLATE"}
                 </div>
             </div>
 
@@ -123,6 +131,7 @@ const SidebarBase: React.FC<SidebarProps> = ({
                     <div className="flex-1" />
 
                     {[
+                        { id: 'translate', Icon: Languages, label: 'Translate' },
                         { id: 'typing', Icon: Keyboard, label: 'Typing Practice' },
                         { id: 'canvas', Icon: PenTool, label: 'Canvas' },
                         { id: 'calendar', Icon: Calendar, label: 'Calendar' },
@@ -213,6 +222,19 @@ const SidebarBase: React.FC<SidebarProps> = ({
 
                     {activeSideTab === 'calendar' && (
                         <CalendarPane />
+                    )}
+
+                    {activeSideTab === 'translate' && (
+                        <TranslatePanel
+                            currentDocumentText={currentDocumentText}
+                            onGetSelection={onGetSelection}
+                            onTranslateDocument={() => {
+                                // Handle full document translation result
+                            }}
+                            onTranslateBilingual={() => {
+                                // Handle bilingual translation result
+                            }}
+                        />
                     )}
 
                     <div style={{ display: activeSideTab === 'world-clock' ? 'block' : 'none', height: '100%' }}>

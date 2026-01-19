@@ -10,10 +10,12 @@ export interface EditorViewState {
     showMinimap: boolean;
     minimapWidth: number;
     showCodeSnap: boolean;
+    showTranslate: boolean;
     // Panel sizes (percentages)
     editorSize: number;
     previewSize: number;
     codeSnapSize: number;
+    translateSize: number;
     // Sync Scroll
     isSyncScrollEnabled: boolean;
 }
@@ -27,10 +29,12 @@ const defaultViewState: EditorViewState = {
     showMinimap: false,
     minimapWidth: 100,
     showCodeSnap: false,
+    showTranslate: false,
     // Default panel sizes
     editorSize: 50,
     previewSize: 25,
     codeSnapSize: 25,
+    translateSize: 25,
     isSyncScrollEnabled: false, // Disabled by default
 };
 

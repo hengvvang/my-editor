@@ -29,6 +29,7 @@ const GenericPreview = React.lazy(() => import("./previews/GenericPreview").then
 const ExcalidrawEditor = React.lazy(() => import("./previews/ExcalidrawEditor").then(m => ({ default: m.ExcalidrawEditor })));
 const QwertyLearner = React.lazy(() => import("../../../tools/QwertyLearner/QwertyLearner").then(m => ({ default: m.QwertyLearner })));
 const FlipClock = React.lazy(() => import("../../../tools/FlipClock/FlipClock"));
+const TranslatePanel = React.lazy(() => import("../../../translate/components/TranslatePanel").then(m => ({ default: m.TranslatePanel })));
 import { CalendarEditor } from './previews/CalendarEditor';
 
 import { EditorTabs } from "./EditorTabs";
@@ -164,6 +165,7 @@ interface EditorGroupProps {
     viewStateManager: EditorViewStateManager;
     onQuickDraw?: () => void;
     onQuickTyping?: () => void;
+    onRegisterGetSelection?: (getSelection: () => string) => void;
 }
 
 const LoadingFallback = () => (
@@ -194,7 +196,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     onOpenFile,
     viewStateManager,
     onQuickDraw,
-    onQuickTyping
+    onQuickTyping,
+    onRegisterGetSelection
 }) => {
     // --- Settings ---
     const { settings, updateSettings } = useSettings();
@@ -204,7 +207,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
     // --- View State from Manager (persistent across layout changes) ---
     const viewState = viewStateManager.getViewState(groupId);
-    const { isSourceMode, showSplitPreview, isVimMode, useMonospace, minimapWidth, showCodeSnap, editorSize, previewSize, codeSnapSize, isSyncScrollEnabled } = viewState;
+    const { isSourceMode, showSplitPreview, isVimMode, useMonospace, minimapWidth, showCodeSnap, showTranslate, editorSize, previewSize, codeSnapSize, translateSize, isSyncScrollEnabled } = viewState;
 
     // Derived from Global Settings
     const showMinimap = settings.editor.showMinimap;
@@ -470,6 +473,28 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 case 'zoom-reset':
                     document.body.style.zoom = '1';
                     break;
+                case 'translate-selection':
+                    if (view) {
+                        const selection = view.state.selection.main;
+                        const selectedText = view.state.sliceDoc(selection.from, selection.to);
+                        if (selectedText.trim()) {
+                            // Dispatch event with selected text for translation panel
+                            window.dispatchEvent(new CustomEvent('translate:selection', {
+                                detail: { text: selectedText }
+                            }));
+                        }
+                    }
+                    break;
+                case 'get-selection':
+                    // Return selected text to caller via callback in detail
+                    if (view) {
+                        const selection = view.state.selection.main;
+                        const selectedText = view.state.sliceDoc(selection.from, selection.to);
+                        if (detail.callback && typeof detail.callback === 'function') {
+                            detail.callback(selectedText);
+                        }
+                    }
+                    break;
             }
         };
 
@@ -621,6 +646,70 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
         }
     }, [showCodeSnap, showSplitPreview, content, previewSize, viewStateManager, groupId]);
 
+    const handleToggleTranslate = useCallback(() => {
+        if (!showTranslate) {
+            // Opening Translate panel - adjust sizes
+            const newEditorSize = showSplitPreview ? 40 : 70;
+            const newPreviewSize = showSplitPreview ? 30 : previewSize;
+            const newTranslateSize = 30;
+            viewStateManager.setViewState(groupId, {
+                showTranslate: true,
+                editorSize: newEditorSize,
+                previewSize: newPreviewSize,
+                translateSize: newTranslateSize
+            });
+        } else {
+            // Closing Translate panel - redistribute space
+            const newEditorSize = showSplitPreview ? 50 : 100;
+            const newPreviewSize = showSplitPreview ? 50 : previewSize;
+            viewStateManager.setViewState(groupId, {
+                showTranslate: false,
+                editorSize: newEditorSize,
+                previewSize: newPreviewSize
+            });
+        }
+    }, [showTranslate, showSplitPreview, previewSize, viewStateManager, groupId]);
+
+    // Replace document content with translated text
+    const handleReplaceDocument = useCallback((text: string) => {
+        const view = editorViewRef.current;
+        if (view) {
+            view.dispatch({
+                changes: { from: 0, to: view.state.doc.length, insert: text }
+            });
+        }
+    }, []);
+
+    // Insert translated text at cursor position
+    const handleInsertAtCursor = useCallback((text: string) => {
+        const view = editorViewRef.current;
+        if (view) {
+            const pos = view.state.selection.main.head;
+            view.dispatch({
+                changes: { from: pos, insert: text }
+            });
+        }
+    }, []);
+
+    // Get current selection from editor
+    const handleGetSelection = useCallback((): string => {
+        const view = editorViewRef.current;
+        if (view) {
+            const sel = view.state.selection.main;
+            if (!sel.empty) {
+                return view.state.sliceDoc(sel.from, sel.to);
+            }
+        }
+        return '';
+    }, []);
+
+    // Register getSelection callback with parent (for sidebar translate panel)
+    useEffect(() => {
+        if (isActiveGroup && onRegisterGetSelection) {
+            onRegisterGetSelection(handleGetSelection);
+        }
+    }, [isActiveGroup, onRegisterGetSelection, handleGetSelection]);
+
     // --- Keyboard Shortcuts ---
     useEffect(() => {
         if (!isActiveGroup) return;
@@ -662,6 +751,22 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
             if (isMod && isShift && e.key.toLowerCase() === 'v') {
                 e.preventDefault();
                 setIsVimMode(!isVimMode);
+                return;
+            }
+
+            // Ctrl+Shift+T - Translate Selection
+            if (isMod && isShift && e.key.toLowerCase() === 't') {
+                e.preventDefault();
+                const view = editorViewRef.current;
+                if (view) {
+                    const selection = view.state.selection.main;
+                    const selectedText = view.state.sliceDoc(selection.from, selection.to);
+                    if (selectedText.trim()) {
+                        window.dispatchEvent(new CustomEvent('translate:selection', {
+                            detail: { text: selectedText }
+                        }));
+                    }
+                }
                 return;
             }
         };
@@ -760,7 +865,7 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
     );
 
     // --- Determine Panel Visibility ---
-    const hasRightPanels = showSplitPreview || showCodeSnap;
+    const hasRightPanels = showSplitPreview || showCodeSnap || showTranslate;
 
     return (
         <div className="flex-1 flex flex-col h-full min-w-0 bg-slate-50 border-r border-slate-200 last:border-r-0">
@@ -779,6 +884,8 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                 onToggleLock={onToggleLock}
                 showCodeSnap={showCodeSnap}
                 onToggleCodeSnap={handleToggleCodeSnap}
+                showTranslate={showTranslate}
+                onToggleTranslate={handleToggleTranslate}
                 onSave={onSave}
                 onCloseGroup={onCloseGroup}
                 onQuickDraw={onQuickDraw}
@@ -1072,6 +1179,59 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
                                                         );
                                                     }}
                                                 />
+                                            </div>
+                                        </Panel>
+                                    </>
+                                )}
+
+                                {/* Translate Panel */}
+                                {showTranslate && (
+                                    <>
+                                        <GhostResizeHandle
+                                            minPercent={showSplitPreview ? (editorSize + 15) : 20}
+                                            maxPercent={85}
+                                            onResizeEnd={(percent) => {
+                                                if (!showSplitPreview) {
+                                                    const newEditorSize = percent;
+                                                    const newTranslateSize = 100 - percent;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        editorSize: newEditorSize,
+                                                        translateSize: newTranslateSize
+                                                    });
+                                                    panelGroupRef.current?.setLayout([newEditorSize, newTranslateSize]);
+                                                } else {
+                                                    const currentEditor = editorSize;
+                                                    let newPreview = percent - currentEditor;
+                                                    if (newPreview < 0) newPreview = 10;
+
+                                                    const newTranslate = 100 - percent;
+
+                                                    viewStateManager.setViewState(groupId, {
+                                                        previewSize: newPreview,
+                                                        translateSize: newTranslate
+                                                    });
+
+                                                    panelGroupRef.current?.setLayout([currentEditor, newPreview, newTranslate]);
+                                                }
+                                            }}
+                                        />
+                                        <Panel
+                                            defaultSize={translateSize}
+                                            minSize={15}
+                                            id="translate"
+                                            order={showSplitPreview ? 3 : 2}
+                                        >
+                                            <div className="h-full overflow-hidden border-l border-slate-200 bg-white">
+                                                <React.Suspense fallback={<div className="flex items-center justify-center h-full text-slate-400">Loading...</div>}>
+                                                    <TranslatePanel
+                                                        compact
+                                                        currentDocumentText={content}
+                                                        onReplaceDocument={handleReplaceDocument}
+                                                        onInsertAtCursor={handleInsertAtCursor}
+                                                        onGetSelection={handleGetSelection}
+                                                    />
+                                                </React.Suspense>
                                             </div>
                                         </Panel>
                                     </>

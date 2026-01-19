@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, X, Columns, SplitSquareHorizontal, SplitSquareVertical, Lock, Camera, Save, PenTool, Keyboard } from "lucide-react";
+import { FileText, X, Columns, SplitSquareHorizontal, SplitSquareVertical, Lock, Camera, Save, PenTool, Keyboard, Languages } from "lucide-react";
 import { Tab } from "../../types";
 
 interface EditorTabsProps {
@@ -15,6 +15,8 @@ interface EditorTabsProps {
     onToggleLock: () => void;
     showCodeSnap: boolean;
     onToggleCodeSnap: () => void;
+    showTranslate?: boolean;
+    onToggleTranslate?: () => void;
     onSave: () => void;
     onCloseGroup?: () => void;
     onQuickDraw?: () => void;
@@ -34,6 +36,8 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
     onToggleLock,
     showCodeSnap,
     onToggleCodeSnap,
+    showTranslate = false,
+    onToggleTranslate,
     onSave,
     onCloseGroup,
     onQuickDraw,
@@ -82,6 +86,15 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
                     >
                         <Camera size={14} />
                     </button>
+                    {onToggleTranslate && (
+                        <button
+                            onClick={onToggleTranslate}
+                            className={`p-1.5 rounded-md transition-all active:scale-95 ${showTranslate ? 'bg-white shadow-sm text-blue-600' : 'hover:bg-white/50 hover:text-blue-600 text-slate-400'}`}
+                            title="Translate Panel (Ctrl+Shift+T)"
+                        >
+                            <Languages size={14} />
+                        </button>
+                    )}
                     {onQuickDraw && (
                         <button
                             onClick={onQuickDraw}

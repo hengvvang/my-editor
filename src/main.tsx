@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { SettingsProvider } from "./features/settings/store/SettingsContext";
+import { TranslateProvider } from "./features/translate/store/TranslateContext";
 import "./styles/index.css";
 
 // Error Boundary for debugging white screen
@@ -38,7 +39,9 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
         <ErrorBoundary>
             <SettingsProvider>
-                <App />
+                <TranslateProvider>
+                    <App />
+                </TranslateProvider>
             </SettingsProvider>
         </ErrorBoundary>
     </React.StrictMode>,
