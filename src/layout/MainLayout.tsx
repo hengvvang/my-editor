@@ -18,6 +18,7 @@ import { useDocumentContext } from '../features/documents/context/DocumentContex
 import { VimOverlay } from '../features/vim/components/VimOverlay';
 import { GlobalKeyboardListener } from '../features/vim/components/GlobalKeyboardListener';
 import { VimStatusBar } from '../features/vim/components/VimStatusBar';
+import { LockScreen } from '../features/security/components/LockScreen';
 // import { useVimContext } from '../features/vim/context/VimContext';
 
 const appWindow = getCurrentWebviewWindow();
@@ -252,6 +253,7 @@ export const MainLayout: React.FC = () => {
 
     return (
         <div className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
+            <LockScreen />
             <GlobalKeyboardListener />
             <VimOverlay />
             <VimStatusBar />

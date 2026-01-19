@@ -1,9 +1,11 @@
 import React from 'react';
-import { X, Minus, Square, PanelLeft } from 'lucide-react';
+import { X, Minus, Square, PanelLeft, Lock } from 'lucide-react';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { confirm } from '@tauri-apps/plugin-dialog';
 import { SidebarMenu } from '../features/sidebar/components/SidebarMenu';
 import { GroupState } from '../features/editor/types';
 import { Workspace } from '../features/sidebar/types';
+import { useLockContext } from '../features/security/context/LockContext';
 
 const appWindow = getCurrentWebviewWindow();
 
@@ -43,6 +45,22 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             await appWindow.unmaximize();
         } else {
             await appWindow.maximize();
+        }
+    };
+
+
+    const { lock, hasPassword, clearPassword } = useLockContext();
+
+    const handleLockRightClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (hasPassword) {
+            const confirmed = await confirm(
+                'Are you sure you want to clear the saved password? This will allow access without a password.',
+                { title: 'Clear Password', kind: 'warning', okLabel: 'Clear', cancelLabel: 'Cancel' }
+            );
+            if (confirmed) {
+                clearPassword();
+            }
         }
     };
 
@@ -113,6 +131,14 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 <div className="w-[1px] h-4 bg-slate-200 mx-1" />
 
                 <div className="flex items-center gap-1">
+                    <button
+                        onClick={lock}
+                        onContextMenu={handleLockRightClick}
+                        className={`p-2 hover:bg-slate-100 rounded cursor-pointer transition-colors hover:text-blue-600 ${hasPassword ? 'text-slate-700' : 'text-slate-500'}`}
+                        title={hasPassword ? "Lock App (Right-click to clear password)" : "Lock App"}
+                    >
+                        <Lock size={14} />
+                    </button>
                     <button onClick={handleMinimize} className="p-2 hover:bg-slate-100 rounded cursor-pointer transition-colors">
                         <Minus size={14} />
                     </button>
