@@ -3,6 +3,7 @@ import { DocumentProvider } from "./features/documents/context/DocumentContext";
 import { EditorProvider } from "./features/editor/context/EditorContext";
 import { WorkspaceProvider } from "./features/workspace/context/WorkspaceContext";
 import { SidebarProvider } from "./features/sidebar/context/SidebarContext";
+import { VimProvider } from "./features/vim/context/VimContext";
 import { MainLayout } from "./layout/MainLayout";
 
 import "./styles/index.css";
@@ -14,7 +15,9 @@ function App() {
             <DocumentProvider>
                 <WorkspaceProvider>
                     <SidebarProvider>
-                        <MainLayout />
+                        <VimProvider>
+                            <MainLayout />
+                        </VimProvider>
                     </SidebarProvider>
                 </WorkspaceProvider>
             </DocumentProvider>

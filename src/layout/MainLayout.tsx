@@ -15,6 +15,10 @@ import { useSidebarContext } from '../features/sidebar/context/SidebarContext';
 import { useEditorContext } from '../features/editor/context/EditorContext';
 import { useWorkspaceContext } from '../features/workspace/context/WorkspaceContext';
 import { useDocumentContext } from '../features/documents/context/DocumentContext';
+import { VimOverlay } from '../features/vim/components/VimOverlay';
+import { GlobalKeyboardListener } from '../features/vim/components/GlobalKeyboardListener';
+import { VimStatusBar } from '../features/vim/components/VimStatusBar';
+// import { useVimContext } from '../features/vim/context/VimContext';
 
 const appWindow = getCurrentWebviewWindow();
 
@@ -248,6 +252,10 @@ export const MainLayout: React.FC = () => {
 
     return (
         <div className="h-screen w-screen bg-white flex overflow-hidden text-slate-900">
+            <GlobalKeyboardListener />
+            <VimOverlay />
+            <VimStatusBar />
+
             {/* Sidebar */}
             {sidebarOpen && (
                 <div
