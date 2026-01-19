@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Search, ListTree, Files, FolderKanban, Keyboard, PenTool, Calendar, Globe2, Languages } from "lucide-react";
-import { FileEntry } from "../../../shared/types";
-import { SearchResult, SearchScope } from "../types";
+import { SidebarMenu } from "./SidebarMenu";
 import { SearchPane } from "./SearchPane";
 import { ExplorerPane } from "./ExplorerPane";
 import { OutlinePane } from "./OutlinePane";
@@ -10,74 +9,100 @@ import { TypingPane } from "./TypingPane";
 import { CanvasPane, CanvasConfig } from "./CanvasPane";
 import { CalendarPane } from "./CalendarPane";
 import { WorldClockPane } from "./WorldClockPane/WorldClockPane";
-import { SidebarMenu } from "./SidebarMenu";
 import { TranslatePanel } from "../../translate";
 import appLogo from "../../../assets/logo.png";
 
-export interface SidebarProps {
-    isOpen: boolean;
-    activeSideTab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock' | 'translate';
-    onActiveSideTabChange: (tab: 'explorer' | 'search' | 'outline' | 'workspaces' | 'typing' | 'canvas' | 'calendar' | 'world-clock' | 'translate') => void;
-    onQuickTyping?: (dictId: string, chapter: number, config: any, forceNew?: boolean) => void;
-    onQuickDraw?: (config: CanvasConfig) => void;
-    onOpenCalendar?: () => void;
-    rootDir: string | null;
-    rootFiles: FileEntry[];
-    currentPath: string | null;
-    currentDocumentText?: string; // For translation
-    onOpenFile: (path: string) => void;
-    onOpenFileAtLine?: (path: string, line: number) => void;
-    onOpenFolder: () => void;
-    outline: { level: number; text: string; line: number }[];
-    workspaces?: { path: string; name: string; pinned?: boolean; active?: boolean }[];
-    onSwitchWorkspace?: (path: string) => void;
-    onRemoveWorkspace?: (path: string, e: React.MouseEvent) => void;
-    onTogglePinWorkspace?: (path: string, e: React.MouseEvent) => void;
-    onToggleActiveWorkspace?: (path: string, e: React.MouseEvent) => void;
-    onCreateFile?: (parentPath: string | null, name: string) => Promise<boolean>;
-    onCreateFolder?: (parentPath: string | null, name: string) => Promise<boolean>;
-    onDeleteItem?: (path: string) => Promise<boolean>;
-    onInsertTranslation?: (text: string) => void; // Insert translated text to editor
-    onGetSelection?: () => string; // Get current selection from editor
-    search?: {
-        query: string;
-        setQuery: (q: string) => void;
-        options: { caseSensitive: boolean; wholeWord: boolean; isRegex: boolean; scope: SearchScope };
-        setOption: (k: "caseSensitive" | "wholeWord" | "isRegex" | "scope", v: any) => void;
-        results: SearchResult[];
-        isSearching: boolean;
-        search: (root: string | null, currentPath: string | null, activeGroupFiles: string[]) => void;
-    };
-    activeGroupFiles?: string[];
-}
+// Contexts
+import { useSidebarContext } from '../context/SidebarContext';
+import { useWorkspaceContext } from '../../workspace/context/WorkspaceContext';
+import { useEditorContext } from '../../editor/context/EditorContext';
+import { useDocumentContext } from '../../documents/context/DocumentContext';
+import { useOutline } from './OutlinePane/useOutline';
+import { useSearch } from './SearchPane/useSearch';
 
-const SidebarBase: React.FC<SidebarProps> = ({
-    isOpen,
-    activeSideTab,
-    onActiveSideTabChange,
-    rootDir,
-    rootFiles,
-    currentPath,
-    currentDocumentText = '',
-    onOpenFile,
-    onOpenFolder,
-    outline,
-    workspaces = [],
-    onSwitchWorkspace,
-    onRemoveWorkspace,
-    onTogglePinWorkspace,
-    onToggleActiveWorkspace,
-    onCreateFile,
-    onCreateFolder,
-    onDeleteItem,
-    onInsertTranslation,
-    onGetSelection,
-    search,
-    onOpenFileAtLine,
-    activeGroupFiles = [],
-    onQuickTyping,
-    onQuickDraw
-}) => {
+export const Sidebar: React.FC = () => {
+    // 1. Context Hooks
+    const { isOpen, activeTab, setActiveTab } = useSidebarContext();
+    const {
+        rootDir, rootFiles, workspaces, loadWorkspace, createFolder, createFile,
+        deleteItem, openFolder, togglePinWorkspace, toggleActiveWorkspace, removeWorkspace
+    } = useWorkspaceContext();
+    const {
+        groups, activeGroupId, openTab,
+        getSelection
+    } = useEditorContext();
+    const {
+        documents, updateDoc, createVirtualDocument, ensureDocumentLoaded
+    } = useDocumentContext();
+
+    // 2. Computed
+    const activeGroupFiles = useMemo(() => groups.find(g => g.id === activeGroupId)?.tabs || [], [groups, activeGroupId]);
+    const activePath = groups.find(g => g.id === activeGroupId)?.activePath || null;
+    const currentDocumentText = activePath ? documents[activePath]?.content : '';
+
+    // 3. Feature Hooks
+    const outline = useOutline(documents, groups, activeGroupId);
+    const search = useSearch();
+
+    // 4. Handlers
+    const handleOpenFile = (path: string) => {
+        ensureDocumentLoaded(path).then(loaded => {
+            if (loaded) openTab(path);
+        });
+    };
+
+    const handleOpenFileAtLine = async (path: string, line: number) => {
+        await ensureDocumentLoaded(path);
+        openTab(path);
+        // Todo: scroll to line implementation requires editor access
+    };
+
+    // Quick Handlers
+    const handleQuickTyping = (dictId: string, chapter: number, config: any, forceNew: boolean = false) => {
+        const group = groups.find(g => g.id === activeGroupId);
+        if (!forceNew && group?.activePath?.includes('typing-practice')) {
+            const newContent = JSON.stringify({ dictId, chapter, config }, null, 2);
+            updateDoc(group.activePath, { content: newContent });
+            return;
+        }
+
+        const timestamp = new Date().getTime();
+        const virtualPath = `untitled:typing-practice-${timestamp}`;
+        const initialContent = JSON.stringify({ dictId, chapter, config }, null, 2);
+        createVirtualDocument(virtualPath, initialContent, "Typing Practice");
+        openTab(virtualPath, activeGroupId);
+    };
+
+    const handleQuickDraw = (config: any) => {
+        const forceNew = config.forceNew;
+        const group = groups.find(g => g.id === activeGroupId);
+        if (!forceNew && group?.activePath?.endsWith('.excalidraw')) {
+            // Logic to update existing drawing if needed
+        }
+
+        const timestamp = new Date().getTime();
+        const virtualPath = `untitled:drawing-${timestamp}.excalidraw`;
+        const initialContent = JSON.stringify({
+            type: "excalidraw",
+            version: 2,
+            source: "typoly",
+            elements: [],
+            appState: { viewBackgroundColor: config?.background || "#ffffff" },
+            files: {}
+        }, null, 2);
+
+        createVirtualDocument(virtualPath, initialContent, "Untitled Drawing");
+        openTab(virtualPath, activeGroupId);
+    };
+
+    const handleOpenCalendar = () => {
+        const calendarPath = "untitled:Schedule.cal";
+        if (!documents[calendarPath]) {
+            const initialContent = JSON.stringify({ initialView: 'dayGridMonth', events: [] }, null, 2);
+            createVirtualDocument(calendarPath, initialContent, "Schedule");
+        }
+        openTab(calendarPath, activeGroupId);
+    };
 
     if (!isOpen) return null;
 
@@ -87,31 +112,31 @@ const SidebarBase: React.FC<SidebarProps> = ({
             <div className="h-[35px] flex items-center pr-4 bg-slate-50/50 border-b border-slate-200 shrink-0 select-none">
                 <SidebarMenu />
                 <div className="flex-1 h-full flex items-center font-bold text-slate-500 text-[11px] tracking-widest uppercase pl-1" data-tauri-drag-region>
-                    {activeSideTab === 'explorer' && "EXPLORER"}
-                    {activeSideTab === 'search' && "SEARCH"}
-                    {activeSideTab === 'outline' && "OUTLINE"}
-                    {activeSideTab === 'workspaces' && "WORKSPACES"}
-                    {activeSideTab === 'typing' && "TYPING"}
-                    {activeSideTab === 'canvas' && "CANVAS"}
-                    {activeSideTab === 'calendar' && "CALENDAR"}
-                    {activeSideTab === 'translate' && "TRANSLATE"}
+                    {activeTab === 'explorer' && "EXPLORER"}
+                    {activeTab === 'search' && "SEARCH"}
+                    {activeTab === 'outline' && "OUTLINE"}
+                    {activeTab === 'workspaces' && "WORKSPACES"}
+                    {activeTab === 'typing' && "TYPING"}
+                    {activeTab === 'canvas' && "CANVAS"}
+                    {activeTab === 'calendar' && "CALENDAR"}
+                    {activeTab === 'translate' && "TRANSLATE"}
                 </div>
             </div>
 
             {/* 2. Main Body: Left Tabs + Right Pane */}
             <div className="flex-1 flex min-h-0">
-                {/* Left Side: Tabs (Activity Bar inside) */}
+                {/* Left Side: Tabs */}
                 <div className="w-[40px] flex flex-col py-2 gap-1 bg-slate-50 border-r border-slate-200 shrink-0">
                     {[
                         { id: 'explorer', Icon: Files, label: 'Explorer' },
                         { id: 'search', Icon: Search, label: 'Search' },
                         { id: 'outline', Icon: ListTree, label: 'Outline' },
                     ].map(({ id, Icon, label }) => {
-                        const isActive = activeSideTab === id;
+                        const isActive = activeTab === id;
                         return (
                             <button
                                 key={id}
-                                onClick={() => onActiveSideTabChange(id as any)}
+                                onClick={() => setActiveTab(id)}
                                 className={`relative w-full h-[42px] flex items-center justify-center transition-colors duration-200 group mb-1
                                     ${isActive
                                         ? 'text-slate-900'
@@ -138,11 +163,11 @@ const SidebarBase: React.FC<SidebarProps> = ({
                         { id: 'world-clock', Icon: Globe2, label: 'World Clock' },
                         { id: 'workspaces', Icon: FolderKanban, label: 'Workspaces' },
                     ].map(({ id, Icon, label }) => {
-                        const isActive = activeSideTab === id;
+                        const isActive = activeTab === id;
                         return (
                             <button
                                 key={id}
-                                onClick={() => onActiveSideTabChange(id as any)}
+                                onClick={() => setActiveTab(id)}
                                 className={`relative w-full h-[42px] flex items-center justify-center transition-colors duration-200 group mb-1
                                     ${isActive
                                         ? 'text-slate-900'
@@ -163,81 +188,78 @@ const SidebarBase: React.FC<SidebarProps> = ({
                 {/* Right Side: Window / Panel Content */}
                 <div className="flex-1 bg-white/50 overflow-hidden flex flex-col">
 
-                    {activeSideTab === 'explorer' && (
+                    {activeTab === 'explorer' && (
                         <ExplorerPane
                             rootDir={rootDir}
                             rootFiles={rootFiles}
-                            currentPath={currentPath}
-                            onOpenFile={onOpenFile}
-                            onOpenFolder={onOpenFolder}
-                            onCreateFile={onCreateFile}
-                            onCreateFolder={onCreateFolder}
-                            onDeleteItem={onDeleteItem}
+                            currentPath={activePath} // currentPath -> activePath
+                            activePath={activePath} // ExplorerPane might expect 'activePath' or 'currentPath' prop?
+                            onOpenFile={handleOpenFile}
+                            onOpenFolder={openFolder}
+                            onCreateFile={createFile}
+                            onCreateFolder={createFolder}
+                            onDeleteItem={deleteItem}
                         />
                     )}
 
-                    {activeSideTab === 'search' && search && (
+                    {activeTab === 'search' && search && (
                         <SearchPane
                             search={search}
                             rootDir={rootDir}
-                            currentPath={currentPath}
+                            currentPath={activePath}
                             activeGroupFiles={activeGroupFiles}
                             allWorkspaces={workspaces ? workspaces.map(w => w.path) : []}
-                            onOpenFileAtLine={onOpenFileAtLine}
+                            onOpenFileAtLine={handleOpenFileAtLine}
                         />
                     )}
 
-                    {activeSideTab === 'outline' && (
+                    {activeTab === 'outline' && (
                         <OutlinePane
                             outline={outline}
-                            onItemClick={(line) => onOpenFileAtLine && currentPath ? onOpenFileAtLine(currentPath, line) : undefined}
+                            onItemClick={(line) => activePath && handleOpenFileAtLine(activePath, line)}
                         />
                     )}
 
-                    {activeSideTab === 'workspaces' && (
+                    {activeTab === 'workspaces' && (
                         <WorkspacesPane
                             rootDir={rootDir}
                             workspaces={workspaces}
-                            onSwitchWorkspace={onSwitchWorkspace}
-                            onRemoveWorkspace={onRemoveWorkspace}
-                            onTogglePinWorkspace={onTogglePinWorkspace}
-                            onToggleActiveWorkspace={onToggleActiveWorkspace}
-                            onOpenFolder={onOpenFolder}
+                            onSwitchWorkspace={loadWorkspace}
+                            onRemoveWorkspace={removeWorkspace}
+                            onTogglePinWorkspace={togglePinWorkspace}
+                            onToggleActiveWorkspace={toggleActiveWorkspace}
+                            onOpenFolder={openFolder}
                         />
                     )}
 
-                    {activeSideTab === 'typing' && (
+                    {activeTab === 'typing' && (
                         <TypingPane
-                            onStartPractice={onQuickTyping}
-                            isTypingActive={!!currentPath && currentPath.includes('typing-practice')}
+                            onStartPractice={handleQuickTyping}
+                            isTypingActive={!!activePath && activePath.includes('typing-practice')}
                         />
                     )}
 
-                    {activeSideTab === 'canvas' && (
+                    {activeTab === 'canvas' && (
                         <CanvasPane
-                            onStartDrawing={onQuickDraw}
-                            isCanvasActive={!!currentPath && currentPath.includes('drawing-')}
+                            onStartDrawing={handleQuickDraw}
+                            isCanvasActive={!!activePath && activePath.includes('drawing-')}
                         />
                     )}
 
-                    {activeSideTab === 'calendar' && (
-                        <CalendarPane />
+                    {activeTab === 'calendar' && (
+                        <CalendarPane onOpenCalendar={handleOpenCalendar} />
                     )}
 
-                    {activeSideTab === 'translate' && (
+                    {activeTab === 'translate' && (
                         <TranslatePanel
                             currentDocumentText={currentDocumentText}
-                            onGetSelection={onGetSelection}
-                            onTranslateDocument={() => {
-                                // Handle full document translation result
-                            }}
-                            onTranslateBilingual={() => {
-                                // Handle bilingual translation result
-                            }}
+                            onGetSelection={getSelection}
+                            onTranslateDocument={() => { }}
+                            onTranslateBilingual={() => { }}
                         />
                     )}
 
-                    <div style={{ display: activeSideTab === 'world-clock' ? 'block' : 'none', height: '100%' }}>
+                    <div style={{ display: activeTab === 'world-clock' ? 'block' : 'none', height: '100%' }}>
                         <WorldClockPane />
                     </div>
                 </div>
@@ -256,5 +278,3 @@ const SidebarBase: React.FC<SidebarProps> = ({
         </div>
     );
 };
-
-export const Sidebar = React.memo(SidebarBase);
