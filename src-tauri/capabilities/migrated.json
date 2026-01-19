@@ -3,7 +3,8 @@
   "description": "permissions that were migrated from v1",
   "local": true,
   "windows": [
-    "main"
+    "main",
+    "win-*"
   ],
   "permissions": [
     "core:default",
@@ -12,7 +13,6 @@
     "fs:allow-read-dir",
     "fs:allow-copy-file",
     "fs:allow-mkdir",
-    "fs:allow-remove",
     "fs:allow-remove",
     "fs:allow-rename",
     "fs:allow-exists",
@@ -27,6 +27,7 @@
       ]
     },
     "core:window:allow-create",
+    "core:webview:allow-create-webview-window",
     "core:window:allow-center",
     "core:window:allow-request-user-attention",
     "core:window:allow-set-resizable",

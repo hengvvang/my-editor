@@ -5,10 +5,9 @@ import {
     Command, Copy, Scissors, Clipboard, Undo, Redo, Check,
     Info, RefreshCw, Power, Keyboard, Monitor, Github
 } from 'lucide-react';
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { Window } from '@tauri-apps/api/window';
+import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getName, getVersion, getTauriVersion } from '@tauri-apps/api/app';
-import { open } from '@tauri-apps/plugin-shell';
+import { open, message } from '@tauri-apps/plugin-dialog';
 import { useSettings } from '../../settings/store/SettingsContext';
 
 const appWindow = getCurrentWebviewWindow();
@@ -172,25 +171,50 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
         if (isMenuBarOpen) setActiveCategory(null);
     };
 
-    const handleNewWindow = async () => {
-        closeAll();
-        try {
-            const label = `win-${Date.now()}`;
-            // @ts-ignore
-            new Window(label, {
-                url: 'index.html',
-                title: 'Typoly',
-                width: 1000,
-                height: 800,
-            });
-        } catch (e) {
-            console.error("Failed to open new window", e);
-        }
-    };
-
     const closeAll = () => {
         setIsMenuBarOpen(false);
         setActiveCategory(null);
+    };
+
+    const dispatchEditorAction = (action: string, payload?: any) => {
+        window.dispatchEvent(new CustomEvent('editor:action', { detail: { action, payload } }));
+        closeAll();
+    };
+
+    const handleNewWindow = async () => {
+        closeAll();
+        try {
+            const currentLabel = appWindow.label;
+            console.log(`[SidebarMenu] Current window label: ${currentLabel}`);
+
+            // Ensure unique label
+            const label = `win-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            console.log(`[SidebarMenu] Attempting to create new window: ${label}`);
+
+            const newWin = new WebviewWindow(label, {
+                url: '/',
+                title: 'Typoly',
+                width: 1000,
+                height: 800,
+                decorations: true,
+                center: true,
+                focus: true
+            });
+
+            // Listeners for debugging
+            newWin.once('tauri://created', function () {
+                console.log(`[SidebarMenu] Window created successfully: ${label}`);
+            });
+
+            newWin.once('tauri://error', function (e) {
+                console.error(`[SidebarMenu] Window creation error for ${label}:`, e);
+                message(`Failed to create window: ${JSON.stringify(e)}`, { title: 'Error', kind: 'error' });
+            });
+
+        } catch (e: any) {
+            console.error("[SidebarMenu] Failed to execute handleNewWindow", e);
+            message(`Exception during window creation: ${e?.message || e}`, { title: 'Error', kind: 'error' });
+        }
     };
 
     // --- Menu Definitions ---
@@ -206,30 +230,30 @@ export const SidebarMenu: React.FC<{ compact?: boolean }> = ({ compact = false }
         ],
         File: [
             { type: 'item', label: 'New Window', icon: FilePlus, shortcut: 'Ctrl+Shift+N', action: handleNewWindow },
-            { type: 'item', label: 'Open Folder...', icon: FolderPlus, shortcut: 'Ctrl+O' },
+            { type: 'item', label: 'Open Folder...', icon: FolderPlus, shortcut: 'Ctrl+O', action: () => dispatchEditorAction('open-folder') },
             { type: 'separator' },
-            { type: 'item', label: 'Save', shortcut: 'Ctrl+S' },
-            { type: 'item', label: 'Save As...', shortcut: 'Ctrl+Shift+S' },
+            { type: 'item', label: 'Save', shortcut: 'Ctrl+S', action: () => dispatchEditorAction('save') },
+            { type: 'item', label: 'Save As...', shortcut: 'Ctrl+Shift+S', action: () => dispatchEditorAction('save-as') },
             { type: 'separator' },
             { type: 'item', label: 'Exit', icon: LogOut, action: () => appWindow.close() },
         ],
         Edit: [
-            { type: 'item', label: 'Undo', icon: Undo, shortcut: 'Ctrl+Z' },
-            { type: 'item', label: 'Redo', icon: Redo, shortcut: 'Ctrl+Y' },
+            { type: 'item', label: 'Undo', icon: Undo, shortcut: 'Ctrl+Z', action: () => dispatchEditorAction('undo') },
+            { type: 'item', label: 'Redo', icon: Redo, shortcut: 'Ctrl+Y', action: () => dispatchEditorAction('redo') },
             { type: 'separator' },
-            { type: 'item', label: 'Cut', icon: Scissors, shortcut: 'Ctrl+X' },
-            { type: 'item', label: 'Copy', icon: Copy, shortcut: 'Ctrl+C' },
-            { type: 'item', label: 'Paste', icon: Clipboard, shortcut: 'Ctrl+V' },
+            { type: 'item', label: 'Cut', icon: Scissors, shortcut: 'Ctrl+X', action: () => dispatchEditorAction('cut') },
+            { type: 'item', label: 'Copy', icon: Copy, shortcut: 'Ctrl+C', action: () => dispatchEditorAction('copy') },
+            { type: 'item', label: 'Paste', icon: Clipboard, shortcut: 'Ctrl+V', action: () => dispatchEditorAction('paste') },
         ],
         View: [
-            { type: 'item', label: 'Command Palette...', icon: Command, shortcut: 'Ctrl+Shift+P' },
+            { type: 'item', label: 'Command Palette...', icon: Command, shortcut: 'Ctrl+Shift+P', action: () => dispatchEditorAction('command-palette') },
             { type: 'separator' },
-            { type: 'item', label: 'Editor Layout', icon: Monitor },
+            { type: 'item', label: 'Editor Layout', icon: Monitor }, // Missing impl
             { type: 'item', label: 'Appearance', icon: Settings, action: () => setSettingsOpen(true) },
             { type: 'separator' },
-            { type: 'item', label: 'Zoom In', shortcut: 'Ctrl+=' },
-            { type: 'item', label: 'Zoom Out', shortcut: 'Ctrl+-' },
-            { type: 'item', label: 'Reset Zoom', shortcut: 'Ctrl+0' },
+            { type: 'item', label: 'Zoom In', shortcut: 'Ctrl+=', action: () => dispatchEditorAction('zoom-in') },
+            { type: 'item', label: 'Zoom Out', shortcut: 'Ctrl+-', action: () => dispatchEditorAction('zoom-out') },
+            { type: 'item', label: 'Reset Zoom', shortcut: 'Ctrl+0', action: () => dispatchEditorAction('zoom-reset') },
         ],
         Help: [
             { type: 'item', label: 'Documentation', icon: FilePlus },

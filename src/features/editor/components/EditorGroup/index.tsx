@@ -4,6 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { vim } from "@replit/codemirror-vim";
 import { syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
+import { undo, redo } from "@codemirror/commands";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { latexLivePreview } from "../../utils/codemirror-latex";
 
@@ -15,6 +16,7 @@ import { StatusBar, colorSchemes } from "./StatusBar";
 import { CodeSnap } from "../CodeSnap";
 import { EditorViewStateManager } from "../../hooks/useEditorViewState";
 import { save } from '@tauri-apps/plugin-dialog';
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { invoke } from '@tauri-apps/api/core';
 import { useSettings } from "../../../settings/store/SettingsContext";
 
@@ -356,6 +358,124 @@ export const EditorGroup: React.FC<EditorGroupProps> = ({
 
         setTimeout(() => { if (isScrollingRef.current === 'preview') isScrollingRef.current = null; }, 100);
     }, [isSyncScrollEnabled, docType]);
+
+    // --- Global Command Listener (for Sidebar Menu) ---
+    useEffect(() => {
+        if (!isActiveGroup) return;
+
+        const handleCommand = async (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (!detail || !detail.action) return;
+
+            const view = editorViewRef.current;
+
+            switch (detail.action) {
+                case 'undo':
+                    if (view) {
+                        try { undo(view); view.focus(); } catch (e) { }
+                    }
+                    break;
+                case 'redo':
+                    if (view) {
+                        try { redo(view); view.focus(); } catch (e) { }
+                    }
+                    break;
+                case 'cut':
+                    if (view) {
+                        const selection = view.state.selection.main;
+                        const text = view.state.sliceDoc(selection.from, selection.to);
+                        if (text) {
+                            await navigator.clipboard.writeText(text);
+                            view.dispatch({
+                                changes: { from: selection.from, to: selection.to, insert: "" },
+                                scrollIntoView: true
+                            });
+                            view.focus();
+                        }
+                    }
+                    else {
+                        // Fallback
+                        document.execCommand('cut');
+                    }
+                    break;
+                case 'copy':
+                    if (view) {
+                        const selection = view.state.selection.main;
+                        const text = view.state.sliceDoc(selection.from, selection.to);
+                        if (text) {
+                            await navigator.clipboard.writeText(text);
+                            view.focus();
+                        }
+                    }
+                    else {
+                        // Fallback
+                        document.execCommand('copy');
+                    }
+                    break;
+                case 'paste':
+                    if (view) {
+                        try {
+                            const text = await navigator.clipboard.readText();
+                            view.dispatch({
+                                changes: { from: view.state.selection.main.head, insert: text },
+                                scrollIntoView: true
+                            });
+                            view.focus();
+                        } catch (err) {
+                            console.error('Paste failed', err);
+                        }
+                    } else {
+                        // Fallback - paste is hard to invoke programmatically without permissions or focus
+                    }
+                    break;
+                case 'save':
+                    onSave && onSave();
+                    break;
+                case 'save-as':
+                    // Trigger save but we need to signal it's a "save as"
+                    // Currently EditorGroup doesn't expose a saveAs method directly in props
+                    // But maybe we can simulate it or pass it down.
+                    // For now, if activePath exists, calling save() just saves.
+                    // We need a way to force "save as" dialog.
+
+                    // Check if onSave handles params? No.
+                    // We can emit a specific request or use a prop in context?
+                    // Quick fix: Use the invoke directly or let the parent handle 'save-as' event?
+                    // Actually, App.tsx handles saves via useDocuments.
+                    // But EditorGroup calls onSave prop.
+                    // Let's rely on the parent App to handle 'save-as' globally if it's listening, OR
+                    // we can't handle 'save-as' inside EditorGroup easily if it implies changing the path prop.
+
+                    // BETTER: Dispatch a new event that App.tsx catches for 'save-as' since that involves file dialogs
+                    // which is higher level than just "write content".
+                    // However, we are INSIDE the listener for 'editor:action'.
+                    // If we don't handle it here, maybe App.tsx handles it?
+                    // But Sidebar dispatching 'save-as' goes here first?
+                    // Let's propagate it up or handle it if we have access.
+
+                    // Actually, onSave provided by App -> useEditorGroups doesn't support "save as".
+                    // EditorGroup just knows "save content".
+
+                    // Let's modify App.tsx to handle 'save-as' globally instead of here
+                    // because save-as affects the document registry.
+                    break;
+                case 'zoom-in':
+                    const zoomIn = parseFloat(document.body.style.zoom || '1') + 0.1;
+                    document.body.style.zoom = zoomIn.toString();
+                    break;
+                case 'zoom-out':
+                    const zoomOut = Math.max(0.5, parseFloat(document.body.style.zoom || '1') - 0.1);
+                    document.body.style.zoom = zoomOut.toString();
+                    break;
+                case 'zoom-reset':
+                    document.body.style.zoom = '1';
+                    break;
+            }
+        };
+
+        window.addEventListener('editor:action', handleCommand);
+        return () => window.removeEventListener('editor:action', handleCommand);
+    }, [isActiveGroup, onSave]);
 
     useEffect(() => {
         const editorScroller = editorViewRef.current?.scrollDOM;

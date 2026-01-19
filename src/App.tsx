@@ -60,7 +60,6 @@ function App() {
     const documentsRef = useRef(documents);
     useEffect(() => { documentsRef.current = documents; }, [documents]);
 
-
     // Explicit close handler for the UI button
     const handleCloseApp = useCallback(async () => {
         try {
@@ -161,6 +160,51 @@ function App() {
     const outline = useOutline(documents, groups, activeGroupId);
 
     const search = useSearch();
+
+    // --- Global Command Listener (Workspace Level) ---
+    useEffect(() => {
+        const handleCommand = async (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (!detail || !detail.action) return;
+
+            switch (detail.action) {
+                case 'open-folder':
+                    await openFolder();
+                    break;
+                case 'save-as':
+                    // Get currently active file path
+                    const currentPath = getOpenFilePath();
+                    if (currentPath) {
+                        // Trigger save as logic
+                        const doc = documents[currentPath];
+                        if (doc) {
+                            try {
+                                const selected = await save({
+                                    defaultPath: currentPath
+                                });
+                                if (selected) {
+                                    // Save content to new path
+                                    await invoke("save_content", { path: selected, content: doc.content });
+                                    // Load new file and replace tab? Or just open new tab?
+                                    // Visual Studio Code behavior: Replace current tab with new file.
+                                    await loadFile(selected);
+                                    // Close old tab if it was untitled? Or keep it?
+                                    // Usually Save As replaces the editor context.
+                                    // For simplicity, let's just open the new one.
+                                    // Ideally we swap the tab.
+                                }
+                            } catch (e) {
+                                console.error("Save As failed", e);
+                            }
+                        }
+                    }
+                    break;
+            }
+        };
+
+        window.addEventListener('editor:action', handleCommand);
+        return () => window.removeEventListener('editor:action', handleCommand);
+    }, [openFolder, documents, groups, activeGroupId, loadFile]);
 
     // Sync sidebar open state when workspace loads
     useEffect(() => {
