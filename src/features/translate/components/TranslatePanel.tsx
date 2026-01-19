@@ -60,28 +60,35 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
     }, [selectedText]);
 
     const handleTranslate = async (text?: string) => {
-        let textToTranslate = text || inputText;
+        let textToTranslate = text;
 
-        // If no text in input, try to get selection from editor
-        if (!textToTranslate.trim() && onGetSelection) {
-            const selection = onGetSelection();
-            if (selection.trim()) {
-                textToTranslate = selection;
-                setInputText(selection); // Also update the input field
+        // Priority: 1. Passed text parameter, 2. Editor selection, 3. Input text
+        if (!textToTranslate?.trim()) {
+            // Check editor selection first (higher priority)
+            if (onGetSelection) {
+                const selection = onGetSelection();
+                if (selection.trim()) {
+                    textToTranslate = selection;
+                    setInputText(selection); // Sync to input field
+                }
+            }
+            // Fall back to input text if no editor selection
+            if (!textToTranslate?.trim() && inputText.trim()) {
+                textToTranslate = inputText;
             }
         }
 
-        if (!textToTranslate.trim()) return;
+        if (!textToTranslate?.trim()) return;
         await translateText(textToTranslate);
     };
 
-    // Check if there's content to translate (input text or editor selection)
+    // Check if there's content to translate (editor selection has priority)
     const hasTranslatableContent = (): boolean => {
-        if (inputText.trim()) return true;
         if (onGetSelection) {
             const selection = onGetSelection();
             if (selection.trim()) return true;
         }
+        if (inputText.trim()) return true;
         return false;
     };
 
@@ -164,66 +171,78 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
 
     return (
         <div className="flex flex-col h-full bg-gradient-to-b from-slate-50/80 to-white">
-            {/* Compact Header with integrated controls */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg shadow-sm">
+            {/* Compact Header: Logo + Mode Tabs + Actions in one row */}
+            <div className="flex items-center gap-2 px-2.5 py-1.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-sm">
+                {/* Logo with Title */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="px-1.5 py-1 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg">
                         <Languages size={14} className="text-white" />
                     </div>
-                    <span className="text-xs font-bold text-slate-700 tracking-tight">Translate</span>
+                    <span className="text-xs font-semibold text-slate-700">Translate</span>
                 </div>
-                <div className="flex items-center gap-0.5">
+
+                {/* Divider */}
+                <div className="w-px h-5 bg-slate-200" />
+
+                {/* Mode Tabs - Wider pill buttons */}
+                <div className="flex gap-0.5 bg-slate-100/80 rounded-lg p-0.5">
+                    {[
+                        { id: 'selection', icon: MousePointer, label: 'Text' },
+                        { id: 'fullpage', icon: FileText, label: 'Page' },
+                        { id: 'bilingual', icon: Columns, label: 'Dual' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setMode(tab.id as TranslateMode)}
+                            className={`px-3.5 py-1 flex items-center justify-center gap-1.5 rounded-md text-[11px] font-medium transition-all duration-150 ${mode === tab.id
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                        >
+                            <tab.icon size={12} />
+                            <span>{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Spacer */}
+                <div className="flex-1" />
+
+                {/* Divider */}
+                <div className="w-px h-5 bg-slate-200" />
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
                     <button
                         onClick={() => { setShowHistory(!showHistory); setShowSettings(false); }}
-                        className={`p-1.5 rounded-lg transition-all duration-200 ${showHistory
-                            ? 'bg-blue-500 text-white shadow-sm scale-105'
+                        className={`px-2 py-1.5 flex items-center justify-center rounded-lg transition-all duration-150 ${showHistory
+                            ? 'bg-blue-500 text-white'
                             : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
-                        title="Translation History"
+                        title="History"
                     >
                         <History size={13} />
                     </button>
                     <button
                         onClick={() => { setShowSettings(!showSettings); setShowHistory(false); }}
-                        className={`p-1.5 rounded-lg transition-all duration-200 ${showSettings
-                            ? 'bg-blue-500 text-white shadow-sm scale-105'
+                        className={`px-2 py-1.5 flex items-center justify-center rounded-lg transition-all duration-150 ${showSettings
+                            ? 'bg-blue-500 text-white'
                             : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
                         title="Settings"
                     >
-                        <Settings size={13} />
+                        <Settings size={12} />
                     </button>
                 </div>
             </div>
 
-            {/* Mode Tabs - More refined look */}
-            <div className="flex px-2 pt-2 pb-1 gap-1 bg-white/40">
-                {[
-                    { id: 'selection', icon: MousePointer, label: 'Text', color: 'blue' },
-                    { id: 'fullpage', icon: FileText, label: 'Page', color: 'blue' },
-                    { id: 'bilingual', icon: Columns, label: 'Dual', color: 'indigo' },
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setMode(tab.id as TranslateMode)}
-                        className={`flex-1 py-1.5 text-[11px] font-medium flex items-center justify-center gap-1 rounded-lg transition-all duration-200 ${mode === tab.id
-                                ? `bg-${tab.color}-500 text-white shadow-sm`
-                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-                            }`}
-                    >
-                        <tab.icon size={11} />
-                        <span>{tab.label}</span>
-                    </button>
-                ))}
-            </div>
-
             {/* Language Selector - Compact and elegant */}
-            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-100">
+            <div className="flex items-center gap-1.5 px-3 py-1 border-b border-slate-100">
                 {/* Source Language */}
                 <div className="relative flex-1" data-dropdown="source">
                     <button
                         onClick={(e) => { e.stopPropagation(); setSourceLangOpen(!sourceLangOpen); setTargetLangOpen(false); }}
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg transition-all duration-200 ${sourceLangOpen
-                                ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                                : 'bg-slate-100/80 hover:bg-slate-200/80 border border-transparent'
+                            ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                            : 'bg-slate-100/80 hover:bg-slate-200/80 border border-transparent'
                             }`}
                     >
                         <span className="truncate font-medium">{sourceLang?.name || 'Auto Detect'}</span>
@@ -238,8 +257,8 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                             key={lang.code}
                                             onClick={() => { updateSettings({ sourceLanguage: lang.code }); setSourceLangOpen(false); }}
                                             className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded-md transition-colors ${settings.sourceLanguage === lang.code
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                                                 }`}
                                         >
                                             {lang.name}
@@ -253,8 +272,8 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                         key={lang.code}
                                         onClick={() => { updateSettings({ sourceLanguage: lang.code }); setSourceLangOpen(false); }}
                                         className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${settings.sourceLanguage === lang.code
-                                                ? 'bg-blue-50 text-blue-600 font-medium'
-                                                : 'hover:bg-slate-50 text-slate-600'
+                                            ? 'bg-blue-50 text-blue-600 font-medium'
+                                            : 'hover:bg-slate-50 text-slate-600'
                                             }`}
                                     >
                                         {lang.name}
@@ -280,8 +299,8 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                     <button
                         onClick={(e) => { e.stopPropagation(); setTargetLangOpen(!targetLangOpen); setSourceLangOpen(false); }}
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg transition-all duration-200 ${targetLangOpen
-                                ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                                : 'bg-slate-100/80 hover:bg-slate-200/80 border border-transparent'
+                            ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                            : 'bg-slate-100/80 hover:bg-slate-200/80 border border-transparent'
                             }`}
                     >
                         <span className="truncate font-medium">{targetLang?.name || 'Chinese'}</span>
@@ -296,8 +315,8 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                             key={lang.code}
                                             onClick={() => { updateSettings({ targetLanguage: lang.code }); setTargetLangOpen(false); }}
                                             className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded-md transition-colors ${settings.targetLanguage === lang.code
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                                                 }`}
                                         >
                                             {lang.name}
@@ -311,8 +330,8 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                         key={lang.code}
                                         onClick={() => { updateSettings({ targetLanguage: lang.code }); setTargetLangOpen(false); }}
                                         className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${settings.targetLanguage === lang.code
-                                                ? 'bg-blue-50 text-blue-600 font-medium'
-                                                : 'hover:bg-slate-50 text-slate-600'
+                                            ? 'bg-blue-50 text-blue-600 font-medium'
+                                            : 'hover:bg-slate-50 text-slate-600'
                                             }`}
                                     >
                                         {lang.name}
@@ -335,8 +354,8 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                     key={p.id}
                                     onClick={() => updateSettings({ defaultProvider: p.id })}
                                     className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-all duration-200 ${settings.defaultProvider === p.id
-                                            ? 'bg-blue-500 text-white shadow-sm'
-                                            : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
+                                        ? 'bg-blue-500 text-white shadow-sm'
+                                        : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
                                         }`}
                                 >
                                     {p.name}
@@ -386,14 +405,14 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
             {/* Main Content Area - Mode Specific */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {mode === 'selection' ? (
-                    /* Selection Mode - Text Input */
-                    <div className="flex-1 flex flex-col min-h-0 p-3 gap-2.5">
-                        {/* Original Text */}
-                        <div className="flex-1 flex flex-col min-h-[70px]">
-                            <div className="flex items-center justify-between mb-1.5">
-                                <div className="flex items-center gap-1.5">
+                    /* Selection Mode - Compact input, large result */
+                    <div className="flex-1 flex flex-col min-h-0 p-3 gap-2">
+                        {/* Compact Input Area */}
+                        <div className="shrink-0">
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="flex items-center gap-1 flex-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Original</span>
+                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Input</span>
                                 </div>
                                 {inputText && (
                                     <button
@@ -401,9 +420,25 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                         className="text-slate-300 hover:text-red-400 p-0.5 transition-colors"
                                         title="Clear"
                                     >
-                                        <X size={11} />
+                                        <X size={10} />
                                     </button>
                                 )}
+                                {/* Inline Translate Button */}
+                                <button
+                                    onClick={() => handleTranslate()}
+                                    disabled={isTranslating || !hasTranslatableContent()}
+                                    className={`px-3 py-1 text-[10px] font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 ${isTranslating || !hasTranslatableContent()
+                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm'
+                                        }`}
+                                >
+                                    {isTranslating ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                    ) : (
+                                        <Sparkles size={10} />
+                                    )}
+                                    <span>{isTranslating ? 'Translating' : 'Translate'}</span>
+                                </button>
                             </div>
                             <textarea
                                 ref={inputRef}
@@ -415,170 +450,157 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                                         handleTranslate();
                                     }
                                 }}
-                                placeholder="Enter text or select in editor..."
-                                className="flex-1 w-full resize-none border border-slate-200 rounded-xl p-2.5 text-sm leading-relaxed bg-white/80 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
+                                placeholder="Enter text or select in editor... (⌘↵)"
+                                rows={6}
+                                className="w-full resize-none border border-slate-200 rounded-xl px-3 py-3 text-sm leading-relaxed bg-white/80 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
                             />
                         </div>
 
-                        {/* Translate Button - Enhanced */}
-                        <button
-                            onClick={() => handleTranslate()}
-                            disabled={isTranslating || !hasTranslatableContent()}
-                            className={`w-full py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${isTranslating || !hasTranslatableContent()
-                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99]'
-                                }`}
-                        >
-                            {isTranslating ? (
-                                <>
-                                    <Loader2 size={14} className="animate-spin" />
-                                    <span>Translating...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles size={14} />
-                                    <span>{inputText.trim() ? 'Translate' : 'Translate Selection'}</span>
-                                    <span className="text-[10px] opacity-70 font-normal ml-1">⌘↵</span>
-                                </>
-                            )}
-                        </button>
-
-                        {/* Translated Text */}
-                        <div className="flex-1 flex flex-col min-h-[70px]">
-                            <div className="flex items-center justify-between mb-1.5">
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Translation</span>
+                        {/* Translation Result - Takes remaining space */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-1 shrink-0">
+                                <div className="flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500" />
+                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Translation</span>
                                 </div>
-                                {lastResult?.translatedText && (
-                                    <button
-                                        onClick={handleCopy}
-                                        className={`p-1 rounded-md transition-all duration-200 ${copied ? 'bg-green-50' : 'hover:bg-blue-50'}`}
-                                        title="Copy to clipboard"
-                                    >
-                                        {copied ? <Check size={11} className="text-green-500" /> : <Copy size={11} className="text-slate-400 hover:text-blue-500" />}
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-1">
+                                    {lastResult?.translatedText && (
+                                        <>
+                                            <button
+                                                onClick={handleCopy}
+                                                className={`p-1.5 rounded-lg transition-all duration-200 flex items-center gap-1 text-[10px] ${copied
+                                                    ? 'bg-green-50 text-green-600'
+                                                    : 'hover:bg-blue-50 text-slate-400 hover:text-blue-500'
+                                                    }`}
+                                                title="Copy to clipboard"
+                                            >
+                                                {copied ? <Check size={11} /> : <Copy size={11} />}
+                                                <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex-1 w-full border border-slate-200 rounded-xl p-2.5 text-sm leading-relaxed bg-gradient-to-br from-blue-50/50 to-white overflow-auto">
+                            <div className="flex-1 min-h-0 w-full border-2 border-blue-100 rounded-2xl p-3 text-sm leading-relaxed bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/30 overflow-auto shadow-inner">
                                 {isTranslating ? (
-                                    <div className="flex items-center gap-2 text-blue-400">
-                                        <Loader2 size={14} className="animate-spin" />
-                                        <span className="text-xs">Translating...</span>
+                                    <div className="flex flex-col items-center justify-center h-full gap-3 text-blue-400">
+                                        <div className="relative">
+                                            <div className="w-10 h-10 border-3 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                                            <Sparkles size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500" />
+                                        </div>
+                                        <span className="text-xs font-medium">Translating...</span>
                                     </div>
                                 ) : lastResult?.success ? (
-                                    <span className="text-slate-700 whitespace-pre-wrap">{lastResult.translatedText}</span>
+                                    <div className="h-full">
+                                        <p className="text-slate-800 whitespace-pre-wrap text-[13px] leading-[1.8] font-normal">{lastResult.translatedText}</p>
+                                    </div>
                                 ) : lastResult?.error ? (
-                                    <div className="flex items-center gap-2 text-red-500">
-                                        <X size={12} />
-                                        <span className="text-xs">{lastResult.error}</span>
+                                    <div className="flex flex-col items-center justify-center h-full gap-2 text-red-400">
+                                        <X size={20} />
+                                        <span className="text-xs text-center">{lastResult.error}</span>
                                     </div>
                                 ) : (
-                                    <span className="text-slate-300 italic text-xs">Translation will appear here...</span>
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                                        <Languages size={32} className="mb-3 opacity-40" />
+                                        <span className="text-xs">Translation will appear here</span>
+                                        <span className="text-[10px] mt-1 opacity-60">Enter text above or select in editor</span>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
                 ) : mode === 'fullpage' ? (
-                    /* Full Page Mode - Translate entire document */
-                    <div className="flex-1 flex flex-col min-h-0 p-3 gap-2.5">
-                        {/* Info Banner */}
-                        <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100/80 rounded-xl">
-                            <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                <FileText size={13} className="text-blue-600" />
+                    /* Full Page Mode - Same layout as Dual */
+                    <div className="flex-1 flex flex-col min-h-0 p-3 gap-2">
+                        {/* Compact Info + Button Row */}
+                        <div className="shrink-0 flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100/80 rounded-xl">
+                                <FileText size={14} className="text-blue-600 shrink-0" />
+                                <span className="text-[10px] text-blue-700 font-medium">{charCount.toLocaleString()} chars • {wordCount.toLocaleString()} words</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <span className="text-[11px] font-medium text-blue-800">Full Document Translation</span>
-                                <div className="text-[10px] text-blue-600/70 mt-0.5">{charCount.toLocaleString()} characters • {wordCount.toLocaleString()} words</div>
-                            </div>
+                            <button
+                                onClick={handleTranslateFullPage}
+                                disabled={isTranslating || !currentDocumentText.trim()}
+                                className={`shrink-0 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200 flex items-center gap-1.5 ${isTranslating || !currentDocumentText.trim()
+                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm'
+                                    }`}
+                            >
+                                {isTranslating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                <span>{isTranslating ? 'Translating...' : 'Translate'}</span>
+                            </button>
                         </div>
 
-                        {/* Translate Button */}
-                        <button
-                            onClick={handleTranslateFullPage}
-                            disabled={isTranslating || !currentDocumentText.trim()}
-                            className={`w-full py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${isTranslating || !currentDocumentText.trim()
-                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99]'
-                                }`}
-                        >
-                            {isTranslating ? (
-                                <>
-                                    <Loader2 size={15} className="animate-spin" />
-                                    <span>Translating Document...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles size={15} />
-                                    <span>Translate Full Page</span>
-                                </>
-                            )}
-                        </button>
-
-                        {/* Translation Result */}
-                        <div className="flex-1 flex flex-col min-h-[100px]">
-                            <div className="flex items-center justify-between mb-1.5">
+                        {/* Translation Result - Maximum space */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-1.5 shrink-0">
                                 <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Result</span>
+                                    <div className="w-2 h-2 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500" />
+                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Full Page Translation</span>
                                 </div>
-                                {lastResult?.translatedText && mode === 'fullpage' && (
-                                    <button
-                                        onClick={handleCopy}
-                                        className={`p-1 rounded-md transition-all duration-200 ${copied ? 'bg-green-50' : 'hover:bg-blue-50'}`}
-                                        title="Copy to clipboard"
-                                    >
-                                        {copied ? <Check size={11} className="text-green-500" /> : <Copy size={11} className="text-slate-400 hover:text-blue-500" />}
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-1">
+                                    {lastResult?.translatedText && mode === 'fullpage' && (
+                                        <button
+                                            onClick={handleCopy}
+                                            className={`p-1.5 rounded-lg transition-all duration-200 flex items-center gap-1 text-[10px] ${copied
+                                                ? 'bg-green-50 text-green-600'
+                                                : 'hover:bg-blue-50 text-slate-400 hover:text-blue-500'
+                                                }`}
+                                            title="Copy to clipboard"
+                                        >
+                                            {copied ? <Check size={11} /> : <Copy size={11} />}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex-1 w-full border border-slate-200 rounded-xl p-2.5 text-sm bg-gradient-to-br from-blue-50/30 to-white overflow-auto">
+                            <div className="flex-1 min-h-0 w-full border-2 border-blue-100 rounded-2xl p-3 text-sm bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/30 overflow-auto shadow-inner">
                                 {isTranslating ? (
-                                    <div className="flex flex-col items-center justify-center h-full gap-2 text-blue-400">
-                                        <Loader2 size={20} className="animate-spin" />
+                                    <div className="flex flex-col items-center justify-center h-full gap-3 text-blue-400">
+                                        <div className="relative">
+                                            <div className="w-10 h-10 border-3 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                                            <Sparkles size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500" />
+                                        </div>
                                         <span className="text-xs font-medium">Translating document...</span>
                                     </div>
                                 ) : lastResult?.success && mode === 'fullpage' ? (
-                                    <span className="text-slate-700 whitespace-pre-wrap text-xs leading-relaxed">{lastResult.translatedText}</span>
+                                    <p className="text-slate-800 whitespace-pre-wrap text-[13px] leading-[1.8] font-normal">{lastResult.translatedText}</p>
                                 ) : lastResult?.error ? (
-                                    <div className="flex items-center justify-center h-full gap-2 text-red-400">
-                                        <X size={16} />
-                                        <span className="text-xs">{lastResult.error}</span>
+                                    <div className="flex flex-col items-center justify-center h-full gap-2 text-red-400">
+                                        <X size={20} />
+                                        <span className="text-xs text-center">{lastResult.error}</span>
                                     </div>
                                 ) : !currentDocumentText.trim() ? (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-300">
-                                        <FileText size={28} className="mb-2 opacity-50" />
+                                        <FileText size={32} className="mb-3 opacity-40" />
                                         <span className="text-xs">No document content</span>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-300">
-                                        <Sparkles size={28} className="mb-2 opacity-50" />
-                                        <span className="text-xs">Click button above to translate</span>
+                                        <Languages size={32} className="mb-3 opacity-40" />
+                                        <span className="text-xs">Click Translate to start</span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* Action Buttons - Compact */}
                         {lastResult?.translatedText && mode === 'fullpage' && (
-                            <div className="flex gap-2">
+                            <div className="shrink-0 flex gap-2">
                                 {onReplaceDocument && (
                                     <button
                                         onClick={handleReplaceDocument}
-                                        className="flex-1 py-2 text-[11px] font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5"
-                                        title="Replace document content"
+                                        className="flex-1 py-1.5 text-[10px] font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg transition-all duration-200 flex items-center justify-center gap-1"
                                     >
-                                        <Replace size={12} />
+                                        <Replace size={10} />
                                         Replace
                                     </button>
                                 )}
                                 {onInsertAtCursor && (
                                     <button
                                         onClick={handleInsertAtCursor}
-                                        className="flex-1 py-2 text-[11px] font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5"
-                                        title="Insert at cursor position"
+                                        className="flex-1 py-1.5 text-[10px] font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg transition-all duration-200 flex items-center justify-center gap-1"
                                     >
-                                        <ClipboardPaste size={12} />
+                                        <ClipboardPaste size={10} />
                                         Insert
                                     </button>
                                 )}
@@ -587,104 +609,96 @@ export const TranslatePanel: React.FC<TranslatePanelProps> = ({
                     </div>
                 ) : (
                     /* Bilingual Mode - Side by side translation */
-                    <div className="flex-1 flex flex-col min-h-0 p-3 gap-2.5">
-                        {/* Info Banner */}
-                        <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50/50 border border-indigo-100/80 rounded-xl">
-                            <div className="p-1.5 bg-indigo-500/10 rounded-lg">
-                                <Columns size={13} className="text-indigo-600" />
+                    <div className="flex-1 flex flex-col min-h-0 p-3 gap-2">
+                        {/* Compact Info + Button Row */}
+                        <div className="shrink-0 flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50/50 border border-indigo-100/80 rounded-xl">
+                                <Columns size={14} className="text-indigo-600 shrink-0" />
+                                <span className="text-[10px] text-indigo-700 font-medium">Original + Translation</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <span className="text-[11px] font-medium text-indigo-800">Bilingual Translation</span>
-                                <div className="text-[10px] text-indigo-600/70 mt-0.5">Original + translated side by side</div>
-                            </div>
+                            <button
+                                onClick={handleTranslateBilingual}
+                                disabled={isTranslating || !currentDocumentText.trim()}
+                                className={`shrink-0 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200 flex items-center gap-1.5 ${isTranslating || !currentDocumentText.trim()
+                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-sm'
+                                    }`}
+                            >
+                                {isTranslating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                <span>{isTranslating ? 'Creating...' : 'Create'}</span>
+                            </button>
                         </div>
 
-                        {/* Translate Button */}
-                        <button
-                            onClick={handleTranslateBilingual}
-                            disabled={isTranslating || !currentDocumentText.trim()}
-                            className={`w-full py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${isTranslating || !currentDocumentText.trim()
-                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99]'
-                                }`}
-                        >
-                            {isTranslating ? (
-                                <>
-                                    <Loader2 size={15} className="animate-spin" />
-                                    <span>Creating Bilingual...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles size={15} />
-                                    <span>Create Bilingual Version</span>
-                                </>
-                            )}
-                        </button>
-
-                        {/* Translation Result */}
-                        <div className="flex-1 flex flex-col min-h-[100px]">
-                            <div className="flex items-center justify-between mb-1.5">
+                        {/* Translation Result - Maximum space */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-1.5 shrink-0">
                                 <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Result</span>
+                                    <div className="w-2 h-2 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500" />
+                                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Bilingual Result</span>
                                 </div>
-                                {lastResult?.translatedText && mode === 'bilingual' && (
-                                    <button
-                                        onClick={handleCopy}
-                                        className={`p-1 rounded-md transition-all duration-200 ${copied ? 'bg-green-50' : 'hover:bg-indigo-50'}`}
-                                        title="Copy to clipboard"
-                                    >
-                                        {copied ? <Check size={11} className="text-green-500" /> : <Copy size={11} className="text-slate-400 hover:text-indigo-500" />}
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-1">
+                                    {lastResult?.translatedText && mode === 'bilingual' && (
+                                        <button
+                                            onClick={handleCopy}
+                                            className={`p-1.5 rounded-lg transition-all duration-200 flex items-center gap-1 text-[10px] ${copied
+                                                ? 'bg-green-50 text-green-600'
+                                                : 'hover:bg-indigo-50 text-slate-400 hover:text-indigo-500'
+                                                }`}
+                                            title="Copy to clipboard"
+                                        >
+                                            {copied ? <Check size={11} /> : <Copy size={11} />}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex-1 w-full border border-slate-200 rounded-xl p-2.5 text-sm bg-gradient-to-br from-indigo-50/30 to-white overflow-auto">
+                            <div className="flex-1 min-h-0 w-full border-2 border-indigo-100 rounded-2xl p-3 text-sm bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/30 overflow-auto shadow-inner">
                                 {isTranslating ? (
-                                    <div className="flex flex-col items-center justify-center h-full gap-2 text-indigo-400">
-                                        <Loader2 size={20} className="animate-spin" />
+                                    <div className="flex flex-col items-center justify-center h-full gap-3 text-indigo-400">
+                                        <div className="relative">
+                                            <div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
+                                            <Sparkles size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-500" />
+                                        </div>
                                         <span className="text-xs font-medium">Creating bilingual version...</span>
                                     </div>
                                 ) : lastResult?.success && mode === 'bilingual' ? (
-                                    <span className="text-slate-700 whitespace-pre-wrap text-xs leading-relaxed">{lastResult.translatedText}</span>
+                                    <p className="text-slate-800 whitespace-pre-wrap text-[13px] leading-[1.8] font-normal">{lastResult.translatedText}</p>
                                 ) : lastResult?.error ? (
-                                    <div className="flex items-center justify-center h-full gap-2 text-red-400">
-                                        <X size={16} />
-                                        <span className="text-xs">{lastResult.error}</span>
+                                    <div className="flex flex-col items-center justify-center h-full gap-2 text-red-400">
+                                        <X size={20} />
+                                        <span className="text-xs text-center">{lastResult.error}</span>
                                     </div>
                                 ) : !currentDocumentText.trim() ? (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-300">
-                                        <Columns size={28} className="mb-2 opacity-50" />
+                                        <Columns size={32} className="mb-3 opacity-40" />
                                         <span className="text-xs">No document content</span>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-300">
-                                        <Sparkles size={28} className="mb-2 opacity-50" />
-                                        <span className="text-xs">Click button above to create bilingual</span>
+                                        <Languages size={32} className="mb-3 opacity-40" />
+                                        <span className="text-xs">Click Create to start</span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* Action Buttons - Compact */}
                         {lastResult?.translatedText && mode === 'bilingual' && (
-                            <div className="flex gap-2">
+                            <div className="shrink-0 flex gap-2">
                                 {onReplaceDocument && (
                                     <button
                                         onClick={handleReplaceDocument}
-                                        className="flex-1 py-2 text-[11px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5"
-                                        title="Replace document content"
+                                        className="flex-1 py-1.5 text-[10px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-all duration-200 flex items-center justify-center gap-1"
                                     >
-                                        <Replace size={12} />
+                                        <Replace size={10} />
                                         Replace
                                     </button>
                                 )}
                                 {onInsertAtCursor && (
                                     <button
                                         onClick={handleInsertAtCursor}
-                                        className="flex-1 py-2 text-[11px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5"
-                                        title="Insert at cursor position"
+                                        className="flex-1 py-1.5 text-[10px] font-medium text-slate-600 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-all duration-200 flex items-center justify-center gap-1"
                                     >
-                                        <ClipboardPaste size={12} />
+                                        <ClipboardPaste size={10} />
                                         Insert
                                     </button>
                                 )}
