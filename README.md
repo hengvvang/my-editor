@@ -36,6 +36,29 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
         *   **Ergonomic Integration**: Built directly into the editor as a dedicated tab type.
         *   **Sessions**: Save and resume your practice sessions (stored as JSON files).
 
+### 🌐 Integrated Translation
+*   **Multi-Mode Translation Panel**:
+    *   **Selection Mode**: Translate selected text or manual input with instant results.
+        *   *Editor Integration*: Click "Translate Selection" to automatically grab selected text from the editor.
+        *   *Keyboard Shortcut*: Press `Ctrl+Enter` to translate instantly.
+    *   **Full Page Mode**: Translate the entire document content with one click.
+        *   *Document Info*: Shows character and word count before translation.
+        *   *Action Buttons*: Replace document or insert at cursor after translation.
+    *   **Bilingual Mode**: Create side-by-side original + translated versions.
+        *   *Perfect for Reading*: Great for language learning or reviewing foreign documents.
+*   **Translation Providers**:
+    *   **Google Translate**: Fast and reliable with auto language detection.
+    *   **Bing Translator**: Alternative provider for different translation styles.
+*   **Smart Features**:
+    *   **Quick Language Presets**: One-click switching between EN/中/日/韩.
+    *   **Language Swap**: Instantly swap source and target languages.
+    *   **Translation History**: Access recent translations with one click.
+    *   **Copy to Clipboard**: Easy copying of translated results.
+*   **Elegant UI**:
+    *   *Gradient Buttons*: Modern gradient styling with smooth hover animations.
+    *   *Collapsible Panels*: Settings and history panels slide in/out smoothly.
+    *   *Dual Access*: Available in both sidebar and editor side panel.
+
 ### �🎨 Typography & Design
 *   **System Fonts**: Uses system native fonts for a consistent and optimized reading and writing experience.
     *   *Screen Version*: Optimized non-monospace font used for UI and reading.
@@ -171,6 +194,7 @@ A modern, high-performance hybrid editor for **Markdown**, **Typst**, **Mermaid*
 *   [x] Minimap & Layout fixes
 *   [x] Excalidraw Integration
 *   [x] Typing Practice Tool
+*   [x] Integrated Translation (Google/Bing)
 *   [ ] Custom Themes support.
 *   [ ] Export to PDF/HTML.
 *   [ ] Plugin system.
